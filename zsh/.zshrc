@@ -35,7 +35,17 @@ alias tff='tofu fmt --recursive'
 alias xdl='python /Users/philip/work/slack-posts/x_downloader_gui.py'
 export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
 gwc() {
-  git worktree add /Users/philip/work/worktrees/"$1" "$1" && cursor /Users/philip/work/worktrees/"$1"
+  local worktree_path="/Users/philip/work/worktrees/$1"
+  local claude_src="/Users/philip/.config/dev/claude/ledidi-monorepo"
+  git worktree add "$worktree_path" "$1" || return 1
+  # Copy CLAUDE.local.md files from config to worktree
+  (cd "$claude_src" && find . -name 'CLAUDE.local.md' -exec sh -c '
+    for file; do
+      mkdir -p "'"$worktree_path"'/$(dirname "$file")"
+      cp "$file" "'"$worktree_path"'/$file"
+    done
+  ' _ {} +)
+  cursor "$worktree_path"
 }
 gwd() {
   local worktree_path="/Users/philip/work/worktrees/$1"
