@@ -35,9 +35,10 @@ alias tff='tofu fmt --recursive'
 alias xdl='python /Users/philip/work/slack-posts/x_downloader_gui.py'
 export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
 gwc() {
+  setopt LOCAL_OPTIONS NO_MONITOR
   local worktree_path="/Users/philip/work/worktrees/$1"
   local claude_src="/Users/philip/.config/dev/claude/ledidi-monorepo"
-  git worktree add "$worktree_path" "$1" || return 1
+  git worktree add "$worktree_path" "$1" 2>/dev/null || return 1
   # Copy CLAUDE.local.md files from config to worktree
   (cd "$claude_src" && find . -name 'CLAUDE.local.md' -exec sh -c '
     for file; do
@@ -45,6 +46,32 @@ gwc() {
       cp "$file" "'"$worktree_path"'/$file"
     done
   ' _ {} +)
+  # Run setup-worktree.sh in the new worktree (suppressed output with spinner)
+  cp /Users/philip/.config/dev/setup-worktree.sh "$worktree_path/"
+  local log_file=$(mktemp)
+  (
+    (cd "$worktree_path" && bash setup-worktree.sh > "$log_file" 2>&1) &
+    local pid=$!
+    local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local i=0
+    while kill -0 $pid 2>/dev/null; do
+      printf "\r  ${spin:$i:1} Setting up worktree..."
+      i=$(( (i + 1) % ${#spin} ))
+      sleep 0.1
+    done
+    wait $pid
+    exit $?
+  )
+  local exit_code=$?
+  printf "\r\033[K"
+  if [ $exit_code -ne 0 ]; then
+    echo "Worktree setup failed. Log: $log_file"
+    rm -f "$worktree_path/setup-worktree.sh"
+    return 1
+  fi
+  rm -f "$log_file"
+  rm -f "$worktree_path/setup-worktree.sh"
+  echo "✔ Worktree setup complete"
   cursor "$worktree_path"
 }
 gwd() {
