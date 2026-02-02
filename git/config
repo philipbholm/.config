@@ -1,0 +1,43 @@
+[user]
+    name = Philip Holm
+	  email = philipbaltzersen@gmail.com
+	  signingkey = ~/.ssh/github_private.pub
+[http]
+	  version = HTTP/2
+[init]
+	defaultbranch = master
+[push]
+	  autoSetupRemote = true
+[pull]
+	  ff = only
+[rerere]
+	  enabled = true	
+[branch]
+	  sort = -committerdate
+[column]
+    ui = auto
+[color]
+    ui = auto
+[alias]
+	  last = log -1 HEAD
+	  staash = stash --all
+    unstage = restore --staged
+    db = branch -D
+[core]
+	  editor = cursor --wait
+[diff]
+	  tool = cursor
+[difftool "cursor"]
+	  cmd = cursor --wait --diff $LOCAL $REMOTE
+[merge]
+    tool = cursor
+[mergetool "cursor"]
+	  cmd = cursor --wait $MERGED
+[gpg]
+	  format = ssh
+[commit]
+	  gpgsign = true
+[tag]
+	  gpgsign = true
+[includeIf "gitdir:~/work/"]
+	path = ~/.config/git/work/config

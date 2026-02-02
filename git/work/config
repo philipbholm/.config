@@ -1,0 +1,3 @@
+[user]
+    email = philip.holm@ledidi.no
+    signingkey = ~/.ssh/github_work.pub

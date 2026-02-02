@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Detect macOS appearance mode
+if [[ $(defaults read -g AppleInterfaceStyle 2>/dev/null) == "Dark" ]]; then
+	# Dark mode: light active, dark inactive
+	active_color="0xffe2e2e3"
+	inactive_color="0xff414550"
+else
+	# Light mode: dark active, light inactive
+	active_color="0xff414550"
+	inactive_color="0xffe2e2e3"
+fi
+
+options=(
+	style=round
+	width=10.0
+	hidpi=off
+	active_color=$active_color
+	inactive_color=$inactive_color
+)
+
+borders "${options[@]}"
