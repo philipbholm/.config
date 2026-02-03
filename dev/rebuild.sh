@@ -1,31 +1,50 @@
 #!/bin/bash
 set -euo pipefail
 
+function check_docker() {
+    if ! command -v docker &>/dev/null; then
+        echo "Error: Docker not installed" >&2
+        exit 1
+    fi
+    if ! docker info &>/dev/null; then
+        echo "Error: Docker daemon not running" >&2
+        exit 1
+    fi
+}
+
+if ! git rev-parse --show-toplevel &>/dev/null; then
+    echo "Error: Not inside a git repository" >&2
+    exit 1
+fi
 MONOREPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$MONOREPO_ROOT"
 PROJECT_NAME="$(basename "$MONOREPO_ROOT")"
 
 # Ensure Docker CLI is in PATH (Docker Desktop on macOS)
-export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
+[[ -d "/Applications/Docker.app/Contents/Resources/bin" ]] && \
+    export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
+
+check_docker
 
 # docker compose wrapper: use worktree/dev compose file from tmp dir when present
 dc() {
-  local tmp_base="/Users/philip/work/tmp/dev-stacks/$PROJECT_NAME"
+  local tmp_base="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$PROJECT_NAME"
   local wt_compose="$tmp_base/docker-compose.worktree.yml"
   local main_compose="$tmp_base/docker-compose.dev.yml"
   if [[ -f "$wt_compose" ]]; then
     COMPOSE_PROJECT_NAME="$PROJECT_NAME" docker compose \
       -f docker-compose.yml -f "$wt_compose" "$@"
   elif [[ -f "$main_compose" ]]; then
-    docker compose -f docker-compose.yml -f "$main_compose" "$@"
+    COMPOSE_PROJECT_NAME="$PROJECT_NAME" docker compose \
+      -f docker-compose.yml -f "$main_compose" "$@"
   else
-    docker compose "$@"
+    COMPOSE_PROJECT_NAME="$PROJECT_NAME" docker compose "$@"
   fi
 }
 
 usage() {
   cat <<EOF
-Usage: ./rebuild.sh <service> [service2...] [flags]
+Usage: $(basename "$0") <service> [service2...] [flags]
 
 Services: frontend, registries, studies, admin, codelist
 
@@ -38,10 +57,10 @@ By default, the script auto-detects what changed (git diff) and only
 runs the steps that are needed. Flags override auto-detection.
 
 Examples:
-  ./rebuild.sh frontend                  # Auto-detect changes
-  ./rebuild.sh registries --full         # Force all steps
-  ./rebuild.sh frontend registries       # Multiple services
-  ./rebuild.sh registries --deps --migrate
+  $(basename "$0") frontend                  # Auto-detect changes
+  $(basename "$0") registries --full         # Force all steps
+  $(basename "$0") frontend registries       # Multiple services
+  $(basename "$0") registries --deps --migrate
 EOF
   exit 1
 }
@@ -205,10 +224,12 @@ for service in "${services[@]}"; do
 
   # Step 2: Docker rebuild (always)
   echo "  -> Running docker compose up -d --build $docker..."
-  dc up -d --build "$docker"
+  dc up -d --build --wait "$docker"
 
   # Step 3: Migrations
   if $needs_migrate && has_migrations "$service"; then
+    echo "  -> Waiting for $docker to be ready..."
+    sleep 2
     echo "  -> Running migrations for $service..."
     dc exec "$docker" sh -c \
       'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}" npm run migrate'

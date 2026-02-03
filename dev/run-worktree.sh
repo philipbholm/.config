@@ -14,11 +14,26 @@
 
 set -euo pipefail
 
+function check_docker() {
+    if ! command -v docker &>/dev/null; then
+        echo "Error: Docker not installed" >&2
+        exit 1
+    fi
+    if ! docker info &>/dev/null; then
+        echo "Error: Docker daemon not running" >&2
+        exit 1
+    fi
+}
+
 script_dir=$(cd "$(dirname "$0")" && pwd)
+if ! git rev-parse --show-toplevel &>/dev/null; then
+    echo "Error: Not inside a git repository" >&2
+    exit 1
+fi
 repo_root="$(git rev-parse --show-toplevel)"
 
 project_name="$(basename "$repo_root")"
-tmp_dir="/Users/philip/work/tmp/dev-stacks/$project_name"
+tmp_dir="${WORKTREE_TMP_DIR:-$HOME/work/tmp/dev-stacks}/$project_name"
 
 command=""
 slot=""
@@ -52,12 +67,42 @@ function is_slot_in_use() {
 }
 
 function next_available_slot() {
+    local lockdir="/tmp/worktree-slot.lock"
+    local stale_seconds=30
+
+    # Check for stale lock (older than 30 seconds)
+    if [ -d "$lockdir" ]; then
+        local lock_age
+        if [[ "$OSTYPE" == darwin* ]]; then
+            lock_age=$(( $(date +%s) - $(stat -f %m "$lockdir" 2>/dev/null || echo 0) ))
+        else
+            lock_age=$(( $(date +%s) - $(stat -c %Y "$lockdir" 2>/dev/null || echo 0) ))
+        fi
+        if [ "$lock_age" -gt "$stale_seconds" ]; then
+            rmdir "$lockdir" 2>/dev/null || true
+        fi
+    fi
+
+    # Try to acquire lock
+    if ! mkdir "$lockdir" 2>/dev/null; then
+        echo "Error: Another instance is allocating a slot. If this persists, run: rmdir $lockdir" >&2
+        exit 1
+    fi
+
+    # Ensure lock is released on exit
+    trap 'rmdir "$lockdir" 2>/dev/null' EXIT
+
     for s in $(seq 1 9); do
         if ! is_slot_in_use "$s"; then
+            rmdir "$lockdir" 2>/dev/null
+            trap - EXIT
             echo "$s"
             return
         fi
     done
+
+    rmdir "$lockdir" 2>/dev/null
+    trap - EXIT
     echo "Error: All slots (1-9) are in use." >&2
     exit 1
 }
@@ -132,6 +177,10 @@ services:
       - VITE_APP_URL=http://localhost:$(( 3001 + offset ))
       - VITE_GRAPHQL_URI=http://localhost:$(( 4000 + offset ))
       - VITE_SURVEY_URL=http://localhost:$(( 3001 + offset ))/surveys
+    volumes: !override
+      - $repo_root/apps/main-frontend/src:/apps/main-frontend/src:cached
+      - $repo_root/services/studies/api:/services/studies/api:cached
+      - $repo_root/services/admin/api:/services/admin/api:cached
     ports: !override
       - "$(( 3001 + offset )):3001"
 
@@ -160,6 +209,10 @@ services:
     depends_on: !override
       mysql:
         condition: service_healthy
+    volumes: !override
+      - $repo_root/services/admin/src:/app/services/admin/src
+      - $repo_root/services/admin/api:/app/services/admin/api
+      - $repo_root/services/admin/prisma:/app/services/admin/prisma
     ports: !override
       - "$(( 4004 + offset )):4000"
       - "$(( 50004 + offset )):50051"
@@ -168,11 +221,23 @@ services:
   codelist:
     image: ledidi-shared-codelist
     pull_policy: build
+    volumes: !override
+      - $repo_root/services/codelist/src:/app/services/codelist/src
+      - $repo_root/services/codelist/api:/app/services/codelist/api
+      - $repo_root/services/codelist/prisma:/app/services/codelist/prisma
+      - ~/.aws:/root/.aws:ro
     ports: !override
       - "$(( 4005 + offset )):4000"
       - "$(( 50005 + offset )):50051"
 
   registries:
+    volumes: !override
+      - $repo_root/services/registries/src:/app/services/registries/src
+      - $repo_root/services/registries/api:/app/services/registries/api
+      - $repo_root/services/registries/prisma:/app/services/registries/prisma
+      - $repo_root/services/admin/api:/app/services/admin/api
+      - $repo_root/services/codelist/api:/app/services/codelist/api
+      - ~/.aws:/root/.aws:ro
     ports: !override
       - "$(( 4006 + offset )):4000"
       - "$(( 50006 + offset )):50051"
@@ -224,8 +289,14 @@ function dc() {
 
 function run_seed() {
     echo
+    echo "Pushing admin database schema..."
+    dc exec admin npm run docker:push-db-schema
+
+    echo "Setting up admin test datasources..."
+    dc exec admin node build/test-data/setup-test-datasources
+
     echo "Seeding ATC codes in registries database..."
-    dc exec -e POSTGRES_URL="postgresql://postgres:postgres@postgres:5432/registries" registries npm run seed-atc
+    dc exec registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-atc'
     echo
     echo "Data seeded successfully."
     echo
@@ -278,9 +349,15 @@ EOF
 function remove_claude_ports() {
     if [ -f "$claude_local_md" ]; then
         # Remove the marker block (inclusive)
-        sed -i '' "/${marker_start}/,/${marker_end}/d" "$claude_local_md"
-        # Remove trailing blank lines
-        sed -i '' -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$claude_local_md"
+        if [[ "$OSTYPE" == darwin* ]]; then
+            sed -i '' "/${marker_start}/,/${marker_end}/d" "$claude_local_md"
+            # Remove trailing blank lines
+            sed -i '' -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$claude_local_md"
+        else
+            sed -i "/${marker_start}/,/${marker_end}/d" "$claude_local_md"
+            # Remove trailing blank lines
+            sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$claude_local_md"
+        fi
         # Remove file if empty
         if [ ! -s "$claude_local_md" ]; then
             rm -f "$claude_local_md"
@@ -291,10 +368,7 @@ function remove_claude_ports() {
 # --- Prerequisites ---
 
 function prerequisites_check() {
-    if ! command -v docker >/dev/null 2>&1; then
-        echo "Docker is not installed. Please install Docker to proceed."
-        exit 1
-    fi
+    check_docker
 }
 
 # --- Status ---
@@ -338,23 +412,12 @@ fi
 
 for arg in "$@"; do
     case $arg in
-    --up)
-        command="up"
-        ;;
-    --stop)
-        command="stop"
-        ;;
-    --start)
-        command="start"
-        ;;
-    --down)
-        command="down"
-        ;;
-    --nuke)
-        command="nuke"
-        ;;
-    --status)
-        command="status"
+    --up|--stop|--start|--down|--nuke|--status)
+        if [ -n "$command" ]; then
+            echo "Error: Only one command allowed" >&2
+            exit 1
+        fi
+        command="${arg#--}"
         ;;
     --rebuild)
         rebuild=true
@@ -428,7 +491,7 @@ elif [ "$command" = "down" ]; then
 
 elif [ "$command" = "nuke" ]; then
     echo "This will remove all containers, volumes, and images for slot $resolved_slot."
-    read -p "Are you sure? (y/N): " confirm
+    read -r -p "Are you sure? (y/N): " confirm
     echo
     if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
         echo "Nuke operation cancelled."

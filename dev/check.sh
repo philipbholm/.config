@@ -1,5 +1,5 @@
-#!/bin/zsh
-set -o pipefail
+#!/usr/bin/env zsh
+set -euo pipefail
 
 monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null)
 if [[ $? -ne 0 ]]; then

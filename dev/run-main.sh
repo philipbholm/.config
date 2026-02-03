@@ -13,8 +13,24 @@
 
 set -euo pipefail
 
-repo_root="/Users/philip/work/ledidi-monorepo"
-tmp_dir="/Users/philip/work/tmp/dev-stacks/ledidi-monorepo"
+function check_docker() {
+    if ! command -v docker &>/dev/null; then
+        echo "Error: Docker not installed" >&2
+        exit 1
+    fi
+    if ! docker info &>/dev/null; then
+        echo "Error: Docker daemon not running" >&2
+        exit 1
+    fi
+}
+
+if ! git rev-parse --show-toplevel &>/dev/null; then
+    echo "Error: Not inside a git repository" >&2
+    exit 1
+fi
+repo_root="$(git rev-parse --show-toplevel)"
+project_name="$(basename "$repo_root")"
+tmp_dir="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$project_name"
 
 command=""
 rebuild=false
@@ -84,7 +100,7 @@ function run_seed() {
     dc exec admin node build/test-data/setup-test-datasources
 
     echo "Seeding ATC codes in registries database..."
-    dc exec -e POSTGRES_URL="postgresql://postgres:postgres@postgres:5432/registries" registries npm run seed-atc
+    dc exec registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-atc'
 
     echo
     echo "Data seeded successfully."
@@ -94,10 +110,7 @@ function run_seed() {
 # --- Prerequisites ---
 
 function prerequisites_check() {
-    if ! command -v docker >/dev/null 2>&1; then
-        echo "Docker is not installed. Please install Docker to proceed."
-        exit 1
-    fi
+    check_docker
 }
 
 # --- Parse arguments ---
@@ -108,20 +121,12 @@ fi
 
 for arg in "$@"; do
     case $arg in
-    --up)
-        command="up"
-        ;;
-    --stop)
-        command="stop"
-        ;;
-    --start)
-        command="start"
-        ;;
-    --down)
-        command="down"
-        ;;
-    --nuke)
-        command="nuke"
+    --up|--stop|--start|--down|--nuke)
+        if [ -n "$command" ]; then
+            echo "Error: Only one command allowed" >&2
+            exit 1
+        fi
+        command="${arg#--}"
         ;;
     --rebuild)
         rebuild=true
@@ -175,7 +180,7 @@ elif [ "$command" = "down" ]; then
 
 elif [ "$command" = "nuke" ]; then
     echo "This will remove all containers, volumes, and images."
-    read -p "Are you sure? (y/N): " confirm
+    read -r -p "Are you sure? (y/N): " confirm
     echo
     if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
         echo "Nuke operation cancelled."
