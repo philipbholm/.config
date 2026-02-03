@@ -159,7 +159,7 @@ if [ "$command" = "up" ]; then
 
     run_seed
 
-    echo "Stack is running at http://localhost:3001/en"
+    echo "Stack is running at http://localhost:3001/en/registries"
 
 elif [ "$command" = "stop" ]; then
     generate_override > /dev/null

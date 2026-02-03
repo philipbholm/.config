@@ -411,7 +411,7 @@ if [ "$command" = "up" ]; then
     run_seed
     write_claude_ports "$resolved_slot"
 
-    echo "Stack is running at http://localhost:$(( 3001 + offset ))/en"
+    echo "Stack is running at http://localhost:$(( 3001 + offset ))/en/registries"
 
 elif [ "$command" = "stop" ]; then
     generate_override "$resolved_slot" > /dev/null
