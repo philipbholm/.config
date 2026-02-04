@@ -73,11 +73,11 @@ gwc() {
   rm -f "$worktree_path/setup-worktree.sh"
   echo "✔ Worktree setup complete"
   cursor "$worktree_path"
-  # Open Cursor terminal and run claude
+  # Open Cursor terminal and run claude in tmux session
   (
     sleep 3
-    osascript <<'EOF'
-      set the clipboard to "claude --dangerously-skip-permissions"
+    osascript <<EOF
+      set the clipboard to "tmux new-session -s $1 'claude --dangerously-skip-permissions; exec zsh'"
       tell application "Cursor" to activate
       delay 0.3
       tell application "System Events"
