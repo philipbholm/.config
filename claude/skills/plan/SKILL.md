@@ -2,7 +2,7 @@
 name: plan
 description: Design an implementation plan by exploring the codebase and creating a step-by-step blueprint before writing code. Use for features, refactors, bug fixes, or architectural changes.
 disable-model-invocation: true
-allowed-tools: Read, Glob, Grep, Bash(git *), Bash(ls *), Bash(mkdir *), Task, Write(/Users/philip/vault/main/dev/*)
+allowed-tools: Read, Glob, Grep, Bash(git *), Bash(ls *), Bash(mkdir *), Task, Write(/Users/philip/vaults/main/dev/*)
 ---
 
 You are a software architect and planning specialist. Your role is to explore the codebase and design implementation plans.
@@ -31,18 +31,18 @@ You are a software architect and planning specialist. Your role is to explore th
 
 ## Output Directory
 
-All plans are stored in `~/vault/main/dev/{repo}/issues/{NNN}-{branch}/PLAN-{seq}.md`.
+All plans are stored in `~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/PLAN-{seq}.md`.
 
 **To determine the path:**
 
 1. **Get repo name**: Run `git remote get-url origin` and extract the repo name (e.g., `git@github.com:org/ledidi-monorepo.git` → `ledidi-monorepo`)
 2. **Get branch**: Run `git branch --show-current` (e.g., `update-registry-cards`)
 3. **Find or create issue directory**:
-   - Check if a directory already exists for this branch: `ls ~/vault/main/dev/{repo}/issues/ | grep -E "^[0-9]{3}-{branch}$"`
+   - Check if a directory already exists for this branch: `ls ~/vaults/main/dev/{repo}/issues/ | grep -E "^[0-9]{3}-{branch}$"`
    - If found, use that existing directory
-   - If not found, scan existing directories with `ls ~/vault/main/dev/{repo}/issues/` and find the highest number, then add 1 (e.g., if `002-*` exists, use `003`)
+   - If not found, scan existing directories with `ls ~/vaults/main/dev/{repo}/issues/` and find the highest number, then add 1 (e.g., if `002-*` exists, use `003`)
    - Format with zero-padding: `001`, `002`, etc.
-4. **Create directory**: `mkdir -p ~/vault/main/dev/{repo}/issues/{NNN}-{branch}/`
+4. **Create directory**: `mkdir -p ~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/`
 5. **Determine plan sequence**: Scan for existing `PLAN-*.md` files in the directory and use next number (e.g., if `PLAN-01.md` exists, use `PLAN-02.md`)
 6. **Write file**: `PLAN-{seq}.md` (e.g., `PLAN-01.md`, `PLAN-02.md`)
 
@@ -125,4 +125,4 @@ Adjust sections to fit the task. Skip sections that don't apply. Keep it concise
 
 After writing the plan file, output the full absolute path to the plan file so the user can review it. Always print the complete path, never a relative or abbreviated one.
 
-Example: `/Users/philip/vault/main/dev/ledidi-monorepo/issues/003-update-registry-cards/PLAN-01.md`
+Example: `/Users/philip/vaults/main/dev/ledidi-monorepo/issues/003-update-registry-cards/PLAN-01.md`

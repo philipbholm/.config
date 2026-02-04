@@ -3,7 +3,7 @@ name: review
 description: CTO-style code review - rigorous, opinionated feedback on code and files
 disable-model-invocation: true
 argument-hint: "[diff | branch <current/name> | pr <number>]"
-allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(gh:*), Read, Write(/Users/philip/vault/main/dev/*), Glob, Grep, Task
+allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(gh:*), Read, Write(/Users/philip/vaults/main/dev/*), Glob, Grep, Task
 ---
 
 **CRITICAL: This is a READ-ONLY review. You MUST NOT modify any source code files. No Edit tool, no Write tool (except for the final review markdown in the issue directory), no Bash commands that alter files. When launching Task agents, explicitly instruct each agent: "This is a read-only review. Do NOT use Edit, Write, or NotebookEdit tools. Do NOT modify any files. Only read and analyze code, then report findings."**
@@ -113,7 +113,7 @@ General:
 
 2. Identify affected areas (frontend, which services, shared packages)
 
-3. **Run review agents in parallel using the Task tool.** Always launch BOTH ledidi review agents and ALL review agents from the pr-review-toolkit. Always run ALL 8 agents. 
+3. **Run review agents in parallel using the Task tool.** Always launch BOTH ledidi review agents and ALL review agents from the pr-review-toolkit. Always run ALL 8 agents.
 
 - `ledidi-auth-reviewer` - Reviews authorization patterns, permission checks, and access control implementation
 - `ledidi-security-reviewer` - Security expert that reviews code for vulnerabilities.
@@ -139,18 +139,18 @@ Provide each agent with the diff/file context so they know what to review. **Eve
 
 **Output Directory:**
 
-All reviews are stored in `~/vault/main/dev/{repo}/issues/{NNN}-{branch}/REVIEW-{seq}.md`.
+All reviews are stored in `~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/REVIEW-{seq}.md`.
 
 **To determine the path:**
 
 1. **Get repo name**: Run `git remote get-url origin` and extract the repo name (e.g., `git@github.com:org/ledidi-monorepo.git` → `ledidi-monorepo`)
 2. **Get branch**: Run `git branch --show-current` (e.g., `update-registry-cards`)
 3. **Find or create issue directory**:
-   - Check if a directory already exists for this branch: `ls ~/vault/main/dev/{repo}/issues/ | grep -E "^[0-9]{3}-{branch}$"`
+   - Check if a directory already exists for this branch: `ls ~/vaults/main/dev/{repo}/issues/ | grep -E "^[0-9]{3}-{branch}$"`
    - If found, use that existing directory
-   - If not found, scan existing directories with `ls ~/vault/main/dev/{repo}/issues/` and find the highest number, then add 1 (e.g., if `002-*` exists, use `003`)
+   - If not found, scan existing directories with `ls ~/vaults/main/dev/{repo}/issues/` and find the highest number, then add 1 (e.g., if `002-*` exists, use `003`)
    - Format with zero-padding: `001`, `002`, etc.
-4. **Create directory**: `mkdir -p ~/vault/main/dev/{repo}/issues/{NNN}-{branch}/`
+4. **Create directory**: `mkdir -p ~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/`
 5. **Determine review sequence**: Scan for existing `REVIEW-*.md` files in the directory and use next number (e.g., if `REVIEW-01.md` exists, use `REVIEW-02.md`)
 6. **Write file**: `REVIEW-{seq}.md` (e.g., `REVIEW-01.md`, `REVIEW-02.md`)
 
@@ -198,4 +198,4 @@ Skip empty sections. If no issues, just say "No issues found" and approve.
 
 After writing the file, output the full absolute path to the review file so the user can open it immediately. Always print the complete path, never a relative or abbreviated one.
 
-Example: `/Users/philip/vault/main/dev/ledidi-monorepo/issues/003-update-registry-cards/REVIEW-01.md`
+Example: `/Users/philip/vaults/main/dev/ledidi-monorepo/issues/003-update-registry-cards/REVIEW-01.md`
