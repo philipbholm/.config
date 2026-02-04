@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# Local overrides (machine-specific)
+settings.local.json
+
+# Transient/cache data
+cache/
+debug/
+downloads/
+file-history/
+paste-cache/
+plans/
+session-env/
+shell-snapshots/
+statsig/
+todos/
+
+# Contains command history (potentially sensitive)
+history.jsonl
+stats-cache.json
+
+# Plugin runtime data
+plugins/
+
+# Project-specific state
+projects/
+
+# IDE integration state
+ide/
+
+tmp
+
+tasks
