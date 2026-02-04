@@ -73,6 +73,21 @@ gwc() {
   rm -f "$worktree_path/setup-worktree.sh"
   echo "✔ Worktree setup complete"
   cursor "$worktree_path"
+  # Open Cursor terminal and run claude
+  (
+    sleep 3
+    osascript <<'EOF'
+      set the clipboard to "claude --dangerously-skip-permissions"
+      tell application "Cursor" to activate
+      delay 0.3
+      tell application "System Events"
+        key code 17 using {command down, shift down}
+        delay 0.5
+        keystroke "v" using {command down}
+        key code 36
+      end tell
+EOF
+  ) &
 }
 gwd() {
   local worktree_path="/Users/philip/work/worktrees/$1"
