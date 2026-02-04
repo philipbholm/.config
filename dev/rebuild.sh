@@ -130,9 +130,13 @@ for service in "${services[@]}"; do
   service_dir "$service" > /dev/null
 done
 
-# --- Auto-detect and rebuild ---
+# --- Auto-detect what each service needs ---
 
+# Use regular arrays instead of associative arrays (bash 3.x compatibility)
+services_needing_deps=()
+services_needing_migrate=()
 global_needs_supergraph=false
+docker_services_to_build=()
 
 for service in "${services[@]}"; do
   dir=$(service_dir "$service")
@@ -170,9 +174,22 @@ for service in "${services[@]}"; do
     if $force_migrate; then needs_migrate=true; fi
   fi
 
+  # Track which services need each step
+  if $needs_deps; then
+    services_needing_deps+=("$service")
+  fi
+  if $needs_migrate && has_migrations "$service"; then
+    services_needing_migrate+=("$service")
+  fi
+  docker_services_to_build+=("$docker")
+
+  if $needs_supergraph && has_supergraph "$service"; then
+    global_needs_supergraph=true
+  fi
+
   # --- Print summary ---
   echo ""
-  echo "=== Rebuilding $service ==="
+  echo "=== $service ==="
 
   detected=()
   steps=("docker rebuild")
@@ -212,34 +229,48 @@ for service in "${services[@]}"; do
   if [[ ${#skipping[@]} -gt 0 ]]; then
     echo "  Skipping: $(IFS=', '; echo "${skipping[*]}")"
   fi
+done
+
+# --- Execute steps ---
+
+# Step 1: Run npm install in parallel for services that need it
+npm_pids=()
+if [[ -n "${services_needing_deps[*]:-}" ]]; then
+  for service in "${services_needing_deps[@]}"; do
+    dir=$(service_dir "$service")
+    echo ""
+    echo "-> Starting npm install in $dir (background)..."
+    (cd "$MONOREPO_ROOT/$dir" && npm install) &
+    npm_pids+=($!)
+  done
+
   echo ""
+  echo "-> Waiting for npm installs to complete..."
+  for pid in "${npm_pids[@]}"; do
+    wait "$pid"
+  done
+  echo "-> All npm installs completed."
+fi
 
-  # --- Execute steps ---
+# Step 2: Build all Docker images in parallel, then start them
+echo ""
+echo "-> Building Docker images in parallel: ${docker_services_to_build[*]}..."
+dc build --parallel "${docker_services_to_build[@]}"
 
-  # Step 1: Host npm install
-  if $needs_deps; then
-    echo "  -> Running npm install in $dir..."
-    (cd "$MONOREPO_ROOT/$dir" && npm install)
-  fi
+echo ""
+echo "-> Starting services: ${docker_services_to_build[*]}..."
+dc up -d --wait "${docker_services_to_build[@]}"
 
-  # Step 2: Docker rebuild (always)
-  echo "  -> Running docker compose up -d --build $docker..."
-  dc up -d --build --wait "$docker"
-
-  # Step 3: Migrations
-  if $needs_migrate && has_migrations "$service"; then
-    echo "  -> Waiting for $docker to be ready..."
-    sleep 2
-    echo "  -> Running migrations for $service..."
+# Step 3: Run migrations sequentially for services that need them
+if [[ -n "${services_needing_migrate[*]:-}" ]]; then
+  for service in "${services_needing_migrate[@]}"; do
+    docker=$(docker_name "$service")
+    echo ""
+    echo "-> Running migrations for $service..."
     dc exec "$docker" sh -c \
       'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}" npm run migrate'
-  fi
-
-  # Step 4: Track supergraph need
-  if $needs_supergraph && has_supergraph "$service"; then
-    global_needs_supergraph=true
-  fi
-done
+  done
+fi
 
 # Run supergraph regen once if any service needed it
 if $global_needs_supergraph; then

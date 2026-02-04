@@ -52,12 +52,14 @@ Before verifying changes in the browser, rebuild the affected services using `re
 
 ```bash
 rebuild <service>                    # Auto-detects what changed, only runs needed steps
-rebuild frontend registries          # Multiple services
+rebuild frontend registries          # Multiple services (built in parallel)
 rebuild registries --full            # Force all steps (deps + build + migrate + supergraph)
 rebuild registries --deps --migrate  # Force specific steps
 ```
 
 Services: `frontend`, `registries`, `studies`, `admin`, `codelist`
+
+When multiple services are specified, npm installs and Docker builds run in parallel for faster rebuilds. Migrations still run sequentially since they depend on the database.
 
 The script auto-detects changes via `git diff` and only runs the steps that are needed:
 - `package.json` / `package-lock.json` changed → runs `npm install` before docker rebuild
