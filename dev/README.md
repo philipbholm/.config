@@ -6,7 +6,8 @@ Development utility scripts for the monorepo.
 
 | Command | Description |
 |---------|-------------|
-| `check` | Run linting, formatting, and tests on changed files |
+| `check` | Run linting, formatting, and build on changed files |
+| `tests` | Run tests (unit, integration, e2e) on changed files |
 | `rebuild` | Rebuild Docker containers |
 | `db` | Database utilities |
 | `shell` | Open a shell in a Docker container |
@@ -30,6 +31,7 @@ ln -sf ~/.config/dev/check.sh ~/bin/check
 
 ```bash
 ~/bin/check   -> ~/.config/dev/check.sh
+~/bin/tests   -> ~/.config/dev/test.sh
 ~/bin/rebuild -> ~/.config/dev/rebuild.sh
 ~/bin/db      -> ~/.config/dev/db.sh
 ~/bin/shell   -> ~/.config/dev/shell.sh
