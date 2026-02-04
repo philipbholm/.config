@@ -12,6 +12,16 @@ failed=false
 
 cd "$monorepo_root" || exit 1
 
+# Determine postgres port from worktree slot
+project_name="$(basename "$monorepo_root")"
+worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$project_name/worktree-slot"
+if [[ -f "$worktree_slot_file" ]]; then
+  slot=$(cat "$worktree_slot_file")
+  postgres_port=$((5432 + slot * 100))
+else
+  postgres_port=5432
+fi
+
 echo "Checking for changed files compared to $base_branch..."
 
 changed_files=""
@@ -119,13 +129,13 @@ for service in "${changed_services[@]}"; do
   fi
 
   echo "Running unit tests..."
-  if ! npx jest --testPathIgnorePatterns='integration|e2e' --runInBand; then
+  if ! POSTGRES_URL="postgresql://postgres:postgres@localhost:$postgres_port/${service}-test" npx jest --testPathIgnorePatterns='integration|e2e' --runInBand; then
     failed=true
     continue
   fi
 
   echo "Running integration tests..."
-  if ! npx jest --testPathPattern='integration' --runInBand; then
+  if ! POSTGRES_URL="postgresql://postgres:postgres@localhost:$postgres_port/${service}-test" npx jest --testPathPattern='integration' --runInBand; then
     failed=true
   fi
 done
