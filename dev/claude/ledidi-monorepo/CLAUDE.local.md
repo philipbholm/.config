@@ -46,59 +46,66 @@ npm run test --workspaces --if-present
 npm run generate --workspaces --if-present
 ```
 
-### Rebuilding Services
+### Verifying Changes in Browser
 
-Before verifying changes in the browser, rebuild the affected services using `rebuild`:
+#### TypeScript Code Changes (Hot Reload)
+
+Most TypeScript changes are picked up automatically by hot reload. If not:
 
 ```bash
-rebuild <service>                    # Auto-detects what changed, only runs needed steps
-rebuild frontend registries          # Multiple services (built in parallel)
-rebuild registries --full            # Force all steps (deps + build + migrate + supergraph)
-rebuild registries --deps --migrate  # Force specific steps
+docker compose restart <service>
+```
+
+#### GraphQL Schema Changes
+
+After modifying `.graphql` files:
+
+```bash
+# 1. Regenerate types in affected services
+cd services/registries && npm run generate
+cd apps/main-frontend && npm run generate
+
+# 2. Restart the service that changed
+docker compose restart registries
+
+# 3. Regenerate and restart the supergraph router
+rover supergraph compose --config supergraph.yaml > router/supergraph.graphql
+docker compose restart apollo-router
+```
+
+#### Dependency Changes (package.json)
+
+Only when `package.json` or `package-lock.json` changed:
+
+```bash
+cd <workspace> && npm install
+docker compose restart <service>
 ```
 
 Services: `frontend`, `registries`, `studies`, `admin`, `codelist`
 
-When multiple services are specified, npm installs and Docker builds run in parallel for faster rebuilds. Migrations still run sequentially since they depend on the database.
 
-The script auto-detects changes via `git diff` and only runs the steps that are needed:
-- `package.json` / `package-lock.json` changed → runs `npm install` before docker rebuild
-- `prisma/` files changed → runs migrations after docker rebuild
-- `.graphql` files changed → regenerates the supergraph after docker rebuild
-- Source code only → just runs `docker compose up -d --build`
+### Quick Verification Commands
 
-Use `--full` / `-f` to force all steps, `--deps` / `-d` to force npm install, or `--migrate` / `-m` to force migrations.
-
-### Pre-commit Checks
-
-Run before completing work to verify that changed files pass formatting, linting, and tests. Automatically scopes to files changed vs the base branch (default: `master`).
+Use these to verify changes compile properly before committing:
 
 ```bash
-check                # Check changed files against master
-check main           # Check changed files against a different base branch
+# Backend services (e.g., services/registries)
+cd services/registries && npm run lint:fix && npm run build-ts
+
+# Frontend
+cd apps/main-frontend && npm run lint:fix && npm run build
 ```
 
-Runs `prettier --write`, `eslint --fix`, and tests on affected files only. Frontend uses Vitest, backend services use Jest.
-
-### Database Shell
-
-Use when you need to inspect or debug data directly in a service's database.
+### Running Tests on Specific Files
 
 ```bash
-db <service>         # Open a database shell
+# Backend - use --testPathPattern
+npm run test -- --testPathPattern="get-registries"
+
+# Frontend - pass filename directly
+npm run test -- inline-text-input
 ```
-
-Services: `admin` (MySQL), `studies`, `codelist`, `registries` (PostgreSQL)
-
-### Container Shell
-
-Use when you need to run commands inside a running container (e.g., inspect files, run one-off scripts).
-
-```bash
-shell <service>      # Open a shell in the service's container
-```
-
-Services: `frontend`, `registries`, `studies`, `admin`, `codelist`, `auth`
 
 ### Frontend (apps/main-frontend/)
 
@@ -108,10 +115,8 @@ npm run build           # Production build
 npm run generate        # Generate GraphQL types
 npm run lint:fix        # Fix linting issues
 npm run test            # Unit tests (Vitest)
-npm run test -- inline-text-input  # Run single test file
 npm run test:e2e        # E2E tests (Playwright)
 npm run test:e2e -- create-study   # Run single E2E spec
-npm run storybook       # Component library (port 6006)
 ```
 
 ### Backend Services (services/*)
@@ -121,9 +126,9 @@ Each service follows the same pattern:
 ```bash
 npm run dev             # Development mode with watch
 npm run build           # Full build (generate + tsc)
+npm run build-ts        # TypeScript-only build (faster, no codegen)
 npm run generate        # Generate GraphQL, Prisma, gRPC types
 npm run test            # Run integration tests (starts test DB)
-npm run test -- --testPathPattern="create-analysis"  # Run single test
 npm run test:watch      # Watch mode testing
 npm run lint:fix        # Fix linting issues
 npm run migrate         # Deploy database migrations
