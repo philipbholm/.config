@@ -31,13 +31,11 @@ The development environment is always running. Never run startup commands like:
 - `npm run dev`
 - `npm start`
 
-These services are already running and available. Just proceed directly with your tasks.
+These services are already running and available.
 
 App runs at http://localhost:3001/en/registries
 
 ### Monorepo Workspace Commands
-
-Always use workspace flags for monorepo-wide operations:
 
 ```bash
 npm run lint:fix --workspaces --if-present
@@ -46,48 +44,41 @@ npm run test --workspaces --if-present
 npm run generate --workspaces --if-present
 ```
 
-### Verifying Changes in Browser
-
-#### TypeScript Code Changes (Hot Reload)
-
-Most TypeScript changes are picked up automatically by hot reload. If not:
+### Restarting Services
 
 ```bash
 docker compose restart <service>
 ```
 
-#### GraphQL Schema Changes
+Services: `frontend`, `registries`, `studies`, `admin`, `codelist`, `apollo-router`
 
-After modifying `.graphql` files:
+### GraphQL Schema Changes
+
+Regenerating types and supergraph after `.graphql` file changes:
 
 ```bash
-# 1. Regenerate types in affected services
+# Regenerate types in affected services
 cd services/registries && npm run generate
 cd apps/main-frontend && npm run generate
 
-# 2. Restart the service that changed
+# Restart the service that changed
 docker compose restart registries
 
-# 3. Regenerate and restart the supergraph router
+# Regenerate and restart the supergraph router
 rover supergraph compose --config supergraph.yaml > router/supergraph.graphql
 docker compose restart apollo-router
 ```
 
-#### Dependency Changes (package.json)
+### Dependency Changes
 
-Only when `package.json` or `package-lock.json` changed:
+Installing dependencies and restarting after `package.json` changes:
 
 ```bash
 cd <workspace> && npm install
 docker compose restart <service>
 ```
 
-Services: `frontend`, `registries`, `studies`, `admin`, `codelist`
-
-
-### Quick Verification Commands
-
-Use these to verify changes compile properly before committing:
+### Verification Commands
 
 ```bash
 # Backend services (e.g., services/registries)
@@ -97,7 +88,7 @@ cd services/registries && npm run lint:fix && npm run build-ts
 cd apps/main-frontend && npm run lint:fix && npm run build
 ```
 
-### Running Tests on Specific Files
+### Running Tests
 
 ```bash
 # Backend - use --testPathPattern
@@ -110,7 +101,6 @@ npm run test -- inline-text-input
 ### Frontend (apps/main-frontend/)
 
 ```bash
-npm run dev             # Development server (port 3001)
 npm run build           # Production build
 npm run generate        # Generate GraphQL types
 npm run lint:fix        # Fix linting issues
@@ -124,7 +114,6 @@ npm run test:e2e -- create-study   # Run single E2E spec
 Each service follows the same pattern:
 
 ```bash
-npm run dev             # Development mode with watch
 npm run build           # Full build (generate + tsc)
 npm run build-ts        # TypeScript-only build (faster, no codegen)
 npm run generate        # Generate GraphQL, Prisma, gRPC types
@@ -282,8 +271,8 @@ await application.createRegistry.run({ input, context });
 ### Backend (services/**/*.ts)
 
 - Use lowercase first letter for Prisma relations
-- Always create/update integration tests for backend changes
-- Use unit tests only when integration tests can't cover edge cases
+- Integration tests for backend changes
+- Unit tests for edge cases that integration tests can't cover
 
 ### Frontend (apps/main-frontend/)
 
@@ -305,7 +294,7 @@ await application.createRegistry.run({ input, context });
 - Use Luxon `DateTime.toLocaleString` for date formatting
 - Use `useXXXId` hooks for type-safe route params (e.g., `useRegistryId`, `useFormId`)
 - Use `ROUTE_MAP` for type-safe navigation paths (see `src/features/route-map/`)
-- Deletions always require a confirmation dialog
+- Deletions require a confirmation dialog
 
 ### Dictionaries
 
@@ -317,7 +306,7 @@ fullName: (firstName: string, lastName: string) => `${firstName} ${lastName}`
 fullName: `{firstName} {lastName}` // with .replace()
 ```
 
-For static translations, use language-keyed objects. Always define the `DICTIONARY` in the same file where the translations are used:
+For static translations, use language-keyed objects. Define the `DICTIONARY` in the same file where translations are used:
 ```typescript
 const DICTIONARY = {
   en: { title: "Users", status: "Status" },
@@ -337,7 +326,6 @@ const DICTIONARY = {
 - Backend integration tests: `src/**/*.integration.test.ts` (Jest)
 
 **Guidelines:**
-- At least one E2E test per main feature flow (create, update, delete)
 - Extract shared setup into `beforeAll`, assertions in `it` blocks
 - Prefer `toEqual` over `toMatchObject`
 - Use imperative test descriptions:
@@ -347,4 +335,3 @@ const DICTIONARY = {
   // Avoid
   it("should reorder the elements", ...)
   ```
-- Always run tests and ensure code compiles before completing work
