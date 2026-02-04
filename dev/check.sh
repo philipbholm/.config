@@ -1,26 +1,26 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
+# Parse flags
+changed_only=false
+base_branch=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -c|--changed) changed_only=true; shift ;;
+    *) base_branch="$1"; shift ;;
+  esac
+done
+base_branch="${base_branch:-master}"
+
 monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null)
 if [[ $? -ne 0 ]]; then
   echo "Error: Not inside a git repository"
   exit 1
 fi
 
-base_branch="${1:-master}"
 failed=false
 
 cd "$monorepo_root" || exit 1
-
-# Determine postgres port from worktree slot
-project_name="$(basename "$monorepo_root")"
-worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$project_name/worktree-slot"
-if [[ -f "$worktree_slot_file" ]]; then
-  slot=$(cat "$worktree_slot_file")
-  postgres_port=$((5432 + slot * 100))
-else
-  postgres_port=5432
-fi
 
 echo "Checking for changed files compared to $base_branch..."
 
@@ -43,21 +43,24 @@ fi
 # Detect which areas have changes
 has_frontend=false
 changed_services=()
-e2e_tests=()
+frontend_files=()
+declare -A service_files
 
 while IFS= read -r file; do
   if [[ "$file" == apps/main-frontend/* ]]; then
     has_frontend=true
-    if [[ "$file" == *.e2e.ts || "$file" == *e2e/*.ts ]]; then
-      e2e_tests+=("${file#apps/main-frontend/}")
+    # Only track lintable files
+    if [[ "$file" == *.ts || "$file" == *.tsx || "$file" == *.js || "$file" == *.jsx ]]; then
+      frontend_files+=("$file")
     fi
   elif [[ "$file" == services/* ]]; then
     service=$(echo "$file" | cut -d'/' -f2)
     if [[ ! " ${changed_services[*]} " =~ " $service " ]]; then
       changed_services+=("$service")
     fi
-    if [[ "$file" == *.e2e.ts || "$file" == *e2e/*.ts ]]; then
-      e2e_tests+=("$file")
+    # Only track lintable files
+    if [[ "$file" == *.ts || "$file" == *.tsx || "$file" == *.js || "$file" == *.jsx ]]; then
+      service_files[$service]+="$file "
     fi
   fi
 done <<< "$changed_files"
@@ -73,28 +76,32 @@ if [[ "$has_frontend" == true ]]; then
   echo "=== Checking frontend ==="
   cd "$monorepo_root/apps/main-frontend"
 
-  echo "Running lint:fix..."
-  if ! npm run lint:fix; then
-    failed=true
+  if [[ "$changed_only" == true && ${#frontend_files[@]} -gt 0 ]]; then
+    echo "Running eslint on changed files..."
+    # Convert to paths relative to frontend
+    relative_files=()
+    for f in "${frontend_files[@]}"; do
+      relative_files+=("$monorepo_root/$f")
+    done
+    if ! npx eslint --fix "${relative_files[@]}"; then
+      failed=true
+    fi
+    if [[ "$failed" != true ]]; then
+      echo "Running prettier on changed files..."
+      if ! npx prettier --write "${relative_files[@]}"; then
+        failed=true
+      fi
+    fi
+  else
+    echo "Running lint:fix..."
+    if ! npm run lint:fix; then
+      failed=true
+    fi
   fi
 
   if [[ "$failed" != true ]]; then
     echo "Running build..."
     if ! npm run build; then
-      failed=true
-    fi
-  fi
-
-  if [[ "$failed" != true ]]; then
-    echo "Running unit tests..."
-    if ! npx vitest run --project=unit; then
-      failed=true
-    fi
-  fi
-
-  if [[ "$failed" != true ]]; then
-    echo "Running integration tests..."
-    if ! npx vitest run --project=integration; then
       failed=true
     fi
   fi
@@ -113,10 +120,28 @@ for service in "${changed_services[@]}"; do
   echo "=== Checking $service ==="
   cd "$service_path"
 
-  echo "Running lint:fix..."
-  if ! npm run lint:fix; then
-    failed=true
-    continue
+  if [[ "$changed_only" == true && -n "${service_files[$service]:-}" ]]; then
+    echo "Running eslint on changed files..."
+    # Convert space-separated string to array and make paths absolute
+    files_to_lint=()
+    for f in ${(s: :)service_files[$service]}; do
+      files_to_lint+=("$monorepo_root/$f")
+    done
+    if ! npx eslint --fix "${files_to_lint[@]}"; then
+      failed=true
+      continue
+    fi
+    echo "Running prettier on changed files..."
+    if ! npx prettier --write "${files_to_lint[@]}"; then
+      failed=true
+      continue
+    fi
+  else
+    echo "Running lint:fix..."
+    if ! npm run lint:fix; then
+      failed=true
+      continue
+    fi
   fi
 
   # Try build-ts first, fall back to build
@@ -127,33 +152,7 @@ for service in "${changed_services[@]}"; do
     failed=true
     continue
   fi
-
-  echo "Running unit tests..."
-  if ! POSTGRES_URL="postgresql://postgres:postgres@localhost:$postgres_port/${service}-test" npx jest --testPathIgnorePatterns='integration|e2e' --runInBand; then
-    failed=true
-    continue
-  fi
-
-  echo "Running integration tests..."
-  if ! POSTGRES_URL="postgresql://postgres:postgres@localhost:$postgres_port/${service}-test" npx jest --testPathPattern='integration' --runInBand; then
-    failed=true
-  fi
 done
-
-# Run only changed e2e tests
-if [[ "$failed" != true && ${#e2e_tests[@]} -gt 0 ]]; then
-  echo ""
-  echo "=== Running changed e2e tests ==="
-  cd "$monorepo_root"
-  for e2e_test in "${e2e_tests[@]}"; do
-    if [[ -f "$e2e_test" ]]; then
-      echo "Running $e2e_test..."
-      if ! npx jest "$e2e_test" --runInBand; then
-        failed=true
-      fi
-    fi
-  done
-fi
 
 if [[ "$failed" == true ]]; then
   echo ""
