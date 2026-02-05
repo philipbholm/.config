@@ -83,13 +83,16 @@ gwc() {
       tell application "Cursor" to activate
       delay 0.3
       tell application "System Events"
-        key code 17 using {command down, shift down}
+        tell process "Cursor"
+          click menu item "New Terminal" of menu "Terminal" of menu bar 1
+        end tell
         delay 0.5
         keystroke "v" using {command down}
         key code 36
       end tell
 EOF
   ) &
+  disown
 }
 gwd() {
   local worktree_path="/Users/philip/work/worktrees/$1"
