@@ -26,14 +26,14 @@ alias ls='ls --color'
 alias ll='ls -lah --color'
 
 # Work
-alias up='/Users/philip/work/ledidi-monorepo/scripts/dev --up'
-alias down='/Users/philip/work/ledidi-monorepo/scripts/dev --down'
+export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
 alias prisma='POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries npx prisma studio --browser chrome'
 alias prisma-test='POSTGRES_URL=postgres://postgres:postgres@localhost:5432/projects-test npx prisma studio --browser chrome'
-alias lint='npx prettier --write "./**/*.{ts,tsx}"'
-alias tff='tofu fmt --recursive'
 alias xdl='python /Users/philip/work/slack-posts/x_downloader_gui.py'
-export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
+alias wtu='/Users/philip/.config/dev/run-worktree.sh --up'
+alias wtr='/Users/philip/.config/dev/run-worktree.sh --start'
+alias wts='/Users/philip/.config/dev/run-worktree.sh --stop'
+alias wtn='/Users/philip/.config/dev/run-worktree.sh --nuke'
 gwc() {
   setopt LOCAL_OPTIONS NO_MONITOR
   local worktree_path="/Users/philip/work/worktrees/$1"
@@ -96,6 +96,7 @@ EOF
 }
 gwd() {
   local worktree_path="/Users/philip/work/worktrees/$1"
+  (cd "$worktree_path" && /Users/philip/.config/dev/run-worktree.sh --nuke)
   git -C "$worktree_path" checkout -- . && git -C "$worktree_path" clean -fd && git worktree remove "$worktree_path"
 }
 
