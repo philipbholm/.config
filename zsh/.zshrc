@@ -35,6 +35,7 @@ alias wtr='/Users/philip/.config/dev/run-worktree.sh --start'
 alias wts='/Users/philip/.config/dev/run-worktree.sh --stop'
 alias wtn='/Users/philip/.config/dev/run-worktree.sh --nuke'
 gwc() {
+  [[ -z "$1" ]] && { echo "Usage: gwc <branch-name>"; return 1; }
   setopt LOCAL_OPTIONS NO_MONITOR
   local worktree_path="/Users/philip/work/worktrees/$1"
   local claude_src="/Users/philip/.config/dev/claude/ledidi-monorepo"
@@ -74,7 +75,7 @@ gwc() {
   rm -f "$log_file"
   rm -f "$worktree_path/setup-worktree.sh"
   echo "✔ Worktree setup complete"
-  cursor "$worktree_path"
+  cursor "$worktree_path" || { echo "Failed to open Cursor"; return 1; }
   # Open Cursor terminal and run claude in tmux session
   (
     sleep 3
@@ -95,8 +96,17 @@ EOF
   disown
 }
 gwd() {
+  [[ -z "$1" ]] && { echo "Usage: gwd <branch-name>"; return 1; }
   local worktree_path="/Users/philip/work/worktrees/$1"
-  (cd "$worktree_path" && /Users/philip/.config/dev/run-worktree.sh --nuke)
+  local project_name="$1"
+  [[ ! -d "$worktree_path" ]] && { echo "Worktree not found: $worktree_path"; return 1; }
+  tmux kill-session -t "$project_name" 2>/dev/null
+  local slot_file="${WORKTREE_TMP_DIR:-$HOME/work/tmp/dev-stacks}/$project_name/worktree-slot"
+  if [ -f "$slot_file" ]; then
+    (cd "$worktree_path" && /Users/philip/.config/dev/run-worktree.sh --nuke)
+    local containers=$(docker ps -q --filter "label=com.docker.compose.project=$project_name" 2>/dev/null)
+    [ -n "$containers" ] && docker wait "$containers" >/dev/null 2>&1
+  fi
   git -C "$worktree_path" checkout -- . && git -C "$worktree_path" clean -fd && git worktree remove "$worktree_path"
 }
 
