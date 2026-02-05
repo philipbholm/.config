@@ -62,7 +62,7 @@ slot_file="$tmp_dir/worktree-slot"
 function is_slot_in_use() {
     local s=$1
     local containers
-    containers=$(docker ps -q --filter "label=com.ledidi.worktree-slot=${s}" 2>/dev/null)
+    containers=$(docker ps -aq --filter "label=com.ledidi.worktree-slot=${s}" 2>/dev/null)
     [ -n "$containers" ]
 }
 
