@@ -113,10 +113,96 @@ Write the plan file (`PLAN-{seq}.md`) in the issue directory with this structure
 
 - `path/to/file.ts` — [why it matters: "Core logic to modify", "Pattern to follow", etc.]
 
-## Verification
+## Testing Strategy
 
-- [ ] [How to test: specific commands, manual checks, or MCP tools]
-- [ ] [E2E or integration test to add/run]
+All features require extensive test coverage — not just happy paths. Tests must cover authorization, validation errors, edge cases, and error conditions.
+
+### Backend Integration Tests (Primary coverage layer)
+
+Every use case requires integration tests. For each use case, specify:
+
+**Authorization tests:**
+- [ ] `throws NotAuthorizedError when [specific unauthorized scenario]`
+
+**Validation/error tests:**
+- [ ] `throws FailedPreconditionError when [condition]` — exact message: "[message]"
+- [ ] `throws NotFoundError when [dependency] does not exist`
+- [ ] `throws AlreadyExistsError when [duplicate condition]`
+- [ ] [Add one test per validation rule]
+
+**Success scenario (three-layer verification):**
+- [ ] Returns expected data: [describe expected return shape]
+- [ ] Stores correct event: [event type, payload fields to verify]
+- [ ] Updates projection correctly: [database record fields to verify]
+
+*Note: Read-only use cases (get, list, search) only need return value and authorization tests.*
+
+### Backend Unit Tests (Complex pure logic only)
+
+Only for pure functions with many edge cases: validation helpers, algorithms, calculations, data transformations.
+
+- [ ] [Function name]: [edge cases to test]
+
+*Do not write unit tests for use cases or CRUD operations.*
+
+### Frontend Unit Tests (Component behavior)
+
+For components with non-trivial logic. Must include error states, not just happy paths.
+
+- [ ] [Component]: renders initial state correctly
+- [ ] [Component]: [specific interaction behavior]
+- [ ] [Component]: shows error state when [mutation/query] fails
+- [ ] [Component]: handles loading state
+- [ ] [Hook]: [specific behavior to test]
+
+*Extend registriesMocks() builder as needed. Use it.each() for parameterized tests.*
+
+### Frontend E2E Tests (Critical user flows only)
+
+E2E tests are expensive. Only add for flows that can't be adequately covered by unit + backend integration tests.
+
+- [ ] [Flow name]: [single happy path description] — or "N/A, covered by unit/integration tests"
+
+*Use createTestClient() for data setup. Use ROUTE_MAP for navigation. Use getByRole() over getByTestId().*
+
+### Pure UI Changes
+
+- Browser verification only (no automated tests needed)
+
+### Bug Type → Test Type Reference
+
+| Bug type | Caught by |
+|----------|-----------|
+| Authorization bypass | Backend integration test |
+| Event stored incorrectly | Backend integration test |
+| Projection out of sync | Backend integration test |
+| Input validation gap | Backend integration test |
+| Algorithm edge case | Backend unit test |
+| Form logic error | Frontend unit test |
+| Component state bug | Frontend unit test |
+| Full user flow broken | Frontend E2E test |
+
+## Verification Checklist
+
+- [ ] Type check passes
+- [ ] Lint/check passes
+- [ ] Backend integration tests pass: `[specific command]`
+- [ ] Backend unit tests pass: `[specific command, or N/A]`
+- [ ] Frontend unit tests pass: `[specific command]`
+- [ ] Frontend E2E tests pass: `[specific command, or N/A]`
+- [ ] Browser verification:
+  - [ ] [Page/feature to test]
+  - [ ] [Interaction to verify]
+- [ ] Services refreshed: [GraphQL regenerate, docker restart, etc., or "hot reload sufficient"]
+
+### Test Quality Checklist
+
+- [ ] Every new use case has integration test with authorization + validation errors + success (return value + event + projection)
+- [ ] Every error assertion uses specific error type, not bare `.toThrow()`
+- [ ] Test descriptions are imperative without "should"
+- [ ] `beforeAll` used for shared setup; `it` blocks only contain assertions
+- [ ] No `toMatchObject` where `toEqual` would work
+- [ ] New GraphQL operations added to `registriesMocks()` builder if needed
 ```
 
 Adjust sections to fit the task. Skip sections that don't apply. Keep it concise enough to scan but detailed enough to execute without re-exploring.
