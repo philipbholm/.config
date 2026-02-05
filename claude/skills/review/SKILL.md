@@ -196,6 +196,7 @@ Write the complete review to the issue directory using the Write tool. The file 
 
 Skip empty sections. If no issues, just say "No issues found" and approve.
 
-After writing the file, output the full absolute path to the review file so the user can open it immediately. Always print the complete path, never a relative or abbreviated one.
+**MANDATORY: After writing the file, you MUST output the full absolute path to the review file starting from root `/`. Never output just the filename (e.g., `REVIEW-01.md`) or a relative path. Always output the complete absolute path so the user can click it to open it.**
 
-Example: `/Users/philip/vaults/main/dev/ledidi-monorepo/issues/003-update-registry-cards/REVIEW-01.md`
+**Correct:** `/Users/philip/vaults/main/dev/ledidi-monorepo/issues/003-update-registry-cards/REVIEW-01.md`
+**Wrong:** `REVIEW-01.md` or `issues/003-update-registry-cards/REVIEW-01.md`
