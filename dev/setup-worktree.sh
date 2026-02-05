@@ -39,7 +39,7 @@ step "Installing npm dependencies"
 
 for svc in "${SERVICES[@]}"; do
     echo "  $svc ..."
-    (cd "$SCRIPT_DIR/$svc" && npm install --loglevel=warn) || fail "npm install failed in $svc"
+    (cd "$SCRIPT_DIR/$svc" && npm ci --loglevel=warn) || fail "npm ci failed in $svc"
 done
 
 # ------------------------------------------------------------------
