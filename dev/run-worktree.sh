@@ -177,6 +177,7 @@ services:
       - VITE_APP_URL=http://localhost:$(( 3001 + offset ))
       - VITE_GRAPHQL_URI=http://localhost:$(( 4000 + offset ))
       - VITE_SURVEY_URL=http://localhost:$(( 3001 + offset ))/surveys
+      - VITE_AGENT_SERVICE_URL=http://localhost:$(( 4007 + offset ))
     volumes: !override
       - $repo_root/apps/main-frontend/src:/apps/main-frontend/src:cached
       - $repo_root/services/studies/api:/services/studies/api:cached
@@ -241,12 +242,7 @@ services:
     ports: !override
       - "$(( 4006 + offset )):4000"
       - "$(( 50006 + offset )):50051"
-
-networks:
-  default:
-    name: default-network-wt-${s}
-    driver: bridge
-
+      - "4002:4002"
 YAML
 
     # Conditionally add services that may not exist in all branches
@@ -258,6 +254,15 @@ YAML
       - "$(( 4007 + offset )):4000"
 AGENT_YAML
     fi
+
+    # Append networks section last
+    cat >> "$override_file" <<NETWORKS_YAML
+
+networks:
+  default:
+    name: default-network-wt-${s}
+    driver: bridge
+NETWORKS_YAML
 
     echo "$override_file"
 }
