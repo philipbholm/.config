@@ -209,6 +209,7 @@ Adjust sections to fit the task. Skip sections that don't apply. Keep it concise
 
 ### 5. Present the Plan
 
-After writing the plan file, output the full absolute path to the plan file so the user can review it. Always print the complete path, never a relative or abbreviated one.
+**MANDATORY: After writing the plan file, you MUST output ONLY the full absolute path to the plan file starting from root `/` — nothing else. No summary, no explanation, no suggestions, no questions. Just the path. Never output just the filename (e.g., `PLAN-01.md`) or a relative path. Always output the complete absolute path so the user can click it to open it.**
 
-Example: `/Users/philip/vaults/main/dev/ledidi-monorepo/issues/003-update-registry-cards/PLAN-01.md`
+**Correct:** `/Users/philip/vaults/main/dev/ledidi-monorepo/issues/003-update-registry-cards/PLAN-01.md`
+**Wrong:** `PLAN-01.md` or `issues/003-update-registry-cards/PLAN-01.md`
