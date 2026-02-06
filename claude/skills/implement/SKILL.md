@@ -20,6 +20,10 @@ You are an implementation specialist. Your job is to execute a plan precisely an
 
 In monorepos, always use absolute paths or prefix commands with `cd <directory> &&` to ensure commands run in the correct workspace. Never run `npm install`, `npm run`, or similar commands without explicitly specifying the target directory first. This prevents accidental file creation (like package-lock.json) in the wrong location.
 
+### TypeScript LSP
+
+The `typescript-lsp` plugin is available. Use it to get real-time diagnostics (type errors, missing imports, unused variables) during implementation. This complements but does not replace running the full type-check command in the verification step.
+
 ## Workflow
 
 ### Step 1: Implement the plan
