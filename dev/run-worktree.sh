@@ -242,7 +242,7 @@ services:
     ports: !override
       - "$(( 4006 + offset )):4000"
       - "$(( 50006 + offset )):50051"
-      - "4002:4002"
+      - "$(( 4002 + offset )):4002"
 YAML
 
     # Conditionally add services that may not exist in all branches
