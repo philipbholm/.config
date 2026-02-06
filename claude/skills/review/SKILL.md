@@ -93,23 +93,36 @@ General:
 
 **When reviewing a diff or PR:**
 
-1. First, fetch the latest remote and get the changes:
+1. First, fetch the latest remote and determine the diff based on the review mode:
 
    ```bash
-   # Always fetch first to ensure we have the latest remote master
    git fetch origin master
-
-   # For staged changes only
-   git diff --cached
-
-   # For all local changes (unstaged)
-   git diff
-
-   # For a branch (compare WORKING TREE against remote master - includes committed, staged, AND unstaged changes)
-   git diff origin/master
    ```
 
-   **IMPORTANT:** Use `git diff origin/master` (NOT `origin/master...HEAD`) for branch reviews. The `...HEAD` syntax only shows committed changes and misses staged/unstaged work. `git diff origin/master` shows the complete picture of what would be in a PR.
+   **For `pr <number>`** — use GitHub's PR diff (correctly scoped regardless of merge history):
+   ```bash
+   gh pr diff <number>
+   # For file list:
+   gh pr diff <number> --name-only
+   ```
+
+   **For `branch`** — diff against the merge-base to exclude changes from merge commits:
+   ```bash
+   # Diff from the common ancestor of origin/master and HEAD to the working tree.
+   # This includes committed + staged + unstaged changes, and correctly
+   # excludes changes that entered the branch via merge commits from master.
+   git diff $(git merge-base origin/master HEAD)
+   # For file list:
+   git diff --name-only $(git merge-base origin/master HEAD)
+   ```
+
+   **For `diff`** — review local uncommitted changes only:
+   ```bash
+   git diff            # unstaged changes
+   git diff --cached   # staged changes
+   ```
+
+   **IMPORTANT:** Do NOT use plain `git diff origin/master` for branch reviews — on branches that merged master in, this can include unrelated changes from master. The merge-base approach (`git diff $(git merge-base origin/master HEAD)`) correctly identifies the branch's divergence point and only shows this branch's own changes. For PR reviews, `gh pr diff` is the most reliable since GitHub's diff engine handles all merge history complexity.
 
 2. Identify affected areas (frontend, which services, shared packages)
 
@@ -124,7 +137,7 @@ General:
 - `pr-review-toolkit:pr-test-analyzer` - Review test coverage quality and completeness
 - `pr-review-toolkit:type-design-analyzer` - Analyze type design quality
 
-Provide each agent with the diff/file context so they know what to review. **Every agent prompt MUST include this instruction: "This is a read-only review. Do NOT use Edit, Write, or NotebookEdit tools. Do NOT modify, create, or delete any files. Only read and analyze code, then report your findings as text."** Run all agents in a single message using multiple Task tool calls.
+Provide each agent with the **exact diff command** to use (e.g., `gh pr diff 123` or `git diff $(git merge-base origin/master HEAD)`) and the **file list** from that diff. Agents MUST use the provided diff command — they must NOT run their own `git diff` to determine scope. **Every agent prompt MUST include this instruction: "This is a read-only review. Do NOT use Edit, Write, or NotebookEdit tools. Do NOT modify, create, or delete any files. Only read and analyze code, then report your findings as text."** Run all agents in a single message using multiple Task tool calls.
 
 4. Additionally check for:
 
