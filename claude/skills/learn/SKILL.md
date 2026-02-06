@@ -16,15 +16,9 @@ $ARGUMENTS must contain a PR number. If missing, tell the user:
 
 > Usage: `/learn <pr-number>`
 
-## Step 1: Detect Repository
+## Step 1: Repository
 
-```bash
-git remote get-url origin
-```
-
-Parse owner/repo from the remote URL:
-- SSH: `git@github.com:owner/repo.git` → `owner`, `repo`
-- HTTPS: `https://github.com/owner/repo.git` → `owner`, `repo`
+Always use `owner: "ledidi-as"` and `repo: "ledidi-monorepo"`.
 
 ## Step 2: Fetch All PR Feedback
 
@@ -41,11 +35,11 @@ Use GitHub MCP tools to fetch everything. If MCP tools are unavailable, fall bac
 **Fallback** (if MCP tools fail):
 
 ```bash
-gh api repos/{owner}/{repo}/pulls/{pr_number}
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --paginate
-gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --paginate
-gh api repos/{owner}/{repo}/issues/{pr_number}/comments --paginate
-gh api repos/{owner}/{repo}/pulls/{pr_number} -H "Accept: application/vnd.github.diff"
+gh api repos/ledidi-as/ledidi-monorepo/pulls/{pr_number}
+gh api repos/ledidi-as/ledidi-monorepo/pulls/{pr_number}/comments --paginate
+gh api repos/ledidi-as/ledidi-monorepo/pulls/{pr_number}/reviews --paginate
+gh api repos/ledidi-as/ledidi-monorepo/issues/{pr_number}/comments --paginate
+gh api repos/ledidi-as/ledidi-monorepo/pulls/{pr_number} -H "Accept: application/vnd.github.diff"
 ```
 
 ## Step 3: Filter Noise
