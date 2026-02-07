@@ -72,7 +72,9 @@ Transform the filtered feedback into reusable learnings:
 
 **If the PR has no substantive feedback** (all comments were filtered out, or only approvals remain):
 
-Write a short file noting that no actionable learnings were found, and why (e.g., "PR received only approvals with no specific feedback").
+Do not write a file. Instead, tell the user:
+
+> No actionable learnings found for PR #{number} — {reason} (e.g., "only approvals with no specific feedback").
 
 ## Step 5: Write Output
 
