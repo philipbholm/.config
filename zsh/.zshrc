@@ -30,10 +30,10 @@ export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
 alias prisma='POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries npx prisma studio --browser chrome'
 alias prisma-test='POSTGRES_URL=postgres://postgres:postgres@localhost:5432/projects-test npx prisma studio --browser chrome'
 alias xdl='python /Users/philip/work/slack-posts/x_downloader_gui.py'
-alias wtu='/Users/philip/.config/dev/run-worktree.sh --up'
+alias wtu='notify /Users/philip/.config/dev/run-worktree.sh --up'
 alias wtr='/Users/philip/.config/dev/run-worktree.sh --start'
 alias wts='/Users/philip/.config/dev/run-worktree.sh --stop'
-alias wtn='/Users/philip/.config/dev/run-worktree.sh --nuke'
+alias wtn='notify /Users/philip/.config/dev/run-worktree.sh --nuke'
 gwc() {
   [[ -z "$1" ]] && { echo "Usage: gwc <branch-name>"; return 1; }
   setopt LOCAL_OPTIONS NO_MONITOR
