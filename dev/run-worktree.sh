@@ -213,7 +213,8 @@ services:
     volumes: !override
       - $repo_root/services/admin/src:/app/services/admin/src
       - $repo_root/services/admin/api:/app/services/admin/api
-      - $repo_root/services/admin/prisma:/app/services/admin/prisma
+      - $repo_root/services/admin/prisma-mysql:/app/services/admin/prisma-mysql
+      - $repo_root/services/admin/prisma-pgsql:/app/services/admin/prisma-pgsql
     ports: !override
       - "$(( 4004 + offset )):4000"
       - "$(( 50004 + offset )):50051"
@@ -290,6 +291,51 @@ function dc() {
         "$@"
 }
 
+# --- Lockfile freshness check ---
+
+function check_shared_image_freshness() {
+    local image=$1
+    local lockfile=$2
+
+    if ! docker image inspect "$image" &>/dev/null; then
+        return  # Image doesn't exist yet; pull_policy: build will create it
+    fi
+
+    if [ ! -f "$lockfile" ]; then
+        return
+    fi
+
+    local current_hash
+    current_hash=$(md5 -q "$lockfile" 2>/dev/null || md5sum "$lockfile" | cut -d' ' -f1)
+
+    local hash_file="$tmp_dir/${image}.lockfile-hash"
+    local stored_hash=""
+    if [ -f "$hash_file" ]; then
+        stored_hash=$(cat "$hash_file")
+    fi
+
+    if [ "$current_hash" != "$stored_hash" ]; then
+        echo "Dependencies changed for $image — forcing rebuild."
+        rebuild=true
+    fi
+}
+
+function save_lockfile_hashes() {
+    local pairs=(
+        "ledidi-shared-admin:$repo_root/services/admin/package-lock.json"
+        "ledidi-shared-codelist:$repo_root/services/codelist/package-lock.json"
+    )
+    for pair in "${pairs[@]}"; do
+        local image="${pair%%:*}"
+        local lockfile="${pair##*:}"
+        if [ -f "$lockfile" ]; then
+            local hash
+            hash=$(md5 -q "$lockfile" 2>/dev/null || md5sum "$lockfile" | cut -d' ' -f1)
+            echo "$hash" > "$tmp_dir/${image}.lockfile-hash"
+        fi
+    done
+}
+
 # --- Seed helper ---
 
 function run_seed() {
@@ -326,7 +372,7 @@ This worktree is running an isolated Docker stack. Use these ports instead of th
 
 | Service | URL |
 |---------|-----|
-| Frontend | http://localhost:$(( 3001 + offset ))/en |
+| Frontend | http://localhost:$(( 3001 + offset ))/en/registries |
 | Router (GraphQL) | http://localhost:$(( 4000 + offset )) |
 | Admin (GraphQL) | http://localhost:$(( 4004 + offset )) |
 | Admin (gRPC) | localhost:$(( 50004 + offset )) |
@@ -337,7 +383,31 @@ This worktree is running an isolated Docker stack. Use these ports instead of th
 | PostgreSQL | localhost:$(( 5432 + offset )) |
 | MySQL | localhost:$(( 3336 + offset )) |
 
-When running E2E tests or opening the app in the browser, use port $(( 3001 + offset )) instead of 3001.
+When opening the app in the browser, use port $(( 3001 + offset )).
+
+## Running Tests
+
+### Frontend
+
+Unit tests have no port dependencies and work as-is:
+\`\`\`bash
+cd $repo_root/apps/main-frontend && npm test
+\`\`\`
+
+E2E tests (Playwright) need the worktree frontend port. Start the frontend, then run:
+\`\`\`bash
+cd $repo_root/apps/main-frontend && BASE_URL=http://localhost:$(( 3001 + offset )) npx playwright test
+\`\`\`
+
+### Registries
+\`\`\`bash
+COMPOSE_PROJECT_NAME="$project_name" docker compose -f "$repo_root/docker-compose.yml" -f "$tmp_dir/docker-compose.worktree.yml" exec -e POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/registries-test registries npx jest --runInBand
+\`\`\`
+
+### Codelist
+\`\`\`bash
+COMPOSE_PROJECT_NAME="$project_name" docker compose -f "$repo_root/docker-compose.yml" -f "$tmp_dir/docker-compose.worktree.yml" exec -e POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/codelist-test codelist npx jest --runInBand
+\`\`\`
 ${marker_end}
 EOF
     )
@@ -470,11 +540,18 @@ if [ "$command" = "up" ]; then
         touch "$repo_root/services/apollo-router/supergraph.graphql"
     fi
     generate_override "$resolved_slot" > /dev/null
+    # Auto-detect if shared images need rebuilding
+    if [ "$rebuild" != true ]; then
+        check_shared_image_freshness "ledidi-shared-admin" "$repo_root/services/admin/package-lock.json"
+        check_shared_image_freshness "ledidi-shared-codelist" "$repo_root/services/codelist/package-lock.json"
+    fi
     if [ "$rebuild" = true ]; then
         dc up --build -d --wait $worktree_services
     else
         dc up -d --wait $worktree_services
     fi
+
+    save_lockfile_hashes
 
     run_seed
     write_claude_ports "$resolved_slot"
@@ -487,7 +564,7 @@ elif [ "$command" = "stop" ]; then
 
 elif [ "$command" = "start" ]; then
     generate_override "$resolved_slot" > /dev/null
-    dc start
+    dc up -d $worktree_services
 
 elif [ "$command" = "down" ]; then
     generate_override "$resolved_slot" > /dev/null

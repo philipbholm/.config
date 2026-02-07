@@ -89,6 +89,51 @@ function dc() {
         "$@"
 }
 
+# --- Lockfile freshness check ---
+
+function check_shared_image_freshness() {
+    local image=$1
+    local lockfile=$2
+
+    if ! docker image inspect "$image" &>/dev/null; then
+        return  # Image doesn't exist yet; pull_policy: build will create it
+    fi
+
+    if [ ! -f "$lockfile" ]; then
+        return
+    fi
+
+    local current_hash
+    current_hash=$(md5 -q "$lockfile" 2>/dev/null || md5sum "$lockfile" | cut -d' ' -f1)
+
+    local hash_file="$tmp_dir/${image}.lockfile-hash"
+    local stored_hash=""
+    if [ -f "$hash_file" ]; then
+        stored_hash=$(cat "$hash_file")
+    fi
+
+    if [ "$current_hash" != "$stored_hash" ]; then
+        echo "Dependencies changed for $image — forcing rebuild."
+        rebuild=true
+    fi
+}
+
+function save_lockfile_hashes() {
+    local pairs=(
+        "ledidi-shared-admin:$repo_root/services/admin/package-lock.json"
+        "ledidi-shared-codelist:$repo_root/services/codelist/package-lock.json"
+    )
+    for pair in "${pairs[@]}"; do
+        local image="${pair%%:*}"
+        local lockfile="${pair##*:}"
+        if [ -f "$lockfile" ]; then
+            local hash
+            hash=$(md5 -q "$lockfile" 2>/dev/null || md5sum "$lockfile" | cut -d' ' -f1)
+            echo "$hash" > "$tmp_dir/${image}.lockfile-hash"
+        fi
+    done
+}
+
 # --- Seed helper ---
 
 function run_seed() {
@@ -156,11 +201,18 @@ if [ "$command" = "up" ]; then
         touch "$repo_root/services/apollo-router/supergraph.graphql"
     fi
     generate_override > /dev/null
+    # Auto-detect if shared images need rebuilding
+    if [ "$rebuild" != true ]; then
+        check_shared_image_freshness "ledidi-shared-admin" "$repo_root/services/admin/package-lock.json"
+        check_shared_image_freshness "ledidi-shared-codelist" "$repo_root/services/codelist/package-lock.json"
+    fi
     if [ "$rebuild" = true ]; then
         dc up --build -d --wait $dev_services
     else
         dc up -d --wait $dev_services
     fi
+
+    save_lockfile_hashes
 
     run_seed
 
@@ -172,7 +224,7 @@ elif [ "$command" = "stop" ]; then
 
 elif [ "$command" = "start" ]; then
     generate_override > /dev/null
-    dc start
+    dc up -d $dev_services
 
 elif [ "$command" = "down" ]; then
     generate_override > /dev/null
