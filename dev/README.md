@@ -11,6 +11,7 @@ Development utility scripts for the monorepo.
 | `rebuild` | Rebuild Docker containers |
 | `db` | Database utilities |
 | `shell` | Open a shell in a Docker container |
+| `tunnel` | Start cloudflared tunnels for remote access |
 
 ## Setup
 
@@ -35,6 +36,7 @@ ln -sf ~/.config/dev/check.sh ~/bin/check
 ~/bin/rebuild -> ~/.config/dev/rebuild.sh
 ~/bin/db      -> ~/.config/dev/db.sh
 ~/bin/shell   -> ~/.config/dev/shell.sh
+~/bin/tunnel  -> ~/.config/dev/tunnel.sh
 ```
 
 ## Why Symlinks?
