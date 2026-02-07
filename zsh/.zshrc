@@ -147,6 +147,17 @@ export PYENV_ROOT="$HOME/.pyenv"
 eval "$(pyenv init -)"
 
 # Functions
+notify() {
+  eval "$@"
+  local exit_code=$?
+  if [ $exit_code -eq 0 ]; then
+    osascript -e 'display notification "Command succeeded" with title "Done" sound name "Hero"'
+  else
+    osascript -e "display notification \"Command failed (exit $exit_code)\" with title \"Done\" sound name \"Sosumi\""
+  fi
+  return $exit_code
+}
+
 docker() {
   if [[ $@ == "ps" ]]; then
     command docker ps -a --format "table {{.Names}}\t{{.Status}}"
