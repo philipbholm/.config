@@ -196,6 +196,7 @@ services:
       - "$(( 5432 + offset )):5432"
 
   mysql:
+    command: --default-authentication-plugin=mysql_native_password
     ports: !override
       - "$(( 3336 + offset )):3306"
 
