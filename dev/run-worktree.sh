@@ -25,7 +25,6 @@ function check_docker() {
     fi
 }
 
-script_dir=$(cd "$(dirname "$0")" && pwd)
 if ! git rev-parse --show-toplevel &>/dev/null; then
     echo "Error: Not inside a git repository" >&2
     exit 1
@@ -200,13 +199,7 @@ services:
     ports: !override
       - "$(( 3336 + offset )):3306"
 
-  router-autoupdate:
-    image: ledidi-shared-router-autoupdate
-    pull_policy: build
-
   admin:
-    image: ledidi-shared-admin
-    pull_policy: build
     depends_on: !override
       mysql:
         condition: service_healthy
@@ -221,8 +214,6 @@ services:
       - "$(( 9004 + offset )):9229"
 
   codelist:
-    image: ledidi-shared-codelist
-    pull_policy: build
     volumes: !override
       - $repo_root/services/codelist/src:/app/services/codelist/src
       - $repo_root/services/codelist/api:/app/services/codelist/api
@@ -293,12 +284,12 @@ function dc() {
 
 # --- Lockfile freshness check ---
 
-function check_shared_image_freshness() {
+function check_image_freshness() {
     local image=$1
     local lockfile=$2
 
     if ! docker image inspect "$image" &>/dev/null; then
-        return  # Image doesn't exist yet; pull_policy: build will create it
+        return  # Image doesn't exist yet; will be built on first up
     fi
 
     if [ ! -f "$lockfile" ]; then
@@ -322,8 +313,8 @@ function check_shared_image_freshness() {
 
 function save_lockfile_hashes() {
     local pairs=(
-        "ledidi-shared-admin:$repo_root/services/admin/package-lock.json"
-        "ledidi-shared-codelist:$repo_root/services/codelist/package-lock.json"
+        "${project_name}-admin:$repo_root/services/admin/package-lock.json"
+        "${project_name}-codelist:$repo_root/services/codelist/package-lock.json"
     )
     for pair in "${pairs[@]}"; do
         local image="${pair%%:*}"
@@ -540,10 +531,10 @@ if [ "$command" = "up" ]; then
         touch "$repo_root/services/apollo-router/supergraph.graphql"
     fi
     generate_override "$resolved_slot" > /dev/null
-    # Auto-detect if shared images need rebuilding
+    # Auto-detect if images need rebuilding
     if [ "$rebuild" != true ]; then
-        check_shared_image_freshness "ledidi-shared-admin" "$repo_root/services/admin/package-lock.json"
-        check_shared_image_freshness "ledidi-shared-codelist" "$repo_root/services/codelist/package-lock.json"
+        check_image_freshness "${project_name}-admin" "$repo_root/services/admin/package-lock.json"
+        check_image_freshness "${project_name}-codelist" "$repo_root/services/codelist/package-lock.json"
     fi
     if [ "$rebuild" = true ]; then
         dc up --build -d --wait $worktree_services

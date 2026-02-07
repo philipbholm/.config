@@ -15,13 +15,13 @@ All stacks run the same set of services:
 
 Auth services (SpiceDB, auth-service) are excluded. The admin service's dependency on auth-service is overridden.
 
-## Shared Docker Images
+## Docker Image Isolation
 
-To avoid rebuilding the same images per stack, `router-autoupdate`, `admin`, and `codelist` use shared image tags (`ledidi-shared-*`). The first stack to start builds these images; subsequent stacks reuse them. `main-frontend` and `registries` are built per-project since their code differs across branches.
+Each stack builds its own images using Docker Compose's default naming convention (`{project_name}-{service_name}`). Since the main repo and each worktree have different project names, all images are fully isolated between stacks with no cross-contamination.
 
 ## run-main.sh
 
-Runs the app stack from the main repo using default ports. Generates a `docker-compose.dev.yml` override file in `/Users/philip/work/tmp/dev-stacks/ledidi-monorepo/` that sets shared image names and removes the auth-service dependency from admin.
+Runs the app stack from the main repo using default ports. Generates a `docker-compose.dev.yml` override file in `/Users/philip/work/tmp/dev-stacks/ledidi-monorepo/` that removes the auth-service dependency from admin.
 
 ```bash
 scripts/run-main.sh --up          # Create and start the stack

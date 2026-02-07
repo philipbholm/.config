@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### Runs the app stack from the main repo with the same service set
-### and shared images/volumes as the worktree script.
+### as the worktree script.
 ###
 ### Usage:
 ###   scripts/run-main.sh --up
@@ -60,20 +60,10 @@ function generate_override() {
 # Do not edit — regenerated on each run.
 
 services:
-  router-autoupdate:
-    image: ledidi-shared-router-autoupdate
-    pull_policy: build
-
   admin:
-    image: ledidi-shared-admin
-    pull_policy: build
     depends_on: !override
       mysql:
         condition: service_healthy
-
-  codelist:
-    image: ledidi-shared-codelist
-    pull_policy: build
 
 YAML
 
@@ -91,12 +81,12 @@ function dc() {
 
 # --- Lockfile freshness check ---
 
-function check_shared_image_freshness() {
+function check_image_freshness() {
     local image=$1
     local lockfile=$2
 
     if ! docker image inspect "$image" &>/dev/null; then
-        return  # Image doesn't exist yet; pull_policy: build will create it
+        return  # Image doesn't exist yet; will be built on first up
     fi
 
     if [ ! -f "$lockfile" ]; then
@@ -120,8 +110,8 @@ function check_shared_image_freshness() {
 
 function save_lockfile_hashes() {
     local pairs=(
-        "ledidi-shared-admin:$repo_root/services/admin/package-lock.json"
-        "ledidi-shared-codelist:$repo_root/services/codelist/package-lock.json"
+        "${project_name}-admin:$repo_root/services/admin/package-lock.json"
+        "${project_name}-codelist:$repo_root/services/codelist/package-lock.json"
     )
     for pair in "${pairs[@]}"; do
         local image="${pair%%:*}"
@@ -201,10 +191,10 @@ if [ "$command" = "up" ]; then
         touch "$repo_root/services/apollo-router/supergraph.graphql"
     fi
     generate_override > /dev/null
-    # Auto-detect if shared images need rebuilding
+    # Auto-detect if images need rebuilding
     if [ "$rebuild" != true ]; then
-        check_shared_image_freshness "ledidi-shared-admin" "$repo_root/services/admin/package-lock.json"
-        check_shared_image_freshness "ledidi-shared-codelist" "$repo_root/services/codelist/package-lock.json"
+        check_image_freshness "${project_name}-admin" "$repo_root/services/admin/package-lock.json"
+        check_image_freshness "${project_name}-codelist" "$repo_root/services/codelist/package-lock.json"
     fi
     if [ "$rebuild" = true ]; then
         dc up --build -d --wait $dev_services
