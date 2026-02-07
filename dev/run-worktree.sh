@@ -134,12 +134,17 @@ function resolve_slot() {
         return
     fi
 
-    # Check for a previously saved slot
+    # Check for a previously saved slot, but verify it's still ours
     local saved
     saved=$(read_saved_slot)
     if [ -n "$saved" ]; then
-        echo "$saved"
-        return
+        if is_slot_in_use "$saved"; then
+            echo "$saved"
+            return
+        else
+            # Stale slot file — clear it and fall through to auto-assign
+            clear_saved_slot
+        fi
     fi
 
     # Auto-assign the next available slot
