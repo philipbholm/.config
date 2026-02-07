@@ -21,9 +21,9 @@ ctx_tag="${context:+ [$context]}"
 
 case "$event" in
   "permission_prompt")
-    osascript -e "display notification \"Claude needs your permission to proceed\" with title \"Claude Code${ctx_tag} - Permission Required\" sound name \"Glass\""
+    alerter -message "Claude needs your permission to proceed" -title "Claude Code${ctx_tag} - Permission Required" -sound "Glass" -timeout 10 > /dev/null 2>&1 &
     ;;
   "idle_prompt")
-    osascript -e "display notification \"Claude is waiting for your input\" with title \"Claude Code${ctx_tag} - Ready\" sound name \"Glass\""
+    alerter -message "Claude is waiting for your input" -title "Claude Code${ctx_tag} - Ready" -sound "Glass" -timeout 10 > /dev/null 2>&1 &
     ;;
 esac

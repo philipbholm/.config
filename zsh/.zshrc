@@ -151,9 +151,9 @@ notify() {
   eval "$@"
   local exit_code=$?
   if [ $exit_code -eq 0 ]; then
-    osascript -e 'display notification "Command succeeded" with title "Done" sound name "Hero"'
+    alerter -message "Command succeeded" -title "Done" -sound "Hero" -timeout 5 > /dev/null 2>&1 &
   else
-    osascript -e "display notification \"Command failed (exit $exit_code)\" with title \"Done\" sound name \"Sosumi\""
+    alerter -message "Command failed (exit $exit_code)" -title "Done" -sound "Sosumi" -timeout 5 > /dev/null 2>&1 &
   fi
   return $exit_code
 }
