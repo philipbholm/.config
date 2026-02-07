@@ -8,9 +8,9 @@ event=$(echo "$input" | grep -o '"notification_type":"[^"]*"' | sed 's/"notifica
 
 case "$event" in
   "permission_prompt")
-    osascript -e 'tell application "Finder" to display notification "Claude needs your permission to proceed" with title "Claude Code - Permission Required"'
+    osascript -e 'display notification "Claude needs your permission to proceed" with title "Claude Code - Permission Required" sound name "Glass"'
     ;;
   "idle_prompt")
-    osascript -e 'tell application "Finder" to display notification "Claude is waiting for your input" with title "Claude Code - Ready"'
+    osascript -e 'display notification "Claude is waiting for your input" with title "Claude Code - Ready" sound name "Glass"'
     ;;
 esac
