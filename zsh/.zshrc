@@ -257,3 +257,6 @@ setopt HIST_IGNORE_SPACE
 export PATH="$HOME/bin:$PATH"
 export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
 export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
+
+# opencode
+export PATH=/Users/philip/.opencode/bin:$PATH
