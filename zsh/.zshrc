@@ -27,7 +27,6 @@ alias ll='ls -lah --color'
 
 # Work
 export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
-alias prisma='POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries npx prisma studio --browser chrome'
 alias prisma-test='POSTGRES_URL=postgres://postgres:postgres@localhost:5432/projects-test npx prisma studio --browser chrome'
 alias xdl='python /Users/philip/work/slack-posts/x_downloader_gui.py'
 alias wtu='notify /Users/philip/.config/dev/run-worktree.sh --up'
@@ -108,6 +107,11 @@ gwd() {
     [ -n "$containers" ] && docker wait "$containers" >/dev/null 2>&1
   fi
   git -C "$worktree_path" checkout -- . && git -C "$worktree_path" clean -fd && git worktree remove "$worktree_path"
+}
+
+prisma() {
+  local port=$((5432 + ${1:-0} * 100))
+  POSTGRES_URL="postgresql://postgres:postgres@localhost:$port/registries" npx prisma studio
 }
 
 # Paths
