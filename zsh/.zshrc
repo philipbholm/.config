@@ -114,6 +114,24 @@ prisma() {
   POSTGRES_URL="postgresql://postgres:postgres@localhost:$port/registries" npx prisma studio
 }
 
+seed() {
+  local worktree_root="/Users/philip/work/worktrees"
+  local worktree_tmp="/Users/philip/work/tmp/dev-stacks"
+  local cwd="$PWD"
+  local compose_args=()
+
+  if [[ "$cwd" == "$worktree_root/"* ]]; then
+    local name="${cwd#$worktree_root/}"
+    name="${name%%/*}"
+    compose_args=(--project-name="$name" -f "$worktree_root/$name/docker-compose.yml" -f "$worktree_tmp/$name/docker-compose.worktree.yml")
+  fi
+
+  for target in icd10 atc; do
+    echo "Seeding $target..."
+    command docker compose ${compose_args[@]} exec -e POSTGRES_URL="postgresql://postgres:postgres@postgres:5432/registries" registries npm run "seed-$target"
+  done
+}
+
 # Paths
 export PATH="/usr/local/bin:$PATH"
 export PATH="/opt/homebrew/bin:$PATH"
