@@ -111,7 +111,7 @@ gwd() {
 }
 
 _gwc_completions() {
-  local branches=($(git branch -a --format='%(refname:short)' 2>/dev/null))
+  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
   _describe 'branch' branches
 }
 
@@ -266,21 +266,19 @@ _rebuild_completions() {
 compdef _rebuild_completions rebuild
 
 # Git alias completions
-compdef _git gco=git-checkout
-compdef _git gcb=git-checkout
-compdef _git grb=git-rebase
-compdef _git gm=git-merge
+_git_local_branches() {
+  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
+  _describe 'branch' branches
+}
+
+compdef _git_local_branches gco gcb grb gm gbd grh grhh grhs gsh
 compdef _git gp=git-push
 compdef _git gpf=git-push
 compdef _git gl=git-pull
-compdef _git grh=git-reset
-compdef _git grhh=git-reset
-compdef _git gsh=git-show
 compdef _git ga=git-add
 compdef _git gapa=git-add
 compdef _git gb=git-branch
 compdef _git glo=git-log
-compdef _git gbd=git-branch
 compdef _gwc_completions gwc
 compdef _gwd_completions gwd
 
