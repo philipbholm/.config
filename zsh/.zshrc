@@ -126,6 +126,63 @@ prisma() {
   POSTGRES_URL="postgresql://postgres:postgres@localhost:$port/registries" npx prisma studio
 }
 
+verify() {
+  # Determine repo root from current directory
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "Error: not inside a git repository"
+    return 1
+  }
+
+  local repo_name=$(basename "$repo_root")
+  local dev_stack_dir="$HOME/work/tmp/dev-stacks/$repo_name"
+  local is_worktree=false
+  local compose_args=""
+
+  # Check if this is a worktree (has a worktree-slot file)
+  if [[ -f "$dev_stack_dir/worktree-slot" ]]; then
+    is_worktree=true
+    compose_args="COMPOSE_PROJECT_NAME=$repo_name docker compose -f $repo_root/docker-compose.yml -f $dev_stack_dir/docker-compose.worktree.yml"
+  fi
+
+  local failed=()
+
+  echo "=== Frontend: lint ==="
+  (cd "$repo_root/apps/main-frontend" && npm run lint:fix) || failed+=(frontend-lint)
+
+  echo ""
+  echo "=== Frontend: type check ==="
+  (cd "$repo_root/apps/main-frontend" && npm run build-ts) || failed+=(frontend-types)
+
+  echo ""
+  echo "=== Frontend: tests ==="
+  (cd "$repo_root/apps/main-frontend" && npm run test) || failed+=(frontend-tests)
+
+  echo ""
+  echo "=== Registries: lint ==="
+  (cd "$repo_root/services/registries" && npm run lint:fix) || failed+=(registries-lint)
+
+  echo ""
+  echo "=== Registries: type check ==="
+  (cd "$repo_root/services/registries" && npm run build-ts) || failed+=(registries-types)
+
+  echo ""
+  echo "=== Registries: tests ==="
+  if $is_worktree; then
+    eval "$compose_args exec -e POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/registries-test registries npx jest --runInBand" || failed+=(registries-tests)
+  else
+    (cd "$repo_root/services/registries" && npm run test) || failed+=(registries-tests)
+  fi
+
+  echo ""
+  if [[ ${#failed[@]} -eq 0 ]]; then
+    echo "=== All checks passed ==="
+  else
+    echo "=== FAILED: ${failed[*]} ==="
+    return 1
+  fi
+}
+
 seed() {
   local worktree_root="/Users/philip/work/worktrees"
   local worktree_tmp="/Users/philip/work/tmp/dev-stacks"
