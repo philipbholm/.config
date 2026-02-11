@@ -1,3 +1,7 @@
+# General aliases
+alias ls='ls --color'
+alias ll='ls -lah --color'
+
 # Git aliases
 alias ga='git add'
 alias gaa='git add --all'
@@ -7,6 +11,7 @@ alias gcan='git commit --amend --no-edit'
 alias gcam='git commit -a -m'
 alias gco='git checkout'
 alias gcb='git checkout -b'
+alias gbd='git branch -D'
 alias gl='git pull'
 alias glo='git log --oneline --no-decorate'
 alias gp='git push'
@@ -15,19 +20,15 @@ alias grb='git rebase'
 alias gm='git merge'
 alias grh='git reset'
 alias grhh='git reset --hard'
+alias grhs='git reset --soft'
 alias gsh='git show'
 alias gs='git status -sb'
 alias gcm='git commit -m'
 alias glc='git rev-parse HEAD | tr -d "\n" | pbcopy && echo "Copied: $(git rev-parse HEAD)"'
 alias gwl='git worktree list'
 
-# General aliases
-alias ls='ls --color'
-alias ll='ls -lah --color'
-
 # Work
 export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
-alias prisma-test='POSTGRES_URL=postgres://postgres:postgres@localhost:5432/projects-test npx prisma studio --browser chrome'
 alias xdl='python /Users/philip/work/slack-posts/x_downloader_gui.py'
 alias wtu='notify /Users/philip/.config/dev/run-worktree.sh --up'
 alias wtr='/Users/philip/.config/dev/run-worktree.sh --start'
@@ -109,6 +110,17 @@ gwd() {
   git -C "$worktree_path" checkout -- . && git -C "$worktree_path" clean -fd && git worktree remove "$worktree_path"
 }
 
+_gwc_completions() {
+  local branches=($(git branch -a --format='%(refname:short)' 2>/dev/null))
+  _describe 'branch' branches
+}
+
+_gwd_completions() {
+  local dir="/Users/philip/work/worktrees"
+  local worktrees=(${(@f)"$(ls "$dir" 2>/dev/null)"})
+  _describe 'worktree' worktrees
+}
+
 prisma() {
   local port=$((5432 + ${1:-0} * 100))
   POSTGRES_URL="postgresql://postgres:postgres@localhost:$port/registries" npx prisma studio
@@ -137,20 +149,23 @@ export PATH="/usr/local/bin:$PATH"
 export PATH="/opt/homebrew/bin:$PATH"
 export PATH="$PATH:$HOME/go/bin"
 export PATH="$HOME/bin:$PATH"
+export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
 export PATH="$PATH:/Users/philip/.modular/bin"
-# Moved after NVM init below
 export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
 export CPPFLAGS="-I/opt/homebrew/opt/openjdk@17/include"
 export PATH="/Users/philip/.duckdb/cli/latest:$PATH"
 export PATH="/opt/homebrew/opt/gradle@8/bin:$PATH"
-
-# Home
+export PATH=/Users/philip/.opencode/bin:$PATH
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 export PATH="$PATH:$(npm config get prefix)/bin"
 export PATH="$HOME/.local/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
+
+# pyenv setup
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
 
 # Environment variables
 # export PS1='%~ %# '  # Full path
@@ -162,11 +177,6 @@ export DISABLE_ERROR_REPORTING=1
 
 # Load secrets (API keys, tokens)
 [ -f "$HOME/.config/zsh/.zsh_secrets" ] && source "$HOME/.config/zsh/.zsh_secrets"
-
-# pyenv setup
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
 
 # Functions
 notify() {
@@ -197,6 +207,25 @@ _rebuild_completions() {
   _describe 'service' services
 }
 compdef _rebuild_completions rebuild
+
+# Git alias completions
+compdef _git gco=git-checkout
+compdef _git gcb=git-checkout
+compdef _git grb=git-rebase
+compdef _git gm=git-merge
+compdef _git gp=git-push
+compdef _git gpf=git-push
+compdef _git gl=git-pull
+compdef _git grh=git-reset
+compdef _git grhh=git-reset
+compdef _git gsh=git-show
+compdef _git ga=git-add
+compdef _git gapa=git-add
+compdef _git gb=git-branch
+compdef _git glo=git-log
+compdef _git gbd=git-branch
+compdef _gwc_completions gwc
+compdef _gwd_completions gwd
 
 shell() {
   /Users/philip/.config/dev/shell.sh "$@"
@@ -274,11 +303,3 @@ setopt HIST_IGNORE_DUPS
 setopt HIST_IGNORE_ALL_DUPS
 setopt HIST_REDUCE_BLANKS
 setopt HIST_IGNORE_SPACE
-
-# Add ~/bin to PATH
-export PATH="$HOME/bin:$PATH"
-export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
-export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
-
-# opencode
-export PATH=/Users/philip/.opencode/bin:$PATH
