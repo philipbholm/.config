@@ -65,7 +65,7 @@ cd apps/main-frontend && npm run generate
 docker compose restart registries
 
 # Regenerate and restart the supergraph router
-rover supergraph compose --config services/apollo-router/supergraph.yaml > services/apollo-router/supergraph.graphql
+rover supergraph compose --config services/apollo-router/supergraph.yaml 2>/dev/null > services/apollo-router/supergraph.graphql
 docker compose restart router
 ```
 
