@@ -47,7 +47,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash -c '\"/Users/philip/.nvm/versions/node/v22.22.0/bin/node\" \"$(ls -td ~/.claude/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | head -1)dist/index.js\"'"
+    "command": "/Users/philip/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
@@ -55,7 +55,6 @@
     "github@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "claude-hud@claude-hud": true
+    "typescript-lsp@claude-plugins-official": true
   }
 }
