@@ -13,7 +13,7 @@ alias gco='git checkout'
 alias gcb='git checkout -b'
 alias gbd='git branch -D'
 alias gl='git pull'
-alias glo='git log --oneline --no-decorate'
+glo() { git log --oneline --no-decorate ${1:+-n $1}; }
 alias gp='git push'
 alias gpf='git push --force-with-lease'
 alias grb='git rebase'
