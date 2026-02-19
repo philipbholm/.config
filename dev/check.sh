@@ -22,7 +22,43 @@ failed=false
 
 cd "$monorepo_root" || exit 1
 
-echo "Checking for changed files compared to $base_branch..."
+# --- Spinner helper ---
+# Runs a command silently with a spinner. On failure, prints captured output.
+run_step() {
+  local label="$1"
+  shift
+  local log_file=$(mktemp)
+  local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+  local i=0
+
+  # Run command in background
+  eval "$@" > "$log_file" 2>&1 &
+  local pid=$!
+
+  # Show spinner
+  while kill -0 $pid 2>/dev/null; do
+    printf "\r  ${spin:$i:1} %s" "$label"
+    i=$(( (i + 1) % ${#spin} ))
+    sleep 0.1
+  done
+  wait $pid
+  local exit_code=$?
+  printf "\r\033[K"
+
+  if [[ $exit_code -ne 0 ]]; then
+    echo "❌ $label"
+    cat "$log_file"
+    echo ""
+    rm -f "$log_file"
+    return 1
+  fi
+
+  echo "✔ $label"
+  rm -f "$log_file"
+  return 0
+}
+
+# --- Detect changes ---
 
 changed_files=""
 if git rev-parse --verify "$base_branch" >/dev/null 2>&1; then
@@ -49,7 +85,6 @@ declare -A service_files
 while IFS= read -r file; do
   if [[ "$file" == apps/main-frontend/* ]]; then
     has_frontend=true
-    # Only track lintable files
     if [[ "$file" == *.ts || "$file" == *.tsx || "$file" == *.js || "$file" == *.jsx ]]; then
       frontend_files+=("$file")
     fi
@@ -58,7 +93,6 @@ while IFS= read -r file; do
     if [[ ! " ${changed_services[*]} " =~ " $service " ]]; then
       changed_services+=("$service")
     fi
-    # Only track lintable files
     if [[ "$file" == *.ts || "$file" == *.tsx || "$file" == *.js || "$file" == *.jsx ]]; then
       service_files[$service]+="$file "
     fi
@@ -70,44 +104,39 @@ if [[ "$has_frontend" == false && ${#changed_services[@]} -eq 0 ]]; then
   exit 0
 fi
 
-# Frontend checks
+# --- Frontend checks ---
+
 if [[ "$has_frontend" == true ]]; then
-  echo ""
-  echo "=== Checking frontend ==="
   cd "$monorepo_root/apps/main-frontend"
 
   if [[ "$changed_only" == true && ${#frontend_files[@]} -gt 0 ]]; then
-    echo "Running eslint on changed files..."
-    # Convert to paths relative to frontend
     relative_files=()
     for f in "${frontend_files[@]}"; do
       relative_files+=("$monorepo_root/$f")
     done
-    if ! npx eslint --fix "${relative_files[@]}"; then
+    if ! run_step "Frontend: lint (changed files)" "npx eslint --fix ${(q)relative_files[@]}"; then
       failed=true
     fi
     if [[ "$failed" != true ]]; then
-      echo "Running prettier on changed files..."
-      if ! npx prettier --write "${relative_files[@]}"; then
+      if ! run_step "Frontend: format (changed files)" "npx prettier --write ${(q)relative_files[@]}"; then
         failed=true
       fi
     fi
   else
-    echo "Running lint:fix..."
-    if ! npm run lint:fix; then
+    if ! run_step "Frontend: lint" "npm run lint:fix"; then
       failed=true
     fi
   fi
 
   if [[ "$failed" != true ]]; then
-    echo "Running build..."
-    if ! npm run build; then
+    if ! run_step "Frontend: build" "npm run build"; then
       failed=true
     fi
   fi
 fi
 
-# Service checks
+# --- Service checks ---
+
 for service in "${changed_services[@]}"; do
   service_path="$monorepo_root/services/$service"
 
@@ -116,49 +145,40 @@ for service in "${changed_services[@]}"; do
     continue
   fi
 
-  echo ""
-  echo "=== Checking $service ==="
   cd "$service_path"
 
   if [[ "$changed_only" == true && -n "${service_files[$service]:-}" ]]; then
-    echo "Running eslint on changed files..."
-    # Convert space-separated string to array and make paths absolute
     files_to_lint=()
     for f in ${(s: :)service_files[$service]}; do
       files_to_lint+=("$monorepo_root/$f")
     done
-    if ! npx eslint --fix "${files_to_lint[@]}"; then
+    if ! run_step "$service: lint (changed files)" "npx eslint --fix ${(q)files_to_lint[@]}"; then
       failed=true
       continue
     fi
-    echo "Running prettier on changed files..."
-    if ! npx prettier --write "${files_to_lint[@]}"; then
+    if ! run_step "$service: format (changed files)" "npx prettier --write ${(q)files_to_lint[@]}"; then
       failed=true
       continue
     fi
   else
-    echo "Running lint:fix..."
-    if ! npm run lint:fix; then
+    if ! run_step "$service: lint" "npm run lint:fix"; then
       failed=true
       continue
     fi
   fi
 
-  # Try build-ts first, fall back to build
-  echo "Running build..."
-  if npm run build-ts 2>/dev/null; then
-    :
-  elif ! npm run build; then
+  if ! run_step "$service: build" "npm run build-ts 2>/dev/null || npm run build"; then
     failed=true
     continue
   fi
 done
 
+# --- Summary ---
+
+echo ""
 if [[ "$failed" == true ]]; then
-  echo ""
   echo "❌ Some checks failed!"
   exit 1
 fi
 
-echo ""
 echo "✅ All checks passed!"
