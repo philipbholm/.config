@@ -335,6 +335,23 @@ function save_lockfile_hashes() {
 
 # --- Seed helper ---
 
+function wait_for_migrations() {
+    local service=$1
+    local max_attempts=30
+    local attempt=0
+    echo "Waiting for $service migrations to complete..."
+    while [ $attempt -lt $max_attempts ]; do
+        if dc exec "$service" sh -c 'npx prisma migrate status 2>&1 | grep -q "Database schema is up to date"'; then
+            echo "$service migrations complete."
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+    echo "Warning: Timed out waiting for $service migrations."
+    return 1
+}
+
 function run_seed() {
     echo
     echo "Pushing admin database schema..."
@@ -343,8 +360,14 @@ function run_seed() {
     echo "Setting up admin test datasources..."
     dc exec admin node build/test-data/setup-test-datasources
 
-    echo "Seeding ATC codes in registries database..."
-    dc exec registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed'
+    wait_for_migrations registries
+
+    echo "Seeding ICD-10 codes..."
+    dc exec registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-icd10'
+
+    echo "Seeding ATC codes..."
+    dc exec registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-atc'
+
     echo
     echo "Data seeded successfully."
     echo
