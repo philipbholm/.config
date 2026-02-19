@@ -381,6 +381,59 @@ This worktree is running an isolated Docker stack. Use these ports instead of th
 | MySQL | localhost:$(( 3336 + offset )) |
 
 When opening the app in the browser, use port $(( 3001 + offset )).
+
+## Running Tests
+
+### Frontend unit tests (Vitest)
+
+Run all unit tests:
+\`\`\`bash
+cd $repo_root/apps/main-frontend && npm test
+\`\`\`
+
+Run tests for a specific file:
+\`\`\`bash
+cd $repo_root/apps/main-frontend && npm test -- src/app/path/to/your.test.tsx
+\`\`\`
+
+Run tests for a specific directory:
+\`\`\`bash
+cd $repo_root/apps/main-frontend && npm test -- src/app/path/to/test-directory
+\`\`\`
+
+### Registries service tests (Jest)
+
+Run all tests:
+\`\`\`bash
+cd $repo_root/services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:$(( 5432 + offset ))/registries-test" npm run test
+\`\`\`
+
+Run tests for a specific file:
+\`\`\`bash
+cd $repo_root/services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:$(( 5432 + offset ))/registries-test" npm run test -- src/path/to/your.test.ts
+\`\`\`
+
+Run tests for a specific directory:
+\`\`\`bash
+cd $repo_root/services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:$(( 5432 + offset ))/registries-test" npm run test -- src/path/to/test-directory
+\`\`\`
+
+### Frontend E2E tests (Playwright)
+
+Run all E2E tests:
+\`\`\`bash
+cd $repo_root/apps/main-frontend && BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test "src/app/.*/registries/.*\.spec\.tsx"
+\`\`\`
+
+Run E2E tests for a specific file:
+\`\`\`bash
+cd $repo_root/apps/main-frontend && BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test src/app/path/to/your.spec.tsx
+\`\`\`
+
+Run E2E tests for a specific directory:
+\`\`\`bash
+cd $repo_root/apps/main-frontend && BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test src/app/path/to/e2e-directory
+\`\`\`
 ${marker_end}
 EOF
     )
