@@ -76,31 +76,12 @@ gwc() {
   rm -f "$worktree_path/setup-worktree.sh"
   echo "✔ Worktree setup complete"
   cursor "$worktree_path" || { echo "Failed to open Cursor"; return 1; }
-  # Open Cursor terminal and run claude in tmux session
-  (
-    sleep 3
-    osascript <<EOF
-      set the clipboard to "tmux new-session -s $1 'claude --dangerously-skip-permissions; exec zsh'"
-      tell application "Cursor" to activate
-      delay 0.3
-      tell application "System Events"
-        tell process "Cursor"
-          click menu item "New Terminal" of menu "Terminal" of menu bar 1
-        end tell
-        delay 0.5
-        keystroke "v" using {command down}
-        key code 36
-      end tell
-EOF
-  ) &
-  disown
 }
 gwd() {
   [[ -z "$1" ]] && { echo "Usage: gwd <branch-name>"; return 1; }
   local worktree_path="/Users/philip/work/worktrees/$1"
   local project_name="$1"
   [[ ! -d "$worktree_path" ]] && { echo "Worktree not found: $worktree_path"; return 1; }
-  tmux kill-session -t "$project_name" 2>/dev/null
   local slot_file="${WORKTREE_TMP_DIR:-$HOME/work/tmp/dev-stacks}/$project_name/worktree-slot"
   if [ -f "$slot_file" ]; then
     (cd "$worktree_path" && /Users/philip/.config/dev/run-worktree.sh --nuke)
