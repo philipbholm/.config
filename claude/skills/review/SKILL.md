@@ -2,7 +2,7 @@
 name: review
 description: CTO-style code review - rigorous, opinionated feedback on code and files
 disable-model-invocation: true
-argument-hint: "[diff | branch <current/name> | pr <number>]"
+argument-hint: "[diff | branch <current/name> | pr <number>] [--opus]"
 allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(gh:*), Read, Write(/Users/philip/vaults/main/dev/*), Glob, Grep, Task, TeamCreate, TeamDelete, TaskCreate, TaskUpdate, TaskList, TaskGet, SendMessage
 ---
 
@@ -21,8 +21,13 @@ Based on $ARGUMENTS:
 - `diff` - Review staged/unstaged git changes
 - `branch` - Review changes on current branch compared to master/main
 - `pr <number>` - Review a pull request
+- `--opus` - Optional flag (can be combined with any of the above): use `opus` model for all reviewers and synthesizer. Default is `sonnet`.
 
 If no argument provided, ask what to review.
+
+Parse `$ARGUMENTS` for the `--opus` flag. Strip it before interpreting the review mode. Store the result:
+- If `--opus` present → `$REVIEW_MODEL = "opus"`
+- Otherwise → `$REVIEW_MODEL = "sonnet"`
 
 **Review checklist (pass to reviewers):**
 
@@ -142,7 +147,7 @@ mkdir -p /tmp/pr-review-{branch}
 
 ### Step 5: Spawn all 9 teammates
 
-Spawn all teammates in a **SINGLE message** for parallel execution. Use `team_name="pr-review"` on every Task call.
+Spawn all teammates in a **SINGLE message** for parallel execution. Use `team_name="pr-review"` on every Task call. Pass `model=$REVIEW_MODEL` on every Task call (either `"sonnet"` or `"opus"` as determined above).
 
 | Name | `subagent_type` |
 |------|-----------------|
