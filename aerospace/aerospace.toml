@@ -83,6 +83,10 @@ alt-m = 'exec-and-forget open -n /Applications/Cursor.app'
 alt-comma = 'exec-and-forget open /System/Applications/Notes.app'
 alt-period = 'exec-and-forget open ~'
 
+# Resize window
+alt-0 = 'resize width -250'
+alt-minus = 'resize width +250'  # minus = +
+
 # Change to new modes
 alt-shift-semicolon = 'mode service'  # semicolon = ø
 alt-quote = 'mode resize'  # quote = æ
