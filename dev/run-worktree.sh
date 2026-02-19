@@ -14,6 +14,8 @@
 
 set -euo pipefail
 
+ADMIN_MOCK_NET="admin-mock-net"
+
 function check_docker() {
     if ! command -v docker &>/dev/null; then
         echo "Error: Docker not installed" >&2
@@ -23,6 +25,32 @@ function check_docker() {
         echo "Error: Docker daemon not running" >&2
         exit 1
     fi
+}
+
+function check_admin_mock() {
+    if ! docker inspect admin-mock &>/dev/null 2>&1; then
+        echo "Error: admin-mock container is not running." >&2
+        echo "" >&2
+        echo "Build and start it first:" >&2
+        echo "  cd ~/.config/dev/admin-mock" >&2
+        echo "  docker build -t admin-mock ." >&2
+        echo "  docker network create $ADMIN_MOCK_NET 2>/dev/null || true" >&2
+        echo "  docker run -d --name admin-mock --restart unless-stopped \\" >&2
+        echo "    --network $ADMIN_MOCK_NET --hostname admin-service.internal admin-mock" >&2
+        exit 1
+    fi
+
+    local state
+    state=$(docker inspect -f '{{.State.Running}}' admin-mock 2>/dev/null || echo "false")
+    if [ "$state" != "true" ]; then
+        echo "admin-mock container exists but is not running. Starting it..."
+        docker start admin-mock
+    fi
+
+    # Ensure the shared network exists
+    docker network create "$ADMIN_MOCK_NET" 2>/dev/null || true
+    # Ensure admin-mock is connected to the shared network
+    docker network connect "$ADMIN_MOCK_NET" admin-mock 2>/dev/null || true
 }
 
 if ! git rev-parse --show-toplevel &>/dev/null; then
@@ -189,35 +217,24 @@ services:
     ports: !override
       - "$(( 3001 + offset )):3001"
 
+  admin:
+    profiles: ["disabled"]
+  mysql:
+    profiles: ["disabled"]
+
   router:
     volumes: !override
       - $repo_root/services/apollo-router/supergraph.graphql:/dist/schema/supergraph.graphql
       - $tmp_dir/router.docker.worktree.yaml:/dist/config/router.yaml
     ports: !override
       - "$(( 4000 + offset )):4000"
+    networks:
+      - default
+      - $ADMIN_MOCK_NET
 
   postgres:
     ports: !override
       - "$(( 5432 + offset )):5432"
-
-  mysql:
-    command: --default-authentication-plugin=mysql_native_password
-    ports: !override
-      - "$(( 3336 + offset )):3306"
-
-  admin:
-    depends_on: !override
-      mysql:
-        condition: service_healthy
-    volumes: !override
-      - $repo_root/services/admin/src:/app/services/admin/src
-      - $repo_root/services/admin/api:/app/services/admin/api
-      - $repo_root/services/admin/prisma-mysql:/app/services/admin/prisma-mysql
-      - $repo_root/services/admin/prisma-pgsql:/app/services/admin/prisma-pgsql
-    ports: !override
-      - "$(( 4004 + offset )):4000"
-      - "$(( 50004 + offset )):50051"
-      - "$(( 9004 + offset )):9229"
 
   codelist:
     volumes: !override
@@ -241,6 +258,9 @@ services:
       - "$(( 4006 + offset )):4000"
       - "$(( 50006 + offset )):50051"
       - "$(( 4002 + offset )):4002"
+    networks:
+      - default
+      - $ADMIN_MOCK_NET
 YAML
 
     # Conditionally add services that may not exist in all branches
@@ -260,6 +280,8 @@ networks:
   default:
     name: default-network-wt-${s}
     driver: bridge
+  $ADMIN_MOCK_NET:
+    external: true
 NETWORKS_YAML
 
     echo "$override_file"
@@ -319,7 +341,6 @@ function check_image_freshness() {
 
 function save_lockfile_hashes() {
     local pairs=(
-        "${project_name}-admin:$repo_root/services/admin/package-lock.json"
         "${project_name}-codelist:$repo_root/services/codelist/package-lock.json"
     )
     for pair in "${pairs[@]}"; do
@@ -337,11 +358,12 @@ function save_lockfile_hashes() {
 
 function wait_for_migrations() {
     local service=$1
+    local db_name=$service
     local max_attempts=30
     local attempt=0
     echo "Waiting for $service migrations to complete..."
     while [ $attempt -lt $max_attempts ]; do
-        if dc exec "$service" sh -c 'npx prisma migrate status 2>&1 | grep -q "Database schema is up to date"'; then
+        if dc exec -T postgres psql -U postgres -d "$db_name" -c "SELECT 1 FROM _prisma_migrations LIMIT 1" &>/dev/null; then
             echo "$service migrations complete."
             return 0
         fi
@@ -353,13 +375,6 @@ function wait_for_migrations() {
 }
 
 function run_seed() {
-    echo
-    echo "Pushing admin database schema..."
-    dc exec admin npm run docker:push-db-schema
-
-    echo "Setting up admin test datasources..."
-    dc exec admin node build/test-data/setup-test-datasources
-
     wait_for_migrations registries
 
     echo "Seeding ICD-10 codes..."
@@ -394,14 +409,11 @@ This worktree is running an isolated Docker stack. Use these ports instead of th
 |---------|-----|
 | Frontend | http://localhost:$(( 3001 + offset ))/en/registries |
 | Router (GraphQL) | http://localhost:$(( 4000 + offset )) |
-| Admin (GraphQL) | http://localhost:$(( 4004 + offset )) |
-| Admin (gRPC) | localhost:$(( 50004 + offset )) |
 | Codelist (gRPC) | localhost:$(( 50005 + offset )) |
 | Registries (GraphQL) | http://localhost:$(( 4006 + offset )) |
 | Registries (gRPC) | localhost:$(( 50006 + offset )) |
 | Agent | http://localhost:$(( 4007 + offset )) |
 | PostgreSQL | localhost:$(( 5432 + offset )) |
-| MySQL | localhost:$(( 3336 + offset )) |
 
 When opening the app in the browser, use port $(( 3001 + offset )).
 
@@ -517,7 +529,6 @@ function show_status() {
             echo "    Router:     http://localhost:$(( 4000 + offset ))"
             echo "    Agent:      http://localhost:$(( 4007 + offset ))"
             echo "    Postgres:   localhost:$(( 5432 + offset ))"
-            echo "    MySQL:      localhost:$(( 3336 + offset ))"
             echo "    Containers: $count"
             echo
         fi
@@ -580,9 +591,10 @@ echo
 
 prerequisites_check
 
-worktree_services=$(available_services "main-frontend router router-autoupdate postgres mysql admin codelist registries agent")
+worktree_services=$(available_services "main-frontend router router-autoupdate postgres codelist registries agent")
 
 if [ "$command" = "up" ]; then
+    check_admin_mock
     save_slot "$resolved_slot"
     # Needed so docker doesn't bind supergraph.graphql as a directory on clean checkouts
     if [ ! -f "$repo_root/services/apollo-router/supergraph.graphql" ]; then
@@ -591,7 +603,6 @@ if [ "$command" = "up" ]; then
     generate_override "$resolved_slot" > /dev/null
     # Auto-detect if images need rebuilding
     if [ "$rebuild" != true ]; then
-        check_image_freshness "${project_name}-admin" "$repo_root/services/admin/package-lock.json"
         check_image_freshness "${project_name}-codelist" "$repo_root/services/codelist/package-lock.json"
     fi
     if [ "$rebuild" = true ]; then
@@ -612,6 +623,7 @@ elif [ "$command" = "stop" ]; then
     dc stop
 
 elif [ "$command" = "start" ]; then
+    check_admin_mock
     generate_override "$resolved_slot" > /dev/null
     dc up -d $worktree_services
 

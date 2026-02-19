@@ -7,3 +7,4 @@ raycast
 .zcompdump
 .zsh_secrets
 tmp
+node_modules

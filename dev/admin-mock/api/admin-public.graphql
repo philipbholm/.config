@@ -1,0 +1,25 @@
+type Query {
+    checkEmailDomain(input: CheckEmailDomainInput!): CheckEmailDomainResponse!
+    resolveAuthErrorDetails(
+        input: ResolveAuthErrorDetailsInput!
+    ): ResolveAuthErrorDetailsResponse!
+}
+
+input CheckEmailDomainInput {
+    email: String!
+}
+
+type CheckEmailDomainResponse {
+    ssoProvider: String
+}
+
+input ResolveAuthErrorDetailsInput {
+    error: String
+    errorDescription: String
+    provider: String
+}
+
+type ResolveAuthErrorDetailsResponse {
+    title: String!
+    description: String!
+}

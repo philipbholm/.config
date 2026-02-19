@@ -1,0 +1,480 @@
+type Query {
+    listUsers(input: ListUsersInput!): ListUsersResponse!
+    getUserFilterOptions: UserFilterOptionsResponse!
+    getUserById(id: ID!): User!
+    getLoggedInUser: GetLoggedInUserResponse!
+    findCurrentLoggedInUser: FindCurrentLoggedInUserResponse
+    findUserIdentityByUserId(userId: ID!): UserIdentityResponse
+    getPendingAuthFlowSteps: GetPendingAuthFlowStepsResponse!
+    listRelations(input: ListRelationsInput!): ListRelationsResponse!
+    getApprovalRequest(id: ID!): ApprovalRequest
+    listApprovalRequests(
+        workspaceId: ID!
+        filter: ListApprovalRequestsFilterInput
+        limit: Int
+        offset: Int
+    ): ListApprovalRequestsResponse!
+}
+
+type Mutation {
+    resetPassword(input: ResetPasswordInput!): ResetPasswordResponse!
+    resetMfa(input: ResetMfaInput!): ResetMfaResponse!
+    deactivateUser(input: DeactivateUserInput!): DeactivateUserResponse!
+    reactivateUser(input: ReactivateUserInput!): ReactivateUserResponse!
+    upsertMyProfile(input: UpsertMyProfileInput!): UpsertMyProfileResponse!
+    startNewTrial(input: StartNewTrialInput): StartNewTrialResponse!
+    deleteRelations(input: DeleteRelationsInput!): DeleteRelationsResponse!
+    changeApprovalStatus(
+        input: ChangeApprovalStatusInput!
+    ): ChangeApprovalStatusResponse!
+}
+
+enum ApprovalRequestType {
+    ADD_STUDY_COLLABORATOR
+    ADD_REGISTRY_COLLABORATOR
+    CREATE_STUDY
+    CREATE_REGISTRY
+}
+
+enum ApprovalStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    CANCELLED
+    EXPIRED
+}
+
+enum ApprovalResolution {
+    MANUAL
+    AUTOMATIC
+    SYSTEM
+}
+
+enum ApprovalResolutionStatus {
+    APPROVED
+    REJECTED
+}
+
+type ApprovalRequestMetadataItem {
+    key: String!
+    type: String!
+    value: String!
+}
+
+type ApprovalRequest {
+    id: ID!
+    workspaceId: ID!
+    name: String!
+    type: ApprovalRequestType!
+    status: ApprovalStatus!
+    requestedBy: String!
+    requestedAt: String!
+    resolvedBy: ID
+    resolvedAt: String
+    resolution: ApprovalResolution
+    resolutionNote: String
+    metadata: [ApprovalRequestMetadataItem!]!
+    expiresAt: String
+}
+
+input ListApprovalRequestsFilterInput {
+    status: ApprovalStatus
+    type: ApprovalRequestType
+}
+
+type ListApprovalRequestsResponse {
+    approvalRequests: [ApprovalRequest!]!
+    total: Int!
+}
+
+input ChangeApprovalStatusInput {
+    id: ID!
+    status: ApprovalResolutionStatus!
+    note: String
+}
+
+type ChangeApprovalStatusResponse {
+    approvalRequest: ApprovalRequest
+}
+
+enum SortDirection {
+    ASC
+    DESC
+}
+
+input ListUsersInput {
+    filter: UserFilterInput
+    sort: UserSortInput
+    limit: Int! = 100
+    offset: Int! = 0
+}
+
+input UserSortInput {
+    sortBy: UserSortField!
+    direction: SortDirection!
+}
+
+enum UserSortField {
+    NAME
+    STATUS
+    WORKPLACE
+    JOINED_ON
+}
+
+input UserFilterInput {
+    """
+    Filter by the user's name, user name, email or workspace by checking if the given query string contains in any of those values.
+    """
+    searchQuery: String
+    """
+    Filter by the user's status using the UserStatus enum
+    """
+    status: [UserStatus!]
+    """
+    Filter by the user's workplace.
+    """
+    workplace: [String!]
+    """
+    Filter by the user's subscription.
+    """
+    subscriptionId: [String!]
+
+    """
+    Filter by the user's license tier using the LicenseTier enum.
+    """
+    licenseTier: [LicenseTier!]
+}
+
+type ListUsersResponse {
+    users: [User!]!
+    total: Int!
+}
+
+enum UserStatus {
+    ACTIVE
+    INACTIVE
+    """
+    PENDING indicates that the user has been created but not yet activated.
+    This is typically used for users who are just invited but not yet signed up.
+    """
+    PENDING
+        @deprecated(
+            reason: "This will be removed in future versions. Use ACTIVE or INACTIVE instead."
+        )
+}
+
+enum LicenseTier {
+    FULL
+    COLLABORATOR
+    TRIAL
+    """
+    NO_LICENSE indicates that the user does not have any license assigned.
+    """
+    NO_LICENSE
+}
+
+enum SubscriptionMembershipStatus {
+    ACTIVE
+    INACTIVE
+}
+
+type SubscriptionDetails {
+    id: ID!
+    externalId: String!
+    members: [SubscriptionMember!]!
+}
+
+type SubscriptionMember {
+    subscription: SubscriptionDetails!
+    status: SubscriptionMembershipStatus!
+    user: User!
+    isOwner: Boolean!
+    licenseTier: LicenseTier!
+}
+
+type PhoneNumber {
+    """
+    The phone number in E.164 format, e.g., +1234567890
+    """
+    value: String!
+}
+
+type Email {
+    """
+    The email address in a standard format, e.g., user@example.com
+    """
+    value: String!
+}
+
+"""
+User entity type that serves as a federated entity in the GraphQL schema.
+The @key directive indicates this type can be referenced from other services
+using the "id" field as the primary key for federation.
+
+If a mandatory field is missing a value in the system, a constant value <missing> will be used.
+"""
+type User {
+    id: ID!
+    """
+    Derived from the user's first name and last name, if both are not available, it will be null.
+    """
+    initials: String
+    """
+    The name of the user in the format "First Last", if both first and last names are not available, it will be null.
+    """
+    name: String
+
+    firstName: String
+
+    lastName: String
+
+    """
+    The user name from the user IDP (Identity Provider).
+    """
+    userName: String!
+    phoneNumbers: [PhoneNumber!]!
+    emails: [Email!]!
+
+    """
+    This will not provide accurate information about organizations this user is connected to.
+    """
+    workplace: String
+    jobTitle: String
+    department: String
+
+    city: String
+    countryCode: String
+
+    "Date and time when the user joined Ledidi Platform or null if not set"
+    joinedOn: String
+    status: UserStatus!
+
+    subscriptionMemberships: [UserSubscriptionMembership!]!
+}
+
+type UserSubscription {
+    externalId: String!
+}
+type UserSubscriptionMembership {
+    subscription: UserSubscription!
+    isOwner: Boolean!
+    licenseTier: LicenseTier!
+    status: SubscriptionMembershipStatus!
+}
+
+"""
+Response type that contains filter options for users and subscriptions which can be used to filtering users.
+"""
+type UserFilterOptionsResponse {
+    userFilterOptions: UserFilterOptions!
+    subscriptionFilterOptions: SubscriptionFilterOptions!
+}
+
+type UserFilterOptions {
+    statuses: [UserStatus!]!
+    workplaces: [String!]!
+}
+
+type SubscriptionFilterOptions {
+    licenseTiers: [LicenseTier!]!
+    subscriptions: [String!]!
+}
+
+type GetLoggedInUserResponse {
+    user: User!
+}
+
+type FindCurrentLoggedInUserResponse {
+    user: User
+}
+
+type UserIdentity {
+    id: ID!
+    userName: String!
+    status: UserIdentityStatus!
+    disabled: Boolean!
+    createdOn: String
+    lastUpdatedOn: String
+    """
+    The list of MFA settings that are enabled for the user identity.
+    DISABLED will not be mixed with other MFA settings. If mfa is DISABLED, then the setting will look like this:
+    mfaSettings: [DISABLED]
+    """
+    mfaSettings: [MfaSetting!]!
+    """
+    Indicates whether the user identity is using Single Sign-On (SSO) for authentication.
+    """
+    sso: Boolean!
+}
+
+type UserIdentityResponse {
+    userIdentity: UserIdentity
+    userId: ID!
+}
+
+enum MfaSetting {
+    DISABLED
+    AUTHENTICATOR_APP
+    SMS
+    EMAIL
+}
+
+enum UserIdentityStatus {
+    """
+    PENDING indicates that the user identity has been created but not confirmed
+    """
+    PENDING
+    """
+    CONFIRMED indicates that the user identity has been confirmed
+    """
+    CONFIRMED
+
+    """
+    UNCONFIRMED indicates that the user identity has been created but not confirmed.
+    """
+    UNCONFIRMED
+    """
+    FORCE_CHANGE_PASSWORD indicates that the user is confirmed and the user can sign in using a temporary password, but on first sign-in, the user must change their password to a new value before doing anything else.
+    """
+    FORCE_CHANGE_PASSWORD
+    """
+    RESET_PASSWORD_REQUIRED indicates that the user identity is confirmed, but the user must request a code and reset their password before they can sign in.
+    """
+    RESET_PASSWORD_REQUIRED
+    """
+    UNKNOWN indicates that the status of the user identity is not known by the systems.
+    This could be due to the status is not part of state transitions expected by Leidi System
+    """
+    UNKNOWN
+}
+
+input ResetPasswordInput {
+    userId: ID!
+}
+
+type ResetPasswordResponse {
+    success: Boolean!
+}
+
+input ResetMfaInput {
+    userId: ID!
+}
+
+type ResetMfaResponse {
+    success: Boolean!
+}
+
+input DeactivateUserInput {
+    userId: ID!
+}
+
+type DeactivateUserResponse {
+    success: Boolean!
+}
+
+input ReactivateUserInput {
+    userId: String!
+    subscriptionIdsToReactivate: [String!]!
+    licenseTier: LicenseTier!
+}
+
+type ReactivateUserResponse {
+    success: Boolean!
+}
+
+input UpsertMyProfileInput {
+    firstName: String!
+    lastName: String!
+    countryCode: String
+    city: String
+    workplace: String!
+    jobTitle: String
+    department: String!
+    marketingConsent: Boolean
+    termsConsent: Boolean
+    subscriptionAgreementConsent: Boolean
+}
+
+type UpsertMyProfileResponse {
+    success: Boolean!
+}
+
+type GetPendingAuthFlowStepsResponse {
+    shouldCompleteUserDetails: Boolean!
+    shouldCompleteSubscription: Boolean!
+}
+
+input StartNewTrialInput {
+    planId: String
+}
+
+type StartNewTrialResponse {
+    subscriptionId: ID!
+}
+
+enum ResourceType {
+    USER
+    IDENTITY
+    SUBSCRIPTION
+    PLATFORM
+}
+
+enum SubjectType {
+    USER
+    PLATFORM
+}
+
+type Platform {
+    id: ID!
+}
+
+type WildcardResource {
+    type: ResourceType!
+}
+
+union Subject = User | Platform
+
+union Resource =
+    | User
+    | UserIdentity
+    | SubscriptionDetails
+    | Platform
+    | WildcardResource
+
+type Relation {
+    resourceType: ResourceType!
+    resourceId: ID!
+    resource: Resource!
+    relation: String!
+    subjectType: SubjectType!
+    subjectId: ID!
+    subject: Subject!
+}
+
+input ListRelationsInput {
+    limit: Int!
+    cursor: String
+    resourceType: ResourceType!
+    relation: String
+}
+
+type ListRelationsResponse {
+    relations: [Relation!]!
+    nextCursor: String
+}
+
+input RelationInput {
+    resourceType: ResourceType!
+    resourceId: ID!
+    relation: String!
+    subjectType: SubjectType!
+    subjectId: ID!
+}
+
+input DeleteRelationsInput {
+    relationsToDelete: [RelationInput!]!
+}
+
+type DeleteRelationsResponse {
+    success: Boolean!
+}

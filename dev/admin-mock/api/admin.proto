@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package admin;
+
+service AdminService {
+    rpc GetUsersByIds(GetUsersByIdsRequest) returns (GetUsersByIdsResponse);
+    rpc GetUserByEmailAddress(GetUserByEmailAddressRequest) returns (GetUserByEmailAddressResponse);
+    rpc ResetUserPassword(ResetUserPasswordRequest) returns (ResetUserPasswordResponse);
+    rpc ResetUserMfa(ResetUserMfaRequest) returns (ResetUserMfaResponse);
+    rpc GetUserByToken(GetUserByTokenRequest) returns (GetUserByTokenResponse);
+    // TODO: Enable when approval authorization is implemented (see docs/approval-system.md)
+    // rpc RequestApproval(RequestApprovalInput) returns (ApprovalResponse);
+    // rpc GetApprovalRequestsByIds(GetApprovalRequestsByIdsInput) returns (GetApprovalRequestsByIdsResponse);
+}
+
+message User {
+    string id = 1;
+    string first_name = 2;
+    string last_name = 3;
+    repeated string email_addresses = 4;
+    string user_name = 5;
+}
+
+message GetUsersByIdsRequest {
+    repeated string ids = 1;
+}
+message GetUsersByIdsResponse {
+    repeated User users = 1;
+}
+
+message GetUserByEmailAddressRequest {
+    string email_address = 1;
+}
+message GetUserByEmailAddressResponse {
+    User user = 1;
+}
+
+message ResetUserPasswordRequest {
+    string user_id = 1;
+}
+message ResetUserPasswordResponse {
+    bool success = 1;
+}
+
+message ResetUserMfaRequest {
+    string user_id = 1;
+}
+message ResetUserMfaResponse {
+    bool success = 1;
+}
+
+message GetUserByTokenRequest {}
+message GetUserByTokenResponse {
+    string id = 1;
+    string user_name = 2;
+}
+
+message ApprovalRequestMetadataItem {
+    string key = 1;
+    string type = 2;
+    string value = 3;
+}
+
+message ApprovalRequestMessage {
+    string id = 1;
+    string workspace_id = 2;
+    string name = 3;
+    string type = 5;
+    string status = 6;
+    string requested_by = 7;
+    string requested_at = 8;
+    optional string resolved_by = 9;
+    optional string resolved_at = 10;
+    optional string resolution = 11;
+    optional string resolution_note = 12;
+    repeated ApprovalRequestMetadataItem metadata = 13;
+    optional string expires_at = 14;
+}
+
+message RequestApprovalInput {
+    string workspace_id = 1;
+    string name = 2;
+    string type = 5;
+    repeated ApprovalRequestMetadataItem metadata = 3;
+}
+
+message ApprovalResponse {
+    ApprovalRequestMessage approval_request = 1;
+    bool auto_approved = 2;
+}
+
+message GetApprovalRequestsByIdsInput {
+    repeated string ids = 1;
+}
+
+message GetApprovalRequestsByIdsResponse {
+    repeated ApprovalRequestMessage approval_requests = 1;
+}
