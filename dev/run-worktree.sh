@@ -344,7 +344,7 @@ function run_seed() {
     dc exec admin node build/test-data/setup-test-datasources
 
     echo "Seeding ATC codes in registries database..."
-    dc exec registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-atc'
+    dc exec registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed'
     echo
     echo "Data seeded successfully."
     echo
@@ -381,30 +381,6 @@ This worktree is running an isolated Docker stack. Use these ports instead of th
 | MySQL | localhost:$(( 3336 + offset )) |
 
 When opening the app in the browser, use port $(( 3001 + offset )).
-
-## Running Tests
-
-### Frontend
-
-Unit tests have no port dependencies and work as-is:
-\`\`\`bash
-cd $repo_root/apps/main-frontend && npm test
-\`\`\`
-
-E2E tests (Playwright) need the worktree frontend port. Start the frontend, then run:
-\`\`\`bash
-cd $repo_root/apps/main-frontend && BASE_URL=http://localhost:$(( 3001 + offset )) npx playwright test
-\`\`\`
-
-### Registries
-\`\`\`bash
-COMPOSE_PROJECT_NAME="$project_name" docker compose -f "$repo_root/docker-compose.yml" -f "$tmp_dir/docker-compose.worktree.yml" exec -e POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/registries-test registries npx jest --runInBand
-\`\`\`
-
-### Codelist
-\`\`\`bash
-COMPOSE_PROJECT_NAME="$project_name" docker compose -f "$repo_root/docker-compose.yml" -f "$tmp_dir/docker-compose.worktree.yml" exec -e POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/codelist-test codelist npx jest --runInBand
-\`\`\`
 ${marker_end}
 EOF
     )
