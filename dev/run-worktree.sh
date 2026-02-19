@@ -445,17 +445,17 @@ cd $repo_root/services/registries && POSTGRES_URL="postgresql://postgres:postgre
 
 Run all E2E tests:
 \`\`\`bash
-cd $repo_root/apps/main-frontend && BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test "src/app/.*/registries/.*\.spec\.tsx"
+cd $repo_root/apps/main-frontend && FRONTEND_BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test "src/app/.*/registries/.*\.spec\.tsx"
 \`\`\`
 
 Run E2E tests for a specific file:
 \`\`\`bash
-cd $repo_root/apps/main-frontend && BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test src/app/path/to/your.spec.tsx
+cd $repo_root/apps/main-frontend && FRONTEND_BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test src/app/path/to/your.spec.tsx
 \`\`\`
 
 Run E2E tests for a specific directory:
 \`\`\`bash
-cd $repo_root/apps/main-frontend && BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test src/app/path/to/e2e-directory
+cd $repo_root/apps/main-frontend && FRONTEND_BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test src/app/path/to/e2e-directory
 \`\`\`
 ${marker_end}
 EOF

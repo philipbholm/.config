@@ -53,7 +53,7 @@ run_step "Registries: tests" "POSTGRES_URL=postgresql://postgres:postgres@localh
 # --- E2E tests (Playwright) ---
 
 cd "$monorepo_root/apps/main-frontend"
-run_step "Frontend: e2e tests" "BASE_URL=http://localhost:$frontend_port E2E_API_URL=http://localhost:$api_port npx playwright test 'src/app/.*/registries/.*\.spec\.tsx'" || exit 1
+run_step "Frontend: e2e tests" "FRONTEND_BASE_URL=http://localhost:$frontend_port E2E_API_URL=http://localhost:$api_port npx playwright test 'src/app/.*/registries/.*\.spec\.tsx'" || exit 1
 
 # --- Summary ---
 
