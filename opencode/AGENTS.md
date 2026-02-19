@@ -1,1 +1,0 @@
-/Users/philip/.config/CLAUDE.md

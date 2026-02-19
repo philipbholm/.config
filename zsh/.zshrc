@@ -38,9 +38,17 @@ gwc() {
   [[ -z "$1" ]] && { echo "Usage: gwc <branch-name>"; return 1; }
   setopt LOCAL_OPTIONS NO_MONITOR
   local worktree_path="/Users/philip/work/worktrees/$1"
+  local claude_src="/Users/philip/.config/dev/claude/ledidi-monorepo"
   git worktree add "$worktree_path" "$1" 2>/dev/null || return 1
-  # Link managed CLAUDE.local.md / AGENTS.md context into the worktree
-  /Users/philip/.config/dev/link-claude-context.sh "$worktree_path"
+  # Copy CLAUDE.local.md files from config to worktree
+  (cd "$claude_src" && find . -name 'CLAUDE.local.md' -exec sh -c '
+    for file; do
+      mkdir -p "'"$worktree_path"'/$(dirname "$file")"
+      cp "$file" "'"$worktree_path"'/$file"
+    done
+  ' _ {} +)
+  # Remove localhost line from root CLAUDE.local.md (not relevant for worktrees)
+  sed -i '' '/App runs at http:\/\/localhost:3001\/en\/registries/d' "$worktree_path/CLAUDE.local.md"
   # Run setup-worktree.sh in the new worktree (suppressed output with spinner)
   cp /Users/philip/.config/dev/setup-worktree.sh "$worktree_path/"
   local log_file=$(mktemp)

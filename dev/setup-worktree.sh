@@ -4,10 +4,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-if [ -x "$HOME/.config/dev/link-claude-context.sh" ]; then
-    "$HOME/.config/dev/link-claude-context.sh" "$SCRIPT_DIR"
-fi
-
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
