@@ -441,6 +441,9 @@ function remove_claude_ports() {
 
 function prerequisites_check() {
     check_docker
+    if [ -x "$HOME/.config/dev/link-claude-context.sh" ]; then
+        "$HOME/.config/dev/link-claude-context.sh" "$repo_root" >/dev/null
+    fi
 }
 
 # --- Status ---

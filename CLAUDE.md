@@ -20,6 +20,9 @@ Personal dotfiles/config directory for a macOS development environment. Version-
   - `db.sh` / `shell.sh` — Interactive database/container shells
   - `setup-worktree.sh` — Prepare worktree for IDE (npm ci, type generation)
 - `dev/claude/` — Per-repo and per-service CLAUDE.local.md files copied into worktrees
+- `dev/link-claude-context.sh` — Symlink CLAUDE.local.md/AGENTS.md into repo or worktree
+- `dev/sync-codex-from-claude.sh` — Sync Codex MCP config from Claude MCP config
+- `dev/verify-codex-parity.sh` — Verify Codex parity wiring (symlinks, AGENTS, MCP sync drift)
 - `dev/feedback/` — PR review learnings extracted by `/learn` skill (mine/ and other/)
 - `aerospace/aerospace.toml` — AeroSpace tiling WM (alt-based keybinds, vim-style navigation)
 - `alacritty/` — Terminal config (JetBrainsMono Nerd Font, light/dark themes via symlink)
@@ -33,6 +36,8 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 ## Key Patterns
 
 **Worktree workflow**: Features are developed in git worktrees at `~/work/worktrees/{branch}`. Each gets an isolated Docker stack with port offsets. `gwc` creates everything (worktree + tmux + Cursor + setup), `gwd` tears it down.
+
+**Codex parity workflow**: `CLAUDE.local.md` and `AGENTS.md` are symlinked into each worktree from dotfile-managed templates, and Codex MCP servers are synced from Claude's configured MCP servers.
 
 **Claude Code skill lifecycle**: `/create-issue` → `/plan` → `/implement` → `/review`. Issues and plans are stored in `~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/`. The plan skill is read-only (exploration only), implement executes plans with quality gates and atomic commits.
 
