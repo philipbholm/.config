@@ -33,7 +33,10 @@ The development environment is always running. Never run startup commands like:
 
 These services are already running and available.
 
-App runs at http://localhost:3001/en/registries
+### Restart vs Rebuild
+
+- **`docker compose restart <service>`** — Restarts the container without rebuilding. Use this after code changes (`.ts`, `.graphql`) since source code is volume-mounted.
+- **`docker compose up -d --build <service>`** — Rebuilds the Docker image and recreates the container. Use this after `package.json` or `Dockerfile` changes, since `node_modules` lives inside the image.
 
 ### Monorepo Workspace Commands
 
@@ -44,61 +47,130 @@ npm run test --workspaces --if-present
 npm run generate --workspaces --if-present
 ```
 
-### Restarting Services
+### Post-Change Workflows
 
+After making changes, follow the workflow that matches what you changed. Multiple workflows may apply (e.g., you edited both `.graphql` and `.ts` files).
+
+#### Changed `.ts` files in a backend service (e.g., `services/registries/src/`)
+
+No commands needed. The running Docker container mounts `src/` and uses nodemon to auto-reload on file changes.
+
+> If for some reason the service is not picking up changes: `docker compose restart registries`
+
+#### Changed `.graphql` schema files (e.g., `services/registries/api/*.graphql`)
+
+This is the most involved workflow because GraphQL schema changes ripple through codegen, the supergraph, and the frontend.
+
+1. **Regenerate types in the backend service that owns the schema:**
+   ```bash
+   cd services/registries && npm run generate
+   ```
+
+2. **The supergraph auto-recomposes.** A `router-autoupdate` container watches `api/*.graphql` files and automatically runs `rover supergraph compose`. The router has `--hot-reload` enabled so it picks up the new supergraph automatically. **You do NOT need to manually run `rover` or restart the router.**
+
+   > If the auto-update is not working, you can manually recompose:
+   > ```bash
+   > rover supergraph compose --config services/apollo-router/supergraph.yaml 2>/dev/null > services/apollo-router/supergraph.graphql
+   > ```
+
+3. **Regenerate frontend GraphQL types** (if the frontend consumes the changed types):
+   ```bash
+   cd apps/main-frontend && npm run generate
+   ```
+
+4. **Restart the backend service** to pick up any new resolvers or type changes:
+   ```bash
+   docker compose restart registries
+   ```
+
+**Summary for GraphQL changes:**
 ```bash
-docker compose restart <service>
-```
-
-Services: `frontend`, `registries`, `studies`, `admin`, `codelist`, `apollo-router`
-
-### GraphQL Schema Changes
-
-Regenerating types and supergraph after `.graphql` file changes:
-
-```bash
-# Regenerate types in affected services
 cd services/registries && npm run generate
 cd apps/main-frontend && npm run generate
-
-# Restart the service that changed
 docker compose restart registries
-
-# Regenerate and restart the supergraph router
-rover supergraph compose --config services/apollo-router/supergraph.yaml 2>/dev/null > services/apollo-router/supergraph.graphql
-docker compose restart router
 ```
 
-### Dependency Changes
+#### Changed `.proto` files (gRPC schema)
 
-Installing dependencies and restarting after `package.json` changes:
+1. Regenerate proto types in the affected service:
+   ```bash
+   cd services/registries && npm run generate-proto
+   ```
+2. Regenerate proto types in any consuming service.
+3. Restart affected services:
+   ```bash
+   docker compose restart registries
+   ```
 
-```bash
-cd <workspace> && npm install
-docker compose restart <service>
-```
+#### Changed `prisma/schema.prisma` in a backend service
 
-### Verification Commands
+1. Create a migration:
+   ```bash
+   cd services/registries && npm run migrate-create
+   ```
+   This creates a migration file in `prisma/migrations/`. Review the generated SQL.
 
-```bash
-# Backend services (e.g., services/registries)
-cd services/registries && npm run lint:fix && npm run build-ts
+2. Apply the migration:
+   ```bash
+   cd services/registries && npm run migrate
+   ```
 
-# Frontend
-cd apps/main-frontend && npm run lint:fix && npm run build
-```
+3. Regenerate Prisma client:
+   ```bash
+   cd services/registries && npm run generate
+   ```
 
-### Running Tests
+4. Restart the service:
+   ```bash
+   docker compose restart registries
+   ```
 
-```bash
-# Backend - use --testPathPattern
-npm run test -- --testPathPattern="get-registries"
+**Important:** Always use the package.json scripts for migrations. Never run `npx prisma migrate dev` or `npx prisma generate` directly.
 
-# Frontend - pass filename directly
-npm run test -- inline-text-input
-```
+#### Changed `package.json` (added/removed/updated dependencies)
 
-### Frontend (apps/main-frontend/)
+1. Install from the monorepo root:
+   ```bash
+   npm install
+   ```
+
+2. **Rebuild** the Docker container (not just restart, since `node_modules` is baked into the image):
+   ```bash
+   docker compose up -d --build <service>
+   ```
+
+   For example: `docker compose up -d --build registries`
+
+   > A plain `docker compose restart` will NOT pick up new dependencies because the container's `node_modules` comes from the image build, not a host volume mount.
+
+#### Changed frontend files (`apps/main-frontend/src/`)
+
+No commands needed. Vite HMR handles live reloading inside the Docker container (the `src/` directory is volume-mounted).
+
+#### Changed frontend `.graphql` operation files (queries/mutations in `apps/main-frontend/src/`)
+
+The frontend dev server runs `generate-watch` which watches for `.graphql` file changes and auto-regenerates types. No manual action needed.
+
+> If types seem stale: `cd apps/main-frontend && npm run generate`
+
+### What `npm run generate` produces
+
+| Workspace | Command | Generates |
+|-----------|---------|-----------|
+| `services/registries` | `npm run generate` | GraphQL resolver types, Prisma client, gRPC/proto TS types |
+| `services/studies` | `npm run generate` | GraphQL resolver types, Prisma client, gRPC/proto TS types |
+| `services/admin` | `npm run generate` | GraphQL resolver types, Prisma client, gRPC/proto TS types |
+| `services/codelist` | `npm run generate` | Prisma client, gRPC/proto TS types (no GraphQL) |
+| `services/auth` | `npm run generate` | gRPC/proto TS types |
+| `apps/main-frontend` | `npm run generate` | Typed GraphQL hooks and types from all service schemas |
+
+**When to run it:**
+- After changing any `.graphql` schema file → run in the owning service AND in `apps/main-frontend`
+- After changing `prisma/schema.prisma` → run in the owning service
+- After changing `.proto` files → run in the owning service and any consuming services
+- After pulling new code from git → run in all workspaces: `npm run generate --workspaces --if-present`
+
+### Frontend Commands
 
 ```bash
 npm run build           # Production build
@@ -109,7 +181,9 @@ npm run test:e2e        # E2E tests (Playwright)
 npm run test:e2e -- create-study   # Run single E2E spec
 ```
 
-### Backend Services (services/*)
+Verification: `cd apps/main-frontend && npm run lint:fix && npm run build`
+
+### Backend Service Commands
 
 Each service follows the same pattern:
 
@@ -125,9 +199,25 @@ npm run migrate         # Deploy database migrations
 
 Backend tests require `--runInBand` flag (handled automatically by npm scripts).
 
-**Database Migrations:** Use package.json scripts, NOT raw prisma commands. Check each service's package.json for migration scripts. Do NOT use `npx prisma migrate dev` or `npx prisma generate` directly.
+```bash
+# Run a specific test by pattern
+npm run test -- --testPathPattern="get-registries"
+```
 
-Individual services may have their own `CLAUDE.md` with service-specific guidance (e.g., `services/registries/CLAUDE.md`).
+Verification: `cd services/registries && npm run lint:fix && npm run build-ts`
+
+Docker compose service names: `main-frontend`, `registries`, `studies`, `admin`, `codelist`, `router`
+
+> `router-autoupdate` also exists but rarely needs manual interaction.
+
+### Common Mistakes
+
+- **Running `docker compose up` or `npm run dev`** — The dev environment is always running. These commands are not needed and may cause port conflicts.
+- **Running `npx prisma migrate dev` directly** — Always use the service's package.json scripts (`npm run migrate`, `npm run migrate-create`).
+- **Restarting instead of rebuilding after dependency changes** — `docker compose restart` does not pick up new `node_modules`. Use `docker compose up -d --build <service>`.
+- **Forgetting to regenerate frontend types after backend schema changes** — If you change a `.graphql` file in a service, also run `cd apps/main-frontend && npm run generate`.
+- **Manually running `rover` to recompose the supergraph** — The `router-autoupdate` container handles this automatically. Only run `rover` manually if auto-update appears broken.
+- **Using `cd` in chained commands** — In a monorepo, prefer running commands from the repo root with explicit paths, or use separate shell invocations. `cd services/registries && npm run generate` works, but note that `cd` persists in the shell session.
 
 ## Architecture
 
