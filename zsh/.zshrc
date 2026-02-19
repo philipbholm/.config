@@ -208,10 +208,11 @@ eval "$(pyenv init -)"
 # Environment variables
 # export PS1='%~ %# '  # Full path
 export PS1='%c %# '  # Current directory
-
 # Disable claude telementry
 export DISABLE_TELEMETRY=1
 export DISABLE_ERROR_REPORTING=1
+# Disable playwright warnings
+export NODE_NO_WARNINGS=1
 
 # Load secrets (API keys, tokens)
 [ -f "$HOME/.config/zsh/.zsh_secrets" ] && source "$HOME/.config/zsh/.zsh_secrets"
