@@ -13,5 +13,5 @@ fi
 
 touch "$ACTIVE_THEME"
 
-# Restart borders to update window border colors
-brew services restart borders
+# Update borders colors by re-executing bordersrc (supports live reconfiguration)
+~/.config/borders/bordersrc
