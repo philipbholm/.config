@@ -25,6 +25,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 - `alacritty/` — Terminal config (JetBrainsMono Nerd Font, light/dark themes via symlink)
 - `tmux/tmux.conf` — Prefix: Ctrl-Space, vim pane nav, mouse enabled
 - `git/config` — SSH commit signing, separate work identity via includeIf for `~/work/`
+- `cursor/` — Cursor editor settings (`settings.json`, `keybindings.json`), symlinked from `~/Library/Application Support/Cursor/User/`
 - `karabiner/` — Caps Lock → Esc (tap) / Ctrl (hold); Cmd+Tab → Ctrl+Tab in Cursor
 - `borders/bordersrc` — JankyBorders window highlight (auto light/dark)
 - `nvim/init.lua` — Minimal neovim (relative lines, 2-space tabs, persistent undo)

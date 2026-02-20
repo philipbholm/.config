@@ -1,0 +1,155 @@
+{
+  "editor.tabSize": 2,
+  "editor.cursorBlinking": "solid",
+  "editor.cursorSurroundingLines": 4,
+  "editor.lineNumbers": "relative",
+  "editor.guides.bracketPairs": true,
+  "editor.guides.bracketPairsHorizontal": true,
+  "workbench.editor.showTabs": "multiple",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "source.sortMembers": "explicit"
+  },
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "explorer.confirmDragAndDrop": false,
+  "files.associations": {
+    "*.svg": "xml"
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.git": false,
+    "**/.mypy_cache": true,
+    "**/.pants.d": true,
+    "**/.pids": true,
+    "**/.pytest_cache": true,
+    "**/.Rproj.user": true,
+    "**/.ruff_cache": true
+  },
+  "git.confirmSync": false,
+  "git.ignoreRebaseWarning": true,
+  "prettier.tabWidth": 2,
+  "prettier.printWidth": 1000,
+  "notebook.output.textLineLimit": 2000,
+  "notebook.formatOnSave.enabled": true,
+  "markdown.preview.fontSize": 18,
+  "security.workspace.trust.untrustedFiles": "open",
+  "search.exclude": {
+    "**/node_modules/": true,
+    "**/build/": true,
+    "**/generated/": true,
+    "**/.venv/": true,
+    "**/.git/": true
+  },
+  "workbench.settings.openDefaultKeybindings": true,
+  "workbench.sideBar.location": "right",
+  "vim.useSystemClipboard": true,
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  },
+  "[python]": {
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit"
+    }
+  },
+  "[typescript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[go]": {
+    "editor.formatOnSave": true
+  },
+  "[terraform]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "hashicorp.terraform",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file"
+  },
+  "[terraform-vars]": {
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "hashicorp.terraform",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file"
+  },
+  "[markdown]": {
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "editor.formatOnSave": false,
+    "editor.unicodeHighlight.ambiguousCharacters": false,
+    "editor.unicodeHighlight.invisibleCharacters": false,
+    "diffEditor.ignoreTrimWhitespace": false,
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    }
+  },
+  "workbench.colorTheme": "Default Dark+",
+  "python.createEnvironment.trigger": "off",
+  "diffEditor.ignoreTrimWhitespace": false,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "notebook.lineNumbers": "on",
+  "files.autoSave": "afterDelay",
+  "svg.preview.mode": "img",
+  "git.suggestSmartCommit": false,
+  "redhat.telemetry.enabled": false,
+  "java.configuration.runtimes": [
+    {
+      "path": "/opt/homebrew/Cellar/openjdk@17/17.0.16",
+      "name": "JavaSE-17"
+    },
+    {
+      "path": "/opt/homebrew/Cellar/openjdk@11/11.0.28",
+      "name": "JavaSE-11"
+    },
+    {
+      "default": true,
+      "path": "/opt/homebrew/Cellar/openjdk@21/21.0.8",
+      "name": "JavaSE-21"
+    }
+  ],
+  "java.import.gradle.java.home": "/opt/homebrew/opt/openjdk@21",
+  "java.jdt.ls.java.home": "/opt/homebrew/opt/openjdk@21",
+  "java.import.gradle.wrapper.enabled": true,
+  "java.import.gradle.enabled": true,
+  "java.import.gradle.annotationProcessing.enabled": true,
+  "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable",
+  "java.jdt.ls.lombokSupport.enabled": true,
+  "workbench.preferredLightColorTheme": "Cursor Light",
+  "workbench.preferredHighContrastLightColorTheme": "Cursor Light",
+  "workbench.preferredHighContrastColorTheme": "Cursor Dark",
+  "window.autoDetectColorScheme": true,
+  "workbench.preferredDarkColorTheme": "Default Dark+",
+  "workbench.editorAssociations": {
+    "*.svg": "default"
+  },
+  "python.terminal.activateEnvironment": false,
+  "editor.fontSize": 14,
+  "git.openRepositoryInParentFolders": "never",
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.fontSize": 14,
+  "claudeCode.preferredLocation": "sidebar",
+  "claudeCode.useTerminal": true,
+  "claudeCode.selectedModel": "opus",
+  "cursor.windowSwitcher.sidebarHoverCollapsed": true
+}
