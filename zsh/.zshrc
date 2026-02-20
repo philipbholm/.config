@@ -205,6 +205,16 @@ _tests_completions() {
 }
 compdef _tests_completions tests
 
+fix() {
+  /Users/philip/.config/dev/fix.sh "$@"
+}
+
+_fix_completions() {
+  local cmds=("build:Rebuild Docker images" "full:npm install + rebuild")
+  _describe 'command' cmds
+}
+compdef _fix_completions fix
+
 prisma() {
   local monorepo_root
   monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
