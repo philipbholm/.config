@@ -187,7 +187,7 @@ function run_seed() {
     wait_for_migrations registries
 
     echo "Generating Prisma client for registries..."
-    dc exec -T registries npx prisma generate
+    dc exec -T registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npx prisma generate'
 
     echo "Seeding ICD-10 codes..."
     dc exec -T registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-icd10'

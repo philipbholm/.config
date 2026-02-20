@@ -228,9 +228,6 @@ services:
       - $tmp_dir/router.docker.worktree.yaml:/dist/config/router.yaml
     ports: !override
       - "$(( 4000 + offset )):4000"
-    networks:
-      - default
-      - $ADMIN_MOCK_NET
 
   postgres:
     ports: !override
@@ -260,9 +257,6 @@ services:
       - "$(( 4006 + offset )):4000"
       - "$(( 50006 + offset )):50051"
       - "$(( 4002 + offset )):4002"
-    networks:
-      - default
-      - $ADMIN_MOCK_NET
 YAML
 
     # Conditionally add services that may not exist in all branches
@@ -282,8 +276,6 @@ networks:
   default:
     name: default-network-wt-${s}
     driver: bridge
-  $ADMIN_MOCK_NET:
-    external: true
 
 volumes:
   database_data_wt_${s}:
@@ -383,7 +375,7 @@ function run_seed() {
     wait_for_migrations registries
 
     echo "Generating Prisma client for registries..."
-    dc exec -T registries npx prisma generate
+    dc exec -T registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npx prisma generate'
 
     echo "Seeding ICD-10 codes..."
     dc exec -T registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-icd10'
@@ -619,6 +611,11 @@ if [ "$command" = "up" ]; then
         dc up -d --wait $worktree_services
     fi
 
+    # Connect admin-mock to this worktree's isolated network so services
+    # can reach it without joining the shared admin-mock-net (which would
+    # leak DNS aliases across stacks).
+    docker network connect "default-network-wt-${resolved_slot}" admin-mock 2>/dev/null || true
+
     save_lockfile_hashes
 
     run_seed
@@ -634,6 +631,7 @@ elif [ "$command" = "start" ]; then
     check_admin_mock
     generate_override "$resolved_slot" > /dev/null
     dc up -d $worktree_services
+    docker network connect "default-network-wt-${resolved_slot}" admin-mock 2>/dev/null || true
 
 elif [ "$command" = "down" ]; then
     generate_override "$resolved_slot" > /dev/null
