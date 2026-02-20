@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to agents when working with code in this repository.
 
 ## Project Overview
 
-This is a monorepo for Ledidi, a medical registry and clinical studies platform. It uses npm workspaces with the following structure:
+This is a monorepo for Ledidi, a medical registry platform. It uses npm workspaces with the following structure:
 
 - `apps/main-frontend/` - React 19 + Vite frontend
 - `services/` - Backend microservices (Node.js, Prisma)
@@ -19,17 +19,13 @@ This is a monorepo for Ledidi, a medical registry and clinical studies platform.
 
 ## Development Commands
 
-**Requirements:** Node.js 24.11+ is required for backend services.
-
 ### Development Environment
 
-The development environment is always running. **Always use `dev` instead of `docker compose`** —
-it automatically includes the correct compose files for your environment. Running `docker compose`
-directly will use wrong ports and break the stack.
+The development environment is always running. **Always use `dev` instead of `docker compose`** — it automatically includes the correct compose files for your environment. Running `docker compose` directly will use wrong ports and break the stack.
 
 ### Common Commands
 
-- `dev restart <service>` — Restart after code changes (source is volume-mounted, no rebuild needed)
+- `dev restart <service>` — Restart a service if it's not picking up changes automatically
 - `dev up --build <service> -d` — Rebuild after package.json/Dockerfile changes (node_modules is in the image)
 - `dev exec <service> sh` — Shell into a running container
 - `dev logs -f <service>` — Tail service logs
@@ -39,14 +35,6 @@ Never run:
 - `docker compose up` / `docker compose restart` — missing override files, will break ports
 - `npm run dev` / `npm start` — services run in Docker
 
-### Monorepo Workspace Commands
-
-```bash
-npm run lint:fix --workspaces --if-present
-npm run build --workspaces --if-present
-npm run test --workspaces --if-present
-npm run generate --workspaces --if-present
-```
 
 ### Post-Change Workflows
 
@@ -63,86 +51,94 @@ No commands needed. The running Docker container mounts `src/` and uses nodemon 
 This is the most involved workflow because GraphQL schema changes ripple through codegen, the supergraph, and the frontend.
 
 1. **Regenerate types in the backend service that owns the schema:**
-   ```bash
-   cd services/registries && npm run generate
-   ```
+```bash
+cd services/registries && npm run generate
+```
 
-2. **The supergraph auto-recomposes.** A `router-autoupdate` container watches `api/*.graphql` files and automatically runs `rover supergraph compose`. The router has `--hot-reload` enabled so it picks up the new supergraph automatically. **You do NOT need to manually run `rover` or restart the router.**
-
-   > If the auto-update is not working, you can manually recompose:
-   > ```bash
-   > rover supergraph compose --config services/apollo-router/supergraph.yaml 2>/dev/null > services/apollo-router/supergraph.graphql
-   > ```
+2. **Recompose the supergraph** — a `router-autoupdate` container should do this automatically, but it doesn't always work reliably. Always run this manually after GraphQL schema changes:
+```bash
+rover supergraph compose --config services/apollo-router/supergraph.yaml 2>/dev/null > services/apollo-router/supergraph.graphql
+```
 
 3. **Regenerate frontend GraphQL types** (if the frontend consumes the changed types):
-   ```bash
-   cd apps/main-frontend && npm run generate
-   ```
+```bash
+cd apps/main-frontend && npm run generate
+```
 
 4. **Restart the backend service** to pick up any new resolvers or type changes:
-   ```bash
-   dev restart registries
-   ```
+```bash
+dev restart registries
+```
+
+5. **Restart the router** to pick up the recomposed supergraph:
+```bash
+dev restart router
+```
 
 **Summary for GraphQL changes:**
 ```bash
 cd services/registries && npm run generate
+rover supergraph compose --config services/apollo-router/supergraph.yaml 2>/dev/null > services/apollo-router/supergraph.graphql
 cd apps/main-frontend && npm run generate
 dev restart registries
+dev restart router
 ```
 
 #### Changed `.proto` files (gRPC schema)
 
 1. Regenerate proto types in the affected service:
-   ```bash
-   cd services/registries && npm run generate-proto
-   ```
+```bash
+cd services/registries && npm run generate-proto
+```
 2. Regenerate proto types in any consuming service.
 3. Restart affected services:
-   ```bash
-   dev restart registries
-   ```
+```bash
+dev restart registries
+```
 
 #### Changed `prisma/schema.prisma` in a backend service
 
+Prisma commands connect to PostgreSQL from the host, so you must override `POSTGRES_URL` with the correct port from the ports table at the bottom of this file. Replace `<PORT>` below with that port.
+
 1. Create a migration:
-   ```bash
-   cd services/registries && npm run migrate-create
-   ```
-   This creates a migration file in `prisma/migrations/`. Review the generated SQL.
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries" npm run migrate-create
+```
+
+This creates a migration file in `prisma/migrations/`. Review the generated SQL.
 
 2. Apply the migration:
-   ```bash
-   cd services/registries && npm run migrate
-   ```
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries" npm run migrate
+```
 
 3. Regenerate Prisma client:
-   ```bash
-   cd services/registries && npm run generate
-   ```
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries" npm run generate
+```
 
 4. Restart the service:
-   ```bash
-   dev restart registries
-   ```
+```bash
+dev restart registries
+```
 
 **Important:** Always use the package.json scripts for migrations. Never run `npx prisma migrate dev` or `npx prisma generate` directly.
 
 #### Changed `package.json` (added/removed/updated dependencies)
 
-1. Install from the monorepo root:
-   ```bash
-   npm install
-   ```
+1. Install dependencies in the workspace that changed:
+```bash
+cd services/registries && npm install
+```
 
 2. **Rebuild** the Docker container (not just restart, since `node_modules` is baked into the image):
-   ```bash
-   dev up --build <service> -d
-   ```
+```bash
+dev up --build <service> -d
+```
 
-   For example: `dev up --build registries -d`
+For example: `dev up --build registries -d`
 
-   > A plain `dev restart` will NOT pick up new dependencies because the container's `node_modules` comes from the image build, not a host volume mount.
+> A plain `dev restart` will NOT pick up new dependencies because the container's `node_modules` comes from the image build, not a host volume mount.
 
 #### Changed frontend files (`apps/main-frontend/src/`)
 
@@ -166,7 +162,7 @@ The frontend dev server runs `generate-watch` which watches for `.graphql` file 
 - After changing any `.graphql` schema file → run in the owning service AND in `apps/main-frontend`
 - After changing `prisma/schema.prisma` → run in the owning service
 - After changing `.proto` files → run in the owning service and any consuming services
-- After pulling new code from git → run in all workspaces: `npm run generate --workspaces --if-present`
+
 
 ### Frontend Commands
 
@@ -175,47 +171,41 @@ npm run build           # Production build
 npm run generate        # Generate GraphQL types
 npm run lint:fix        # Fix linting issues
 npm run test            # Unit tests (Vitest)
-npm run test:e2e        # E2E tests (Playwright)
 ```
 
-Verification: `cd apps/main-frontend && npm run lint:fix && npm run build`
+E2E tests (Playwright) require environment variables with the correct ports from the ports table at the bottom of this file. Replace `<FRONTEND_PORT>` and `<API_PORT>` below with those ports.
+
+```bash
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:<FRONTEND_PORT>" E2E_API_URL="http://localhost:<API_PORT>" npx playwright test
+```
+
+Verification: `cd apps/main-frontend && npm run lint:fix && npm run build && FRONTEND_BASE_URL="http://localhost:<FRONTEND_PORT>" E2E_API_URL="http://localhost:<API_PORT>" npx playwright test`
 
 ### Backend Service Commands
 
 Each service follows the same pattern:
 
 ```bash
+npm run lint:fix        # Fix linting issues
 npm run build           # Full build (generate + tsc)
 npm run build-ts        # TypeScript-only build (faster, no codegen)
 npm run generate        # Generate GraphQL, Prisma, gRPC types
-npm run test            # Run integration tests (starts test DB)
-npm run test:watch      # Watch mode testing
-npm run lint:fix        # Fix linting issues
-npm run migrate         # Deploy database migrations
 ```
 
-Backend tests require `--runInBand` flag (handled automatically by npm scripts).
+`test` and `migrate` require `POSTGRES_URL` with the correct port from the ports table at the bottom of this file. Replace `<PORT>` below with that port.
 
 ```bash
+# Run integration tests
+POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries-test" npm run test
+
 # Run a specific test by pattern
-npm run test -- --testPathPattern="get-registries"
+POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries-test" npm run test -- --testPathPattern="get-registries"
+
+# Deploy database migrations
+POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries" npm run migrate
 ```
 
-Verification: `cd services/registries && npm run lint:fix && npm run build-ts`
-
-Docker compose service names: `main-frontend`, `registries`, `codelist`, `router`
-
-> `router-autoupdate` also exists but rarely needs manual interaction.
-
-### Common Mistakes
-
-- **Running `docker compose` directly** — Always use `dev` instead. `docker compose` misses the override file and will use wrong ports. Use `dev restart`, `dev up --build`, `dev logs`, etc.
-- **Running `npm run dev` or `npm start`** — Services run in Docker, not on the host.
-- **Running `npx prisma migrate dev` directly** — Always use the service's package.json scripts (`npm run migrate`, `npm run migrate-create`).
-- **Restarting instead of rebuilding after dependency changes** — `dev restart` does not pick up new `node_modules`. Use `dev up --build <service> -d`.
-- **Forgetting to regenerate frontend types after backend schema changes** — If you change a `.graphql` file in a service, also run `cd apps/main-frontend && npm run generate`.
-- **Manually running `rover` to recompose the supergraph** — The `router-autoupdate` container handles this automatically. Only run `rover` manually if auto-update appears broken.
-- **Using `cd` in chained commands** — In a monorepo, prefer running commands from the repo root with explicit paths, or use separate shell invocations. `cd services/registries && npm run generate` works, but note that `cd` persists in the shell session.
+Verification: `cd services/registries && npm run lint:fix && npm run build-ts && POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries-test" npm run test`
 
 ## Architecture
 
@@ -270,17 +260,37 @@ Apollo Router federates subgraph schemas from each service. Each service has its
 
 - Service-to-service: gRPC with ts-proto
 - Frontend-to-backend: GraphQL via Apollo Router
-- Authorization: SpiceDB for ACL, OAuth2 service tokens
+- Authentication: JWT tokens (JWKS-verified), separate JWT for service-to-service
+- Authorization: Custom RBAC stored in PostgreSQL (subject-object-relation permission tuples)
 
-### Frontend Technology Stack
+## Backend
 
-- **Styling**: Tailwind CSS v4 with `clsx` + `tailwind-merge` for className composition
+- **Registries Service**: Fastify + Apollo Server
+- **Codelist Service**: Express + gRPC only (no GraphQL)
+- **Use Cases**: Follow `buildXxxUseCase` builder pattern
+
+### Error Handling
+
+Each service defines typed errors in `src/application/errors.ts`:
+
+```typescript
+throw new NotFoundError({
+  message: "Registry not found",
+  subcode: ErrorSubcode.RegistryNotFound,
+});
+```
+
+All errors extend `ApplicationError` and use `ErrorSubcode` enums for granular error handling. **Never throw plain `Error`.** Always use the appropriate typed error class (e.g., `NotFoundError`, `ValidationError`, `NotAuthorizedError`).
+
+## Frontend
+
+- **Styling**: Tailwind CSS v4 with the `cn` function from shadcn for className composition
 - **UI Components**: shadcn/ui pattern in `src/components/ui/`
 - **Forms**: React Hook Form + Zod 4 for validation
 - **State**: Apollo Client for server state, React Context for local state
 - **Routing**: React Router v7
 
-### Frontend Error Handling
+### Error Handling
 
 Use error helpers from `src/lib/errors.ts` to check GraphQL error codes:
 
@@ -297,37 +307,36 @@ if (isFailedPreconditionError(error)) {
 
 These helpers check `error.graphQLErrors` for matching error codes from the backend.
 
-### Backend Technology Stack
+## Testing
 
-- **GraphQL Services** (admin, studies, registries, auth): Fastify + Apollo Server
-- **Codelist Service**: Express + gRPC only (no GraphQL)
-- **Use Cases**: Follow `buildXxxUseCase` builder pattern
-- **Test Utilities**: Use `test_*` helpers from `test-utils.ts` (e.g., `test_createStudy`, `mockContext`)
+### Test File Locations
 
-### Backend Error Handling
+- Frontend unit tests: `src/**/*.test.ts(x)` (Vitest)
+- Frontend E2E tests: `src/app/**/*.spec.tsx` (Playwright)
+- Backend integration tests: `src/**/*.integration.test.ts` (Jest)
 
-Each service defines typed errors in `src/application/errors.ts`:
+### Guidelines
 
+- Extract shared setup into `beforeAll`, assertions in `it` blocks
+- Prefer `toEqual` over `toMatchObject`
+- Use imperative test descriptions:
 ```typescript
-// Error types: NotFoundError, NotAuthorizedError, ValidationError,
-// AlreadyExistsError, FailedPreconditionError, RetryableError, etc.
-
-throw new NotFoundError({
-  message: "Registry not found",
-  subcode: ErrorSubcode.RegistryNotFound,
-});
+// Good
+it("reorders the elements", ...)
+// Avoid
+it("should reorder the elements", ...)
 ```
-
-All errors extend `ApplicationError` and use `ErrorSubcode` enums for granular error handling. Frontend can check these via GraphQL error codes.
+- Integration tests for backend changes
+- Unit tests for edge cases that integration tests can't cover
 
 ### Backend Test Setup
 
-Use `buildTestApplication()` from `src/test/test-application.ts` with optional port overrides:
+Use `buildTestApplication()` from `services/registries/src/test/test-application.ts` and `registryTestBuilder` from `services/registries/src/test/test-setup-builder.ts`:
 
 ```typescript
 const { application } = buildTestApplication({
   overridePorts: {
-    emailService: mockEmailService,  // Override specific dependencies
+    emailService: mockEmailService,
   },
 });
 
@@ -336,10 +345,30 @@ const context = mockContext({
   allowedScopes: ["registry:read", "registry:write"],
 });
 
-await application.createRegistry.run({ input, context });
+// Fluent builder — auto-creates dependencies (e.g., withPatient creates a registry first)
+const result = await registryTestBuilder(application, context)
+  .withRegistry()
+  .withPatient()
+  .withEpisode()
+  .withEvent()
+  .build();
 ```
 
-## Code Style Guidelines
+### Frontend E2E Test Setup
+
+Use `e2eRegistryTestBuilder` from `apps/main-frontend/test-util/e2e-registry-test-setup-builder.ts` — same fluent pattern as the backend builder:
+
+```typescript
+const result = await e2eRegistryTestBuilder(client)
+  .withEvent({ repeatable: true })
+  .withTextFormElement({ label: "Test Text Field", variableName: "test_text_field" })
+  .withFormToEvent()
+  .withPatientEventEntry()
+  .withFormDataEntry()
+  .build();
+```
+
+## Code Style
 
 ### General
 
@@ -349,31 +378,37 @@ await application.createRegistry.run({ input, context });
 - No TypeScript enums - use string types or const maps
 - NEVER use the `any` type or cast types (e.g., `as SomeType`, `as unknown`). Use proper type narrowing, generics, or Zod parsing instead.
 - Use Zod for parsing unknown types
-- Use npm (not pnpm)
+- One GraphQL operation per `.graphql` file
 - ALWAYS declare types that depend on other types _after_ the type they depend on:
-  ```typescript
-  // Good — base type declared first
-  type Column = {
-    id: string;
-    label: string;
-  };
+```typescript
+// Good — base type declared first
+type Column = {
+  id: string;
+  label: string;
+};
 
-  type ColumnConfig = {
-    columns: Column[];
-    defaultSort: Column["id"];
-  };
+type ColumnConfig = {
+  columns: Column[];
+  defaultSort: Column["id"];
+};
 
-  // Bad — ColumnConfig references Column before it's declared
-  type ColumnConfig = {
-    columns: Column[];
-    defaultSort: Column["id"];
-  };
+// Bad — ColumnConfig references Column before it's declared
+type ColumnConfig = {
+  columns: Column[];
+  defaultSort: Column["id"];
+};
 
-  type Column = {
-    id: string;
-    label: string;
-  };
-  ```
+type Column = {
+  id: string;
+  label: string;
+};
+```
+
+### File Naming
+
+- General files: kebab-case (`user-details.tsx`, `create-study.ts`)
+- React hooks: camelCase starting with `use` (`useFormId.ts`, `useStudyId.ts`)
+- GraphQL operations: camelCase (`getForms.graphql`, `createStudy.graphql`)
 
 ### File Structure Ordering
 
@@ -397,35 +432,27 @@ const DICTIONARY = {
 } as const;
 ```
 
-### File Naming
-
-- General files: kebab-case (`user-details.tsx`, `create-study.ts`)
-- React hooks: camelCase starting with `use` (`useFormId.ts`, `useStudyId.ts`)
-- GraphQL operations: camelCase (`getForms.graphql`, `createStudy.graphql`)
-
-### Backend (services/**/*.ts)
+### Backend Style (services/**/*.ts)
 
 - Use lowercase first letter for Prisma relations
-- Integration tests for backend changes
-- Unit tests for edge cases that integration tests can't cover
 
-### Frontend (apps/main-frontend/)
+### Frontend Style (apps/main-frontend/)
 
 - Minimize useEffect - prefer computed values
 - Don't destructure queries/forms:
-  ```typescript
-  // Good
-  const userQuery = useUserQuery();
-  // Avoid
-  const { data, isLoading } = useUserQuery();
-  ```
+```typescript
+// Good
+const userQuery = useUserQuery();
+// Avoid
+const { data, isLoading } = useUserQuery();
+```
 - Use descriptive function names for what they do, not when invoked:
-  ```typescript
-  // Good
-  const submitLoginCredentials = () => { ... }
-  // Avoid
-  const handleButtonClicked = () => { ... }
-  ```
+```typescript
+// Good
+const submitLoginCredentials = () => { ... }
+// Avoid
+const handleButtonClicked = () => { ... }
+```
 - Use Luxon `DateTime.toLocaleString` for date formatting
 - Use `useXXXId` hooks for type-safe route params (e.g., `useRegistryId`, `useFormId`)
 - Use `ROUTE_MAP` for type-safe navigation paths (see `src/features/route-map/`)
@@ -433,43 +460,19 @@ const DICTIONARY = {
 
 ### Dictionaries
 
-Use function parameters for dynamic values:
+- ALWAYS define `DICTIONARY` in the same file where translations are used — NEVER create separate `dictionary.ts` files
+- Place `DICTIONARY` at the bottom of the file (see [File Structure Ordering](#file-structure-ordering))
+- Use function parameters for dynamic values:
 ```typescript
 // Good
 fullName: (firstName: string, lastName: string) => `${firstName} ${lastName}`
 // Avoid
 fullName: `{firstName} {lastName}` // with .replace()
 ```
-
-For static translations, use language-keyed objects:
-- ALWAYS define the `DICTIONARY` in the same file where translations are used
-- NEVER create separate `dictionary.ts` files
-- Place `DICTIONARY` at the bottom of the file (see [File Structure Ordering](#file-structure-ordering))
+- Use language-keyed objects for static translations:
 ```typescript
 const DICTIONARY = {
   en: { title: "Users", status: "Status" },
   no: { title: "Brukere", status: "Status" },
 } as const;
 ```
-
-### GraphQL
-
-- One operation per `.graphql` file
-
-### Testing
-
-**Test file locations:**
-- Frontend unit tests: `src/**/*.test.ts(x)` (Vitest)
-- Frontend E2E tests: `src/app/**/*.spec.tsx` (Playwright)
-- Backend integration tests: `src/**/*.integration.test.ts` (Jest)
-
-**Guidelines:**
-- Extract shared setup into `beforeAll`, assertions in `it` blocks
-- Prefer `toEqual` over `toMatchObject`
-- Use imperative test descriptions:
-  ```typescript
-  // Good
-  it("reorders the elements", ...)
-  // Avoid
-  it("should reorder the elements", ...)
-  ```
