@@ -29,11 +29,11 @@ alias gwl='git worktree list'
 
 # Work
 export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
-alias xdl='python /Users/philip/work/slack-posts/x_downloader_gui.py'
 alias wtu='notify /Users/philip/.config/dev/run-worktree.sh --up'
 alias wtr='/Users/philip/.config/dev/run-worktree.sh --start'
 alias wts='/Users/philip/.config/dev/run-worktree.sh --stop'
 alias wtn='notify /Users/philip/.config/dev/run-worktree.sh --nuke'
+
 gwc() {
   [[ -z "$1" ]] && { echo "Usage: gwc <branch-name>"; return 1; }
   setopt LOCAL_OPTIONS NO_MONITOR
@@ -103,8 +103,22 @@ _gwd_completions() {
 }
 
 prisma() {
-  local port=$((5432 + ${1:-0} * 100))
-  POSTGRES_URL="postgresql://postgres:postgres@localhost:$port/registries" npx prisma studio
+  local monorepo_root
+  monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "Error: Not inside a git repository"
+    return 1
+  }
+  local project_name slot worktree_slot_file
+  project_name="$(basename "$monorepo_root")"
+  worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$project_name/worktree-slot"
+  if [[ -f "$worktree_slot_file" ]]; then
+    slot=$(cat "$worktree_slot_file")
+  else
+    slot=0
+  fi
+  local port=$((5432 + slot * 100))
+  POSTGRES_URL="postgresql://postgres:postgres@localhost:$port/registries" \
+    npx prisma studio --schema="$monorepo_root/services/registries/prisma/schema.prisma"
 }
 
 verify() {

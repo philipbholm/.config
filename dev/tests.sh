@@ -1,18 +1,21 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-# Parse args: tests [slot]
-slot="${1:-0}"
-
-monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null)
-if [[ $? -ne 0 ]]; then
+monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
   echo "Error: Not inside a git repository"
   exit 1
-fi
+}
 
 cd "$monorepo_root" || exit 1
 
-# Determine ports from slot
+# Determine ports from worktree slot
+project_name="$(basename "$monorepo_root")"
+worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$project_name/worktree-slot"
+if [[ -f "$worktree_slot_file" ]]; then
+  slot=$(cat "$worktree_slot_file")
+else
+  slot=0
+fi
 offset=$((slot * 100))
 postgres_port=$((5432 + offset))
 frontend_port=$((3001 + offset))
