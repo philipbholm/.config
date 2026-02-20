@@ -23,17 +23,21 @@ This is a monorepo for Ledidi, a medical registry and clinical studies platform.
 
 ### Development Environment
 
-The development environment is always running. Never run startup commands like:
-- `docker compose up`
-- `npm run dev`
-- `npm start`
+The development environment is always running. **Always use `dev` instead of `docker compose`** —
+it automatically includes the correct compose files for your environment. Running `docker compose`
+directly will use wrong ports and break the stack.
 
-These services are already running and available.
+### Common Commands
 
-### Restart vs Rebuild
+- `dev restart <service>` — Restart after code changes (source is volume-mounted, no rebuild needed)
+- `dev up --build <service> -d` — Rebuild after package.json/Dockerfile changes (node_modules is in the image)
+- `dev exec <service> sh` — Shell into a running container
+- `dev logs -f <service>` — Tail service logs
+- `dev ps` — List running containers
 
-- **`docker compose restart <service>`** — Restarts the container without rebuilding. Use this after code changes (`.ts`, `.graphql`) since source code is volume-mounted.
-- **`docker compose up -d --build <service>`** — Rebuilds the Docker image and recreates the container. Use this after `package.json` or `Dockerfile` changes, since `node_modules` lives inside the image.
+Never run:
+- `docker compose up` / `docker compose restart` — missing override files, will break ports
+- `npm run dev` / `npm start` — services run in Docker
 
 ### Monorepo Workspace Commands
 
@@ -52,7 +56,7 @@ After making changes, follow the workflow that matches what you changed. Multipl
 
 No commands needed. The running Docker container mounts `src/` and uses nodemon to auto-reload on file changes.
 
-> If for some reason the service is not picking up changes: `docker compose restart registries`
+> If for some reason the service is not picking up changes: `dev restart registries`
 
 #### Changed `.graphql` schema files (e.g., `services/registries/api/*.graphql`)
 
@@ -77,14 +81,14 @@ This is the most involved workflow because GraphQL schema changes ripple through
 
 4. **Restart the backend service** to pick up any new resolvers or type changes:
    ```bash
-   docker compose restart registries
+   dev restart registries
    ```
 
 **Summary for GraphQL changes:**
 ```bash
 cd services/registries && npm run generate
 cd apps/main-frontend && npm run generate
-docker compose restart registries
+dev restart registries
 ```
 
 #### Changed `.proto` files (gRPC schema)
@@ -96,7 +100,7 @@ docker compose restart registries
 2. Regenerate proto types in any consuming service.
 3. Restart affected services:
    ```bash
-   docker compose restart registries
+   dev restart registries
    ```
 
 #### Changed `prisma/schema.prisma` in a backend service
@@ -119,7 +123,7 @@ docker compose restart registries
 
 4. Restart the service:
    ```bash
-   docker compose restart registries
+   dev restart registries
    ```
 
 **Important:** Always use the package.json scripts for migrations. Never run `npx prisma migrate dev` or `npx prisma generate` directly.
@@ -133,12 +137,12 @@ docker compose restart registries
 
 2. **Rebuild** the Docker container (not just restart, since `node_modules` is baked into the image):
    ```bash
-   docker compose up -d --build <service>
+   dev up --build <service> -d
    ```
 
-   For example: `docker compose up -d --build registries`
+   For example: `dev up --build registries -d`
 
-   > A plain `docker compose restart` will NOT pick up new dependencies because the container's `node_modules` comes from the image build, not a host volume mount.
+   > A plain `dev restart` will NOT pick up new dependencies because the container's `node_modules` comes from the image build, not a host volume mount.
 
 #### Changed frontend files (`apps/main-frontend/src/`)
 
@@ -205,9 +209,10 @@ Docker compose service names: `main-frontend`, `registries`, `codelist`, `router
 
 ### Common Mistakes
 
-- **Running `docker compose up` or `npm run dev`** — The dev environment is always running. These commands are not needed and may cause port conflicts.
+- **Running `docker compose` directly** — Always use `dev` instead. `docker compose` misses the override file and will use wrong ports. Use `dev restart`, `dev up --build`, `dev logs`, etc.
+- **Running `npm run dev` or `npm start`** — Services run in Docker, not on the host.
 - **Running `npx prisma migrate dev` directly** — Always use the service's package.json scripts (`npm run migrate`, `npm run migrate-create`).
-- **Restarting instead of rebuilding after dependency changes** — `docker compose restart` does not pick up new `node_modules`. Use `docker compose up -d --build <service>`.
+- **Restarting instead of rebuilding after dependency changes** — `dev restart` does not pick up new `node_modules`. Use `dev up --build <service> -d`.
 - **Forgetting to regenerate frontend types after backend schema changes** — If you change a `.graphql` file in a service, also run `cd apps/main-frontend && npm run generate`.
 - **Manually running `rover` to recompose the supergraph** — The `router-autoupdate` container handles this automatically. Only run `rover` manually if auto-update appears broken.
 - **Using `cd` in chained commands** — In a monorepo, prefer running commands from the repo root with explicit paths, or use separate shell invocations. `cd services/registries && npm run generate` works, but note that `cd` persists in the shell session.

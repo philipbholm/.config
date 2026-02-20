@@ -27,13 +27,7 @@ alias gcm='git commit -m'
 alias glc='git rev-parse HEAD | tr -d "\n" | pbcopy && echo "Copied: $(git rev-parse HEAD)"'
 alias gwl='git worktree list'
 
-# Work
-export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
-alias wtu='notify /Users/philip/.config/dev/run-worktree.sh --up'
-alias wtr='/Users/philip/.config/dev/run-worktree.sh --start'
-alias wts='/Users/philip/.config/dev/run-worktree.sh --stop'
-alias wtn='notify /Users/philip/.config/dev/run-worktree.sh --nuke'
-
+# Worktrees
 gwc() {
   [[ -z "$1" ]] && { echo "Usage: gwc <branch-name>"; return 1; }
   setopt LOCAL_OPTIONS NO_MONITOR
@@ -82,9 +76,9 @@ gwd() {
   local worktree_path="/Users/philip/work/worktrees/$1"
   local project_name="$1"
   [[ ! -d "$worktree_path" ]] && { echo "Worktree not found: $worktree_path"; return 1; }
-  local slot_file="${WORKTREE_TMP_DIR:-$HOME/work/tmp/dev-stacks}/$project_name/worktree-slot"
+  local slot_file="${DEV_STACKS_DIR:-${WORKTREE_TMP_DIR:-$HOME/work/tmp/dev-stacks}}/$project_name/worktree-slot"
   if [ -f "$slot_file" ]; then
-    (cd "$worktree_path" && /Users/philip/.config/dev/run-worktree.sh --nuke)
+    (cd "$worktree_path" && /Users/philip/.config/dev/dev.sh nuke)
     local containers=$(docker ps -q --filter "label=com.docker.compose.project=$project_name" 2>/dev/null)
     [ -n "$containers" ] && docker wait "$containers" >/dev/null 2>&1
   fi
@@ -102,6 +96,40 @@ _gwd_completions() {
   _describe 'worktree' worktrees
 }
 
+
+# Environment variables
+export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="$PATH:$HOME/go/bin"
+export PATH="$HOME/bin:$PATH"
+export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
+export PATH="$PATH:/Users/philip/.modular/bin"
+export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
+export CPPFLAGS="-I/opt/homebrew/opt/openjdk@17/include"
+export PATH="/Users/philip/.duckdb/cli/latest:$PATH"
+export PATH="/opt/homebrew/opt/gradle@8/bin:$PATH"
+export PATH=/Users/philip/.opencode/bin:$PATH
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+export PATH="$PATH:$(npm config get prefix)/bin"
+export PATH="$HOME/.local/bin:$PATH"
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+# export PS1='%~ %# '  # Full path
+export PS1='%c %# '  # Current directory
+# Disable claude telementry
+export DISABLE_TELEMETRY=1
+export DISABLE_ERROR_REPORTING=1
+# Disable playwright warnings
+export NODE_NO_WARNINGS=1
+export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
+
+# Load secrets (API keys, tokens)
+[ -f "$HOME/.config/zsh/.zsh_secrets" ] && source "$HOME/.config/zsh/.zsh_secrets"
+
+# Functions
 prisma() {
   local monorepo_root
   monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
@@ -121,117 +149,6 @@ prisma() {
     npx prisma studio --schema="$monorepo_root/services/registries/prisma/schema.prisma"
 }
 
-verify() {
-  # Determine repo root from current directory
-  local repo_root
-  repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
-    echo "Error: not inside a git repository"
-    return 1
-  }
-
-  local repo_name=$(basename "$repo_root")
-  local dev_stack_dir="$HOME/work/tmp/dev-stacks/$repo_name"
-  local is_worktree=false
-  local compose_args=""
-
-  # Check if this is a worktree (has a worktree-slot file)
-  if [[ -f "$dev_stack_dir/worktree-slot" ]]; then
-    is_worktree=true
-    compose_args="COMPOSE_PROJECT_NAME=$repo_name docker compose -f $repo_root/docker-compose.yml -f $dev_stack_dir/docker-compose.worktree.yml"
-  fi
-
-  local failed=()
-
-  echo "=== Frontend: lint ==="
-  (cd "$repo_root/apps/main-frontend" && npm run lint:fix) || failed+=(frontend-lint)
-
-  echo ""
-  echo "=== Frontend: type check ==="
-  (cd "$repo_root/apps/main-frontend" && npm run build-ts) || failed+=(frontend-types)
-
-  echo ""
-  echo "=== Frontend: tests ==="
-  (cd "$repo_root/apps/main-frontend" && npm run test) || failed+=(frontend-tests)
-
-  echo ""
-  echo "=== Registries: lint ==="
-  (cd "$repo_root/services/registries" && npm run lint:fix) || failed+=(registries-lint)
-
-  echo ""
-  echo "=== Registries: type check ==="
-  (cd "$repo_root/services/registries" && npm run build-ts) || failed+=(registries-types)
-
-  echo ""
-  echo "=== Registries: tests ==="
-  if $is_worktree; then
-    eval "$compose_args exec -e POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/registries-test registries npx jest --runInBand" || failed+=(registries-tests)
-  else
-    (cd "$repo_root/services/registries" && npm run test) || failed+=(registries-tests)
-  fi
-
-  echo ""
-  if [[ ${#failed[@]} -eq 0 ]]; then
-    echo "=== All checks passed ==="
-  else
-    echo "=== FAILED: ${failed[*]} ==="
-    return 1
-  fi
-}
-
-seed() {
-  local worktree_root="/Users/philip/work/worktrees"
-  local worktree_tmp="/Users/philip/work/tmp/dev-stacks"
-  local cwd="$PWD"
-  local compose_args=()
-
-  if [[ "$cwd" == "$worktree_root/"* ]]; then
-    local name="${cwd#$worktree_root/}"
-    name="${name%%/*}"
-    compose_args=(--project-name="$name" -f "$worktree_root/$name/docker-compose.yml" -f "$worktree_tmp/$name/docker-compose.worktree.yml")
-  fi
-
-  for target in icd10 atc; do
-    echo "Seeding $target..."
-    command docker compose ${compose_args[@]} exec -e POSTGRES_URL="postgresql://postgres:postgres@postgres:5432/registries" registries npm run "seed-$target"
-  done
-}
-
-# Paths
-export PATH="/usr/local/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
-export PATH="$PATH:$HOME/go/bin"
-export PATH="$HOME/bin:$PATH"
-export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
-export PATH="$PATH:/Users/philip/.modular/bin"
-export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
-export CPPFLAGS="-I/opt/homebrew/opt/openjdk@17/include"
-export PATH="/Users/philip/.duckdb/cli/latest:$PATH"
-export PATH="/opt/homebrew/opt/gradle@8/bin:$PATH"
-export PATH=/Users/philip/.opencode/bin:$PATH
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-export PATH="$PATH:$(npm config get prefix)/bin"
-export PATH="$HOME/.local/bin:$PATH"
-
-# pyenv setup
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-
-# Environment variables
-# export PS1='%~ %# '  # Full path
-export PS1='%c %# '  # Current directory
-# Disable claude telementry
-export DISABLE_TELEMETRY=1
-export DISABLE_ERROR_REPORTING=1
-# Disable playwright warnings
-export NODE_NO_WARNINGS=1
-
-# Load secrets (API keys, tokens)
-[ -f "$HOME/.config/zsh/.zsh_secrets" ] && source "$HOME/.config/zsh/.zsh_secrets"
-
-# Functions
 notify() {
   eval "$@"
   local exit_code=$?
@@ -251,15 +168,15 @@ docker() {
   fi
 }
 
-rebuild() {
-  /Users/philip/.config/dev/rebuild.sh "$@"
+dev() {
+  /Users/philip/.config/dev/dev.sh "$@"
 }
 
-_rebuild_completions() {
-  local services=("frontend" "registries" "studies" "admin" "codelist")
-  _describe 'service' services
+_dev_completions() {
+  local commands=("up" "down" "stop" "start" "restart" "nuke" "status" "exec" "logs" "ps" "build")
+  _describe 'command' commands
 }
-compdef _rebuild_completions rebuild
+compdef _dev_completions dev
 
 # Git alias completions
 _git_local_branches() {
@@ -278,26 +195,6 @@ compdef _git glo=git-log
 compdef _gwc_completions gwc
 compdef _gwd_completions gwd
 
-shell() {
-  /Users/philip/.config/dev/shell.sh "$@"
-}
-
-_shell_completions() {
-  local services=("frontend" "registries" "studies" "admin" "codelist" "auth")
-  _describe 'service' services
-}
-compdef _shell_completions shell
-
-db() {
-  /Users/philip/.config/dev/db.sh "$@"
-}
-
-_db_completions() {
-  local services=("admin" "studies" "codelist" "registries")
-  _describe 'service' services
-}
-compdef _db_completions db
-
 check() {
   /Users/philip/.config/dev/check.sh "$@"
 }
@@ -308,25 +205,11 @@ _check_completions() {
 }
 compdef _check_completions check
 
-run-main() {
-  /Users/philip/.config/dev/run-main.sh "$@"
+_tests_completions() {
+  local suites=("frontend:Frontend unit tests (Vitest)" "registries:Registries service tests (Jest)" "e2e:Frontend E2E tests (Playwright)")
+  _describe 'suite' suites
 }
-
-_run_main_completions() {
-  local commands=("--up" "--stop" "--start" "--down" "--nuke" "--rebuild" "--help")
-  _describe 'command' commands
-}
-compdef _run_main_completions run-main
-
-run-worktree() {
-  /Users/philip/.config/dev/run-worktree.sh "$@"
-}
-
-_run_worktree_completions() {
-  local commands=("--up" "--stop" "--start" "--down" "--nuke" "--status" "--rebuild" "--help")
-  _describe 'command' commands
-}
-compdef _run_worktree_completions run-worktree
+compdef _tests_completions tests
 
 # zsh-autosuggestions - History-based autocomplete
 source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh

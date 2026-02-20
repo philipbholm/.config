@@ -18,7 +18,7 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-failed=false
+failed=()
 
 cd "$monorepo_root" || exit 1
 
@@ -115,23 +115,19 @@ if [[ "$has_frontend" == true ]]; then
       relative_files+=("$monorepo_root/$f")
     done
     if ! run_step "Frontend: lint (changed files)" "npx eslint --fix ${(q)relative_files[@]}"; then
-      failed=true
+      failed+=("Frontend: lint")
     fi
-    if [[ "$failed" != true ]]; then
-      if ! run_step "Frontend: format (changed files)" "npx prettier --write ${(q)relative_files[@]}"; then
-        failed=true
-      fi
+    if ! run_step "Frontend: format (changed files)" "npx prettier --write ${(q)relative_files[@]}"; then
+      failed+=("Frontend: format")
     fi
   else
     if ! run_step "Frontend: lint" "npm run lint:fix"; then
-      failed=true
+      failed+=("Frontend: lint")
     fi
   fi
 
-  if [[ "$failed" != true ]]; then
-    if ! run_step "Frontend: build" "npm run build"; then
-      failed=true
-    fi
+  if ! run_step "Frontend: build" "npm run build"; then
+    failed+=("Frontend: build")
   fi
 fi
 
@@ -153,31 +149,27 @@ for service in "${changed_services[@]}"; do
       files_to_lint+=("$monorepo_root/$f")
     done
     if ! run_step "$service: lint (changed files)" "npx eslint --fix ${(q)files_to_lint[@]}"; then
-      failed=true
-      continue
+      failed+=("$service: lint")
     fi
     if ! run_step "$service: format (changed files)" "npx prettier --write ${(q)files_to_lint[@]}"; then
-      failed=true
-      continue
+      failed+=("$service: format")
     fi
   else
     if ! run_step "$service: lint" "npm run lint:fix"; then
-      failed=true
-      continue
+      failed+=("$service: lint")
     fi
   fi
 
   if ! run_step "$service: build" "npm run build-ts 2>/dev/null || npm run build"; then
-    failed=true
-    continue
+    failed+=("$service: build")
   fi
 done
 
 # --- Summary ---
 
 echo ""
-if [[ "$failed" == true ]]; then
-  echo "❌ Some checks failed!"
+if [[ ${#failed[@]} -gt 0 ]]; then
+  echo "❌ Failed: ${failed[*]}"
   exit 1
 fi
 

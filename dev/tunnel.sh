@@ -29,17 +29,12 @@ else
   api_port=4000
 fi
 
-# docker compose wrapper: use worktree/dev compose file from tmp dir when present
+# docker compose wrapper: use stack compose file from tmp dir when present
 dc() {
-  local tmp_base="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$PROJECT_NAME"
-  local wt_compose="$tmp_base/docker-compose.worktree.yml"
-  local main_compose="$tmp_base/docker-compose.dev.yml"
-  if [[ -f "$wt_compose" ]]; then
+  local stack_compose="$TMP_BASE/docker-compose.stack.yml"
+  if [[ -f "$stack_compose" ]]; then
     COMPOSE_PROJECT_NAME="$PROJECT_NAME" docker compose \
-      -f docker-compose.yml -f "$wt_compose" "$@"
-  elif [[ -f "$main_compose" ]]; then
-    COMPOSE_PROJECT_NAME="$PROJECT_NAME" docker compose \
-      -f docker-compose.yml -f "$main_compose" "$@"
+      -f docker-compose.yml -f "$stack_compose" "$@"
   else
     COMPOSE_PROJECT_NAME="$PROJECT_NAME" docker compose "$@"
   fi
@@ -53,7 +48,7 @@ ROUTER_CONFIG="$MONOREPO_ROOT/services/apollo-router/router.docker.yaml"
 
 # Worktree overlay files (outside git, backed up/restored manually)
 TMP_BASE="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$PROJECT_NAME"
-WT_COMPOSE="$TMP_BASE/docker-compose.worktree.yml"
+WT_COMPOSE="$TMP_BASE/docker-compose.stack.yml"
 WT_ROUTER_CONFIG="$TMP_BASE/router.docker.worktree.yaml"
 WT_COMPOSE_BACKUP=""
 WT_ROUTER_BACKUP=""

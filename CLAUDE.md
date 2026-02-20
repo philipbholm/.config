@@ -11,9 +11,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 - `zsh/.zshrc` — Zsh config (symlinked to `~/.zshrc`). Key custom functions: `gwc` (create worktree + tmux + Cursor), `gwd` (delete worktree + nuke), `notify` (run command with macOS notification on finish)
 - `claude/` — Claude Code config: hooks (desktop notifications via alerter), settings (model, permissions, plugins), custom agents (auth-reviewer, security-reviewer), custom skills (create-issue, plan, implement, review, learn)
 - `dev/` — Development helper scripts symlinked to `~/bin/`. Core scripts:
-  - `rebuild.sh` — Auto-detect and rebuild changed services (npm install, docker, migrations, supergraph)
-  - `run-worktree.sh` — Isolated worktree dev stacks with slot-based port offsets (slot × 100)
-  - `run-main.sh` — Main repo dev environment (default ports)
+  - `dev.sh` — Dev stack manager (auto-detects main vs worktree, wraps docker compose with correct override files)
   - `check.sh` — Lint + build verification for changed files
   - `test.sh` — Run tests for changed services with `--changed` flag support
   - `tunnel.sh` — Cloudflared tunnels for frontend + API
@@ -39,7 +37,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 
 **Notification hook**: `claude/hooks/notification-desktop.sh` sends macOS desktop notifications (via alerter) when Claude needs attention. Includes aerospace workspace + tmux window index in title for context.
 
-**Script access**: Dev scripts are invoked via symlinks in `~/bin/` (e.g., `rebuild`, `check`, `tests`) and have zsh tab completions defined in `.zshrc`.
+**Script access**: Dev scripts are invoked via symlinks in `~/bin/` (e.g., `dev`, `check`, `tests`) and have zsh tab completions defined in `.zshrc`.
 
 ## When Editing These Configs
 
