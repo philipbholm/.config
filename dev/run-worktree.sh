@@ -235,6 +235,8 @@ services:
   postgres:
     ports: !override
       - "$(( 5432 + offset )):5432"
+    volumes: !override
+      - database_data_wt_${s}:/var/lib/postgresql/data:rw
 
   codelist:
     volumes: !override
@@ -282,6 +284,9 @@ networks:
     driver: bridge
   $ADMIN_MOCK_NET:
     external: true
+
+volumes:
+  database_data_wt_${s}:
 NETWORKS_YAML
 
     echo "$override_file"
