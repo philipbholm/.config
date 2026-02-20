@@ -65,6 +65,7 @@ tmp_dir="${WORKTREE_TMP_DIR:-$HOME/work/tmp/dev-stacks}/$project_name"
 command=""
 slot=""
 rebuild=false
+service=""
 
 function usage() {
     echo "Usage: $0 --[up|stop|start|down|nuke|status] [--slot=N]"
@@ -77,6 +78,7 @@ function usage() {
     echo "  --nuke              Remove all containers, volumes, and images for this worktree"
     echo "  --status            List all running worktree stacks"
     echo "  --rebuild           Rebuild container images before starting"
+    echo "  --service=NAME      Limit --up --rebuild to a single service (e.g. --service=registries)"
     echo "  --slot=N            Slot number (1-9). Auto-assigned (next available) if omitted."
     echo "  --help              Show this help message"
     exit 1
@@ -557,6 +559,9 @@ for arg in "$@"; do
     --rebuild)
         rebuild=true
         ;;
+    --service=*)
+        service="${arg#*=}"
+        ;;
     --slot=*)
         slot="${arg#*=}"
         ;;
@@ -572,6 +577,16 @@ done
 
 if [ -z "$command" ]; then
     usage
+fi
+
+if [ -n "$service" ] && [ "$rebuild" != true ]; then
+    echo "Error: --service requires --rebuild" >&2
+    exit 1
+fi
+
+if [ -n "$service" ] && [ "$command" != "up" ]; then
+    echo "Error: --service can only be used with --up" >&2
+    exit 1
 fi
 
 # --- Execute ---
@@ -605,7 +620,9 @@ if [ "$command" = "up" ]; then
     if [ "$rebuild" != true ]; then
         check_image_freshness "${project_name}-codelist" "$repo_root/services/codelist/package-lock.json"
     fi
-    if [ "$rebuild" = true ]; then
+    if [ "$rebuild" = true ] && [ -n "$service" ]; then
+        dc up --build -d --wait "$service"
+    elif [ "$rebuild" = true ]; then
         dc up --build -d --wait $worktree_services
     else
         dc up -d --wait $worktree_services
