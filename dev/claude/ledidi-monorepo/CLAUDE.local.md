@@ -345,10 +345,57 @@ await application.createRegistry.run({ input, context });
 
 - Prefer descriptive variable names over short/vague ones like `data`, `info`, `item`
 - Use generous newlines between code blocks
-- Comments explain _why_, not _how_
+- Avoid unnecessary comments. Only use comments to explain _why_ some code exists, not _what_ it does. If code needs a comment to explain what it does, the code should be rewritten to be self-explanatory.
 - No TypeScript enums - use string types or const maps
+- NEVER use the `any` type or cast types (e.g., `as SomeType`, `as unknown`). Use proper type narrowing, generics, or Zod parsing instead.
 - Use Zod for parsing unknown types
 - Use npm (not pnpm)
+- ALWAYS declare types that depend on other types _after_ the type they depend on:
+  ```typescript
+  // Good — base type declared first
+  type Column = {
+    id: string;
+    label: string;
+  };
+
+  type ColumnConfig = {
+    columns: Column[];
+    defaultSort: Column["id"];
+  };
+
+  // Bad — ColumnConfig references Column before it's declared
+  type ColumnConfig = {
+    columns: Column[];
+    defaultSort: Column["id"];
+  };
+
+  type Column = {
+    id: string;
+    label: string;
+  };
+  ```
+
+### File Structure Ordering
+
+Place the following at the **bottom** of the file, in this order:
+
+1. Zod schemas and inferred types
+2. `DICTIONARY`
+
+```typescript
+// --- rest of the file's logic above ---
+
+const formSchema = z.object({
+  title: z.string(),
+  numberOfTestPatients: z.number().int().min(0),
+});
+type FormData = z.infer<typeof formSchema>;
+
+const DICTIONARY = {
+  en: { title: "Settings", save: "Save" },
+  no: { title: "Innstillinger", save: "Lagre" },
+} as const;
+```
 
 ### File Naming
 
@@ -394,7 +441,10 @@ fullName: (firstName: string, lastName: string) => `${firstName} ${lastName}`
 fullName: `{firstName} {lastName}` // with .replace()
 ```
 
-For static translations, use language-keyed objects. Define the `DICTIONARY` in the same file where translations are used:
+For static translations, use language-keyed objects:
+- ALWAYS define the `DICTIONARY` in the same file where translations are used
+- NEVER create separate `dictionary.ts` files
+- Place `DICTIONARY` at the bottom of the file (see [File Structure Ordering](#file-structure-ordering))
 ```typescript
 const DICTIONARY = {
   en: { title: "Users", status: "Status" },
