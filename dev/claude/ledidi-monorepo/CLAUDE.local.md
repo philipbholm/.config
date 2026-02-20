@@ -8,11 +8,8 @@ This is a monorepo for Ledidi, a medical registry and clinical studies platform.
 
 - `apps/main-frontend/` - React 19 + Vite frontend
 - `services/` - Backend microservices (Node.js, Prisma)
-  - `admin/` - Admin service (MariaDB, GraphQL + gRPC)
-  - `studies/` - Studies/Projects service (PostgreSQL, GraphQL + gRPC)
   - `registries/` - Medical registries service (PostgreSQL, GraphQL + gRPC)
   - `codelist/` - Code list service (PostgreSQL, gRPC only)
-  - `auth/` - Authorization service (SpiceDB, GraphQL + gRPC)
   - `apollo-router/` - Apollo Federation GraphQL supergraph router
 - `packages/` - Shared libraries (@ledidi-as npm scope)
   - `eslint/` - Shared ESLint configuration
@@ -158,10 +155,7 @@ The frontend dev server runs `generate-watch` which watches for `.graphql` file 
 | Workspace | Command | Generates |
 |-----------|---------|-----------|
 | `services/registries` | `npm run generate` | GraphQL resolver types, Prisma client, gRPC/proto TS types |
-| `services/studies` | `npm run generate` | GraphQL resolver types, Prisma client, gRPC/proto TS types |
-| `services/admin` | `npm run generate` | GraphQL resolver types, Prisma client, gRPC/proto TS types |
 | `services/codelist` | `npm run generate` | Prisma client, gRPC/proto TS types (no GraphQL) |
-| `services/auth` | `npm run generate` | gRPC/proto TS types |
 | `apps/main-frontend` | `npm run generate` | Typed GraphQL hooks and types from all service schemas |
 
 **When to run it:**
@@ -178,7 +172,6 @@ npm run generate        # Generate GraphQL types
 npm run lint:fix        # Fix linting issues
 npm run test            # Unit tests (Vitest)
 npm run test:e2e        # E2E tests (Playwright)
-npm run test:e2e -- create-study   # Run single E2E spec
 ```
 
 Verification: `cd apps/main-frontend && npm run lint:fix && npm run build`
@@ -206,7 +199,7 @@ npm run test -- --testPathPattern="get-registries"
 
 Verification: `cd services/registries && npm run lint:fix && npm run build-ts`
 
-Docker compose service names: `main-frontend`, `registries`, `studies`, `admin`, `codelist`, `router`
+Docker compose service names: `main-frontend`, `registries`, `codelist`, `router`
 
 > `router-autoupdate` also exists but rarely needs manual interaction.
 
