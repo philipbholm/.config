@@ -1,8 +1,10 @@
-# General aliases
+# ── Aliases ─────────────────────────────────────────
+
+# General
 alias ls='ls --color'
 alias ll='ls -lah --color'
 
-# Git aliases
+# Git
 alias ga='git add'
 alias gaa='git add --all'
 alias gapa='git add --patch'
@@ -27,7 +29,67 @@ alias gcm='git commit -m'
 alias glc='git rev-parse HEAD | tr -d "\n" | pbcopy && echo "Copied: $(git rev-parse HEAD)"'
 alias gwl='git worktree list'
 
-# Worktrees
+
+# ── Environment ─────────────────────────────────────
+
+# Homebrew (must be early — tools come from here)
+export PATH="/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/bin:$PATH"
+
+# System and tool PATHs
+export PATH="$HOME/bin:$PATH"
+export PATH="$PATH:$HOME/go/bin"
+export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
+export PATH="$PATH:/Users/philip/.modular/bin"
+export PATH="/Users/philip/.duckdb/cli/latest:$PATH"
+export PATH="/opt/homebrew/opt/gradle@8/bin:$PATH"
+export PATH=/Users/philip/.opencode/bin:$PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# NVM (must load before npm config get prefix)
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+export PATH="$PATH:$(npm config get prefix)/bin"
+
+# pyenv
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+# OpenJDK
+export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
+export CPPFLAGS="-I/opt/homebrew/opt/openjdk@17/include"
+
+# Disable telemetry and warnings
+export DISABLE_TELEMETRY=1
+export DISABLE_ERROR_REPORTING=1
+export NODE_NO_WARNINGS=1
+export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
+
+# Secrets
+[ -f "$HOME/.config/zsh/.zsh_secrets" ] && source "$HOME/.config/zsh/.zsh_secrets"
+
+
+# ── Shell options & history ─────────────────────────
+
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+unsetopt SHARE_HISTORY
+unsetopt INC_APPEND_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_REDUCE_BLANKS
+setopt HIST_IGNORE_SPACE
+
+export PS1='%c %# '  # Current directory
+
+
+# ── Functions ───────────────────────────────────────
+
+# Git & worktrees
+
 gwc() {
   [[ -z "$1" ]] && { echo "Usage: gwc <branch-name>"; return 1; }
   setopt LOCAL_OPTIONS NO_MONITOR
@@ -71,6 +133,13 @@ gwc() {
   echo "✔ Worktree setup complete"
   cursor "$worktree_path" || { echo "Failed to open Cursor"; return 1; }
 }
+
+_gwc_completions() {
+  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
+  _describe 'branch' branches
+}
+compdef _gwc_completions gwc
+
 gwd() {
   [[ -z "$1" ]] && { echo "Usage: gwd <branch-name>"; return 1; }
   local worktree_path="/Users/philip/work/worktrees/$1"
@@ -85,51 +154,57 @@ gwd() {
   git -C "$worktree_path" checkout -- . && git -C "$worktree_path" clean -fd && git worktree remove "$worktree_path"
 }
 
-_gwc_completions() {
-  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
-  _describe 'branch' branches
-}
-
 _gwd_completions() {
   local dir="/Users/philip/work/worktrees"
   local worktrees=(${(@f)"$(ls "$dir" 2>/dev/null)"})
   _describe 'worktree' worktrees
 }
+compdef _gwd_completions gwd
 
+# Git alias completions
 
-# Environment variables
-export PATH="/usr/local/bin:$PATH"
-export PATH="/opt/homebrew/bin:$PATH"
-export PATH="$PATH:$HOME/go/bin"
-export PATH="$HOME/bin:$PATH"
-export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
-export PATH="$PATH:/Users/philip/.modular/bin"
-export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
-export CPPFLAGS="-I/opt/homebrew/opt/openjdk@17/include"
-export PATH="/Users/philip/.duckdb/cli/latest:$PATH"
-export PATH="/opt/homebrew/opt/gradle@8/bin:$PATH"
-export PATH=/Users/philip/.opencode/bin:$PATH
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-export PATH="$PATH:$(npm config get prefix)/bin"
-export PATH="$HOME/.local/bin:$PATH"
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-# export PS1='%~ %# '  # Full path
-export PS1='%c %# '  # Current directory
-# Disable claude telementry
-export DISABLE_TELEMETRY=1
-export DISABLE_ERROR_REPORTING=1
-# Disable playwright warnings
-export NODE_NO_WARNINGS=1
-export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
+_git_local_branches() {
+  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
+  _describe 'branch' branches
+}
 
-# Load secrets (API keys, tokens)
-[ -f "$HOME/.config/zsh/.zsh_secrets" ] && source "$HOME/.config/zsh/.zsh_secrets"
+compdef _git_local_branches gco gcb grb gm gbd grh grhh grhs gsh
+compdef _git gp=git-push
+compdef _git gpf=git-push
+compdef _git gl=git-pull
+compdef _git ga=git-add
+compdef _git gapa=git-add
+compdef _git gb=git-branch
+compdef _git glo=git-log
 
-# Functions
+# Dev tools
+
+dev() {
+  /Users/philip/.config/dev/dev.sh "$@"
+}
+
+_dev_completions() {
+  local commands=("up" "down" "stop" "start" "restart" "nuke" "status" "exec" "logs" "ps" "build")
+  _describe 'command' commands
+}
+compdef _dev_completions dev
+
+check() {
+  /Users/philip/.config/dev/check.sh "$@"
+}
+
+_check_completions() {
+  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
+  _describe 'branch' branches
+}
+compdef _check_completions check
+
+_tests_completions() {
+  local suites=("frontend:Frontend unit tests (Vitest)" "registries:Registries service tests (Jest)" "e2e:Frontend E2E tests (Playwright)")
+  _describe 'suite' suites
+}
+compdef _tests_completions tests
+
 prisma() {
   local monorepo_root
   monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
@@ -145,9 +220,12 @@ prisma() {
     slot=0
   fi
   local port=$((5432 + slot * 100))
-  POSTGRES_URL="postgresql://postgres:postgres@localhost:$port/registries" \
-    npx prisma studio --schema="$monorepo_root/services/registries/prisma/schema.prisma"
+  (cd "$monorepo_root/services/registries" &&
+    POSTGRES_URL="postgresql://postgres:postgres@localhost:$port/registries" \
+      npx prisma studio "$@")
 }
+
+# Utilities
 
 notify() {
   eval "$@"
@@ -168,72 +246,17 @@ docker() {
   fi
 }
 
-dev() {
-  /Users/philip/.config/dev/dev.sh "$@"
-}
 
-_dev_completions() {
-  local commands=("up" "down" "stop" "start" "restart" "nuke" "status" "exec" "logs" "ps" "build")
-  _describe 'command' commands
-}
-compdef _dev_completions dev
+# ── Plugins & keybindings ───────────────────────────
 
-# Git alias completions
-_git_local_branches() {
-  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
-  _describe 'branch' branches
-}
-
-compdef _git_local_branches gco gcb grb gm gbd grh grhh grhs gsh
-compdef _git gp=git-push
-compdef _git gpf=git-push
-compdef _git gl=git-pull
-compdef _git ga=git-add
-compdef _git gapa=git-add
-compdef _git gb=git-branch
-compdef _git glo=git-log
-compdef _gwc_completions gwc
-compdef _gwd_completions gwd
-
-check() {
-  /Users/philip/.config/dev/check.sh "$@"
-}
-
-_check_completions() {
-  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
-  _describe 'branch' branches
-}
-compdef _check_completions check
-
-_tests_completions() {
-  local suites=("frontend:Frontend unit tests (Vitest)" "registries:Registries service tests (Jest)" "e2e:Frontend E2E tests (Playwright)")
-  _describe 'suite' suites
-}
-compdef _tests_completions tests
-
-# zsh-autosuggestions - History-based autocomplete
 source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
 
-# Bind Shift+Tab to accept autosuggestion
-# First, unbind any existing Shift+Tab bindings that might conflict
+# Shift+Tab to accept autosuggestion
 bindkey -r '\e[Z' 2>/dev/null
 bindkey -r '^[[Z' 2>/dev/null
-
-# Bind Shift+Tab to accept autosuggestion in all keymaps
 bindkey '\e[Z' autosuggest-accept
 bindkey '^[[Z' autosuggest-accept
 bindkey -M viins '\e[Z' autosuggest-accept
 bindkey -M viins '^[[Z' autosuggest-accept
 bindkey -M emacs '\e[Z' autosuggest-accept
 bindkey -M emacs '^[[Z' autosuggest-accept
-
-# History configuration
-HISTFILE=~/.zsh_history
-HISTSIZE=10000
-SAVEHIST=10000
-unsetopt SHARE_HISTORY
-unsetopt INC_APPEND_HISTORY
-setopt HIST_IGNORE_DUPS
-setopt HIST_IGNORE_ALL_DUPS
-setopt HIST_REDUCE_BLANKS
-setopt HIST_IGNORE_SPACE
