@@ -273,6 +273,8 @@ Services follow a 3-layer pattern:
 - **Application layer** (`src/application/`) - Business logic and authorization
 - **Adapter layer** (`src/adapters/`) - External integrations and persistence
 
+Domain layer types must be self-contained; map between transport types (gRPC, GraphQL) and domain types at the handler boundary. Never import transport-generated types into application code. Generate IDs in the use case/domain layer, not in resolvers or transport handlers. Validate domain invariants in the use case layer, never in transport-layer code alone.
+
 ### Handler Architecture
 
 The registries service orchestrates three handler types in `src/handlers/index.ts`:
@@ -310,6 +312,22 @@ Services use projection classes for read models that transform event store data 
 - Injected as dependencies into use cases
 - Enable efficient queries without re-processing events
 
+### Event Sourcing
+
+- Never use direct Prisma mutations for domain entities — always emit domain events
+- All create/update/delete operations must emit domain events; projections handle persistence
+- Route all reads through the projection layer, not by calling Prisma directly
+- When deprecating an event field, add a projection fallback for existing events
+- When a single action triggers multiple state-changing events, wrap in a transaction
+- Check event metadata schemas before duplicating fields in event payloads
+
+### Authorization
+
+- Every new backend handler must include an `authorize()` call before any data access
+- Always supply every available scope identifier (site, registry, org) to authorization checks
+- Operations that read from one entity and write to another must enforce permissions on both
+- Use separate context types for authenticated vs. unauthenticated flows
+
 ### GraphQL Federation
 
 Apollo Router federates subgraph schemas from each service. Each service has its schema in `api/*.graphql`.
@@ -337,6 +355,28 @@ throw new NotFoundError("Registry not found");
 
 All errors extend `ApplicationError` and use `ErrorSubcode` string union types for granular error handling. **Never throw plain `Error`.** Always use the appropriate typed error class (e.g., `NotFoundError`, `ValidationError`, `NotAuthorizedError`).
 
+- Use `captureException` with entity ID and attempted action context, not `console.error`
+- Distinguish expected errors (user feedback) from unexpected (report to monitoring)
+- Always include a throwing `default` branch in switch statements on persisted data
+- Either log and handle locally, or throw for a higher-level handler — never both
+
+### GraphQL Resolvers
+
+- Keep resolvers thin: orchestration only, business logic in use cases
+- Extract response-shaping into dedicated mapper functions
+- Extract input transformations into named mappers co-located with the resolver
+- After adding schema fields, verify the full chain: resolver → use case → database → response mapper
+- Align schema types directly with domain models (1:1 mapping)
+- Validate mutation inputs with Zod at the resolver layer before passing to application logic
+
+### Prisma & Database
+
+- Use `findFirstOrThrow` / `findUniqueOrThrow` when the record is expected to exist
+- Guard queries with early return when input array is empty
+- Wrap multi-table writes in a single transaction
+- Upsert: write-once fields (creator, createdAt) only in create clause, not update
+- Migration discipline: descriptive names, one per PR, squash before merge, never edit applied migrations
+
 ## Frontend
 
 - **Styling**: Tailwind CSS v4 with the `cn` function from shadcn for className composition
@@ -344,6 +384,11 @@ All errors extend `ApplicationError` and use `ErrorSubcode` string union types f
 - **Forms**: React Hook Form + Zod 4 for validation
 - **State**: Apollo Client for server state, React Context for local state
 - **Routing**: React Router v7
+
+- Use existing design system components (shadcn/ui) before creating custom ones
+- Keep reusable components free of layout opinions (no margins, gaps); parent controls positioning
+- Use stable data IDs as React `key`, not array indices
+- Use translation keys for ALL UI text including toasts and error messages — never hardcode strings
 
 ### Error Handling
 
@@ -361,6 +406,9 @@ if (isFailedPreconditionError(error)) {
 ```
 
 These helpers check `error.graphQLErrors` for matching error codes from the backend.
+
+- Every mutation must have visible error handling (toast, alert, or inline message)
+- In catch blocks, call the error-reporting service rather than `console.error`
 
 ## Testing
 
@@ -383,6 +431,18 @@ it("should reorder the elements", ...)
 ```
 - Integration tests for backend changes
 - Unit tests for edge cases that integration tests can't cover
+- Use MSW to mock GraphQL requests in frontend tests, not custom Apollo client mocks
+- Use the project's mock builder pattern (`registriesMocks().withX().apply()`)
+- Prefer integration tests that call the actual service endpoint over directly invoking use case functions
+
+### Required Test Coverage
+
+- Every new backend operation: integration test for happy path + primary error case
+- Every use case with `authorize()`: test verifying unauthorized rejection
+- Each event-sourced command handler: assert event storage, projection state, and response data
+- Every new/modified data field: at least one test assertion for expected value/format
+- Complex calculation/transformation logic: unit tests (integration tests for wiring + DB)
+- Security-critical utilities (auth, session, permissions): mandatory unit tests
 
 ### Backend Test Setup
 
@@ -433,6 +493,8 @@ const result = await e2eRegistryTestBuilder(client)
 - No TypeScript enums - use string types or const maps
 - NEVER use the `any` type or cast types (e.g., `as SomeType`, `as unknown`). Use proper type narrowing, generics, or Zod parsing instead.
 - Use Zod for parsing unknown types
+- Use Zod only at trust boundaries (API inputs, env vars, external responses); internal code uses compile-time checks
+- Never use `z.coerce.boolean()` for env vars; use `z.stringbool()` which correctly interprets `"false"`
 - One GraphQL operation per `.graphql` file
 - ALWAYS declare types that depend on other types _after_ the type they depend on:
 ```typescript
@@ -508,6 +570,9 @@ const submitLoginCredentials = () => { ... }
 // Avoid
 const handleButtonClicked = () => { ... }
 ```
+- Name conversion functions as `sourceToTarget` (not `mapSourceToTarget`) — composes cleanly with `.map()`
+- Verb prefixes: `get` (guaranteed return), `find` (optional lookup), `resolve` (transform), `check` (boolean)
+- Prefix boolean props with `is` or `has` (e.g., `isOptional`, `isLoading`)
 - Use Luxon `DateTime.toLocaleString` for date formatting
 - Use `useXXXId` hooks for type-safe route params (e.g., `useRegistryId`, `useFormId`)
 - Use `ROUTE_MAP` for type-safe navigation paths (see `src/features/route-map/`)
