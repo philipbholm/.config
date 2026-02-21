@@ -70,13 +70,17 @@ Transform the filtered feedback into reusable learnings:
 - **Strip all attribution** — no reviewer names, no timestamps, no "the reviewer said". Learnings stand on their own.
 - **Target 3-10 learnings** per PR. If the PR has fewer than 3 substantive pieces of feedback, produce fewer learnings. Quality over quantity.
 
+## Step 5: Check for Substance
+
 **If the PR has no substantive feedback** (all comments were filtered out, or only approvals remain):
 
-Do not write a file. Instead, tell the user:
+**Do NOT write any file.** Simply tell the user and stop:
 
 > No actionable learnings found for PR #{number} — {reason} (e.g., "only approvals with no specific feedback").
 
-## Step 5: Write Output
+Do not create a file with "No actionable learnings" content. Skip Step 6 entirely.
+
+## Step 6: Write Output
 
 Write to `/Users/philip/.config/dev/feedback/{pr_number}.md`
 
