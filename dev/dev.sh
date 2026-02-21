@@ -64,51 +64,6 @@ prerequisites_check() {
     check_docker
 }
 
-# needs_build is a global flag that check_image_freshness can set to true
-needs_build=false
-
-check_image_freshness() {
-    local image=$1
-    local lockfile=$2
-
-    if ! docker image inspect "$image" &>/dev/null; then
-        return  # Image doesn't exist yet; will be built on first up
-    fi
-
-    if [ ! -f "$lockfile" ]; then
-        return
-    fi
-
-    local current_hash
-    current_hash=$(md5 -q "$lockfile" 2>/dev/null || md5sum "$lockfile" | cut -d' ' -f1)
-
-    local hash_file="$tmp_dir/${image}.lockfile-hash"
-    local stored_hash=""
-    if [ -f "$hash_file" ]; then
-        stored_hash=$(cat "$hash_file")
-    fi
-
-    if [ "$current_hash" != "$stored_hash" ]; then
-        echo "Dependencies changed for $image — forcing rebuild."
-        needs_build=true
-    fi
-}
-
-save_lockfile_hashes() {
-    local pairs=(
-        "${project_name}-codelist:$repo_root/services/codelist/package-lock.json"
-    )
-    for pair in "${pairs[@]}"; do
-        local image="${pair%%:*}"
-        local lockfile="${pair##*:}"
-        if [ -f "$lockfile" ]; then
-            local hash
-            hash=$(md5 -q "$lockfile" 2>/dev/null || md5sum "$lockfile" | cut -d' ' -f1)
-            echo "$hash" > "$tmp_dir/${image}.lockfile-hash"
-        fi
-    done
-}
-
 wait_for_migrations() {
     local service=$1
     local db_name=$service
@@ -560,37 +515,16 @@ case "$subcommand" in
 
         generate_override "$resolved_slot"
 
-        # Check if user already passed --build
-        for arg in "$@"; do
-            [ "$arg" = "--build" ] && needs_build=true
-        done
-        # Auto-detect stale lockfiles (skip if user already requested --build)
-        if [ "$needs_build" != true ]; then
-            check_image_freshness "${project_name}-codelist" "$repo_root/services/codelist/package-lock.json"
-        fi
-
         if [ "$#" -gt 0 ]; then
-            # User provided args (e.g., --build registries) — forward them
-            if [ "$needs_build" = true ]; then
-                dc up --build "$@" -d --wait
-            else
-                dc up "$@" -d --wait
-            fi
+            dc up "$@" -d --wait
         else
-            # No args — use default services
-            if [ "$needs_build" = true ]; then
-                dc up --build -d --wait $default_services
-            else
-                dc up -d --wait $default_services
-            fi
+            dc up -d --wait $default_services
         fi
 
         # Connect admin-mock to worktree's isolated network
         if [ "$mode" = "worktree" ]; then
             docker network connect "default-network-wt-${resolved_slot}" admin-mock 2>/dev/null || true
         fi
-
-        save_lockfile_hashes
         run_seed
         write_claude_ports "$resolved_slot"
 
