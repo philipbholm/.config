@@ -264,5 +264,19 @@
     "key": "cmd+w",
     "command": "workbench.action.terminal.kill",
     "when": "terminalFocus"
+  },
+  {
+    "key": "cmd+j",
+    "command": "-workbench.action.togglePanel"
+  },
+  {
+    "key": "cmd+j",
+    "command": "workbench.action.closePanel",
+    "when": "panelVisible"
+  },
+  {
+    "key": "cmd+j",
+    "command": "workbench.action.focusPanel",
+    "when": "!panelVisible"
   }
 ]
