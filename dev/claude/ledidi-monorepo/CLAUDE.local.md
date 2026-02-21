@@ -190,14 +190,16 @@ Run all unit tests:
 cd apps/main-frontend && npm test
 ```
 
+Vitest and Playwright interpret file arguments as regex. Bracket directories like `[lang]` must be replaced with `.*` in paths.
+
 Run tests for a specific file:
 ```bash
-cd apps/main-frontend && npm test -- src/app/path/to/your.test.tsx
+cd apps/main-frontend && npm test -- "src/app/.*/registries/.*/patients/.*/delete/delete-patient-dialog.test.tsx"
 ```
 
 Run tests for a specific directory:
 ```bash
-cd apps/main-frontend && npm test -- src/app/path/to/test-directory
+cd apps/main-frontend && npm test -- "src/app/.*/registries/.*/patients/.*/medications"
 ```
 
 #### Frontend E2E Tests (Playwright)
@@ -209,12 +211,12 @@ cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" 
 
 Run E2E tests for a specific file:
 ```bash
-cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test src/app/path/to/your.spec.tsx
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test "src/app/.*/registries/.*/patients/.*/delete/delete-patient\.spec\.tsx"
 ```
 
-Run E2E tests for a specific directory:
+Run E2E tests for a directory:
 ```bash
-cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test src/app/path/to/e2e-directory
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test "src/app/.*/registries/.*/patients/.*/medications/.*\.spec\.tsx"
 ```
 
 Verification: `cd apps/main-frontend && npm run lint:fix && npm run build && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test`
