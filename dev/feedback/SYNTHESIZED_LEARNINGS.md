@@ -1,6 +1,6 @@
 # Synthesized PR Learnings
 
-Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by category.
+Consolidated guidelines from ~138 PR reviews. Duplicates merged, organized by category.
 
 ---
 
@@ -14,12 +14,17 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Document or enforce at the framework level that projection handlers always run inside a transaction.
 - When implementing deletion in an event-sourced system, explicitly document what data remains in the event store and ensure the deletion promise to users matches the actual data lifecycle.
 - Check event metadata schemas before duplicating fields in event payloads; the field may already exist in event metadata.
+- When two entities must always be created together, create both in a single event handler rather than emitting separate events, to avoid transient inconsistency windows.
+- When deprecating an event field, always add a projection fallback that derives the new representation from the old field for existing events in the log.
+- Route all data reads through the projection layer rather than calling Prisma directly, to maintain a single consistent data access path in event-sourced systems.
 
 ### Layered Architecture
 - Domain layer types must be self-contained; map between transport (gRPC, REST) types and domain types at the handler boundary. Never import transport-generated types into application code.
 - Use architecture-aligned naming (ports, adapters, use cases) consistently rather than generic terms like "dependencies" or "services."
 - Place a property on the entity that owns it semantically; avoid deriving it from a sibling entity.
 - Keep application composition functions focused -- group related use cases into dedicated composition functions rather than a flat, ever-growing builder.
+- Generate IDs in the use case/domain layer, not in resolvers or transport handlers; this keeps business logic independent of the entry point.
+- Validate domain invariants in the use case layer (or a shared helper called by it), never in transport-layer code alone, so alternative entry points cannot bypass validation.
 - When a query spans multiple aggregate boundaries, create a dedicated projection rather than overloading an existing one.
 - Presentation logic (sorting for display, formatting) belongs in the frontend, not the backend; the backend returns raw domain data.
 
@@ -51,6 +56,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - When working with GraphQL union types, prefer `Extract<UnionType, { __typename: "..." }>` over importing the full generated type.
 - Omit explicit type annotations when the compiler can infer the type.
 - Before defining a new type, search the codebase for existing shared types that cover the same shape and extend or reuse them.
+- Use `as const` on static data objects and derive types with `typeof` instead of manually duplicating type definitions; use consistent naming (full object = "dictionary", per-language entry = "translation").
 
 ### Type Safety Practices
 - Prefer narrowing, discriminated unions, or schema validation over `as` casts, especially at data boundaries.
@@ -60,6 +66,8 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Be aware that GraphQL code generation produces three-valued optionals (`T | undefined | null`); document the convention for how your use cases handle the distinction.
 - Always use `===` (strict equality) in TypeScript; configure the linter to enforce this.
 - Only introduce a separate interface for a class when you have a concrete need (e.g., multiple implementations, test mocking).
+- When adding a new variant to a discriminated union or enum, search for every switch/map that consumes it and update them in the same changeset to prevent runtime errors.
+- Prefer required schema fields over optional fields with `!` non-null assertions; add explicit `InvariantViolationError` guards for truly unexpected cases.
 
 ### Zod & Validation
 - Always validate GraphQL mutation inputs with Zod at the resolver layer before passing to application logic.
@@ -72,6 +80,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - When broadening a string validation to accept whitespace, add `.trim()` before the regex check and consider collapsing consecutive whitespace.
 - Write unit tests for environment variable schemas, especially boolean defaults and number parsing edge cases.
 - Duplicate critical validation rules on both frontend and backend so API consumers who bypass the UI are still subject to data integrity constraints.
+- Use Zod only at trust boundaries (API inputs, env vars, external responses); for internal domain rules between owned TypeScript modules, compile-time checks suffice.
 
 ---
 
@@ -93,6 +102,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Test failure modes of external service calls; simulate failures and verify rollback or graceful degradation.
 - When implementing entity deletion, write explicit test assertions for cascade deletion of each related entity type.
 - Write resolver-level integration tests for gRPC endpoints to verify the full request/response mapping.
+- Before making a test order-independent, verify the system under test has no ordering contract with its consumers; if it does, fix the ordering in production code instead.
 
 ### Test Assertions
 - Use `toEqual` with the full expected object shape instead of asserting fields one at a time.
@@ -104,17 +114,21 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Assert only on properties relevant to the behavior being tested; do not assert on irrelevant fields just because they exist.
 - For every uniqueness validation, include a test for duplicate rejection and a test confirming self-update succeeds.
 - For reusable UI components that accept async callbacks, include tests for the rejection/error path.
+- Pair `expect.arrayContaining()` with `toHaveLength()` to ensure exact membership without enforcing order; `arrayContaining` alone is a subset matcher that passes with extra elements.
+- Each integration test for an event-sourced command handler should assert on three things: event storage, projection state, and response data.
 
 ### Test Setup & Organization
 - When integration test setup exceeds ~10 sequential calls, extract a builder or fixture utility.
 - Hoist shared, invariant test fixtures to `beforeAll`; reserve `beforeEach` for mutable state.
 - Scope test setup to the narrowest `describe` block that needs it.
 - Name shared test setup variables generically (e.g., `testSetup`, `ctx`) rather than after a specific assertion.
+- Name test utility functions to accurately describe their full scope; misleading prefixes cause reviewers to misunderstand what is being set up.
 - When a test file exceeds ~300 lines, evaluate splitting it into focused test files.
 - Before writing a new test case, confirm it exercises behavior not already covered by existing tests.
 - Every test must justify its unique existence -- if you cannot articulate what unique case it validates, remove it.
 - For structured test inputs (CSV, JSON), use shared builder utilities or fixture files.
 - Only add global test setup when genuinely required; document why each entry is necessary.
+- Always seed random data generators in tests so assertions can be exact and every failure is meaningful.
 
 ### Mocking
 - Use MSW to mock GraphQL requests in integration tests rather than creating custom Apollo client mocks.
@@ -123,6 +137,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Mock only the specific exports you need for assertions; let everything else use the real implementation.
 - When multiple test files need to mock the same service, create a single exported stub with default implementations.
 - Never add global error suppression (`process.on('unhandledRejection')`) in test setup files.
+- Default all stubbed service methods to reject with "Not implemented"; override to resolve only in tests that explicitly exercise that method, so accidental invocations surface as test failures.
 
 ### Test Naming & Style
 - Write test descriptions in plain English that describe observable behavior.
@@ -157,6 +172,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Components used with Radix `asChild` must spread all remaining props onto the underlying DOM element.
 - Use stable, unique identifiers from data as the `key` prop; only fall back to array index for truly static lists.
 - When a component has display variants mapping to fundamentally different UI elements, use early returns to render each variant separately.
+- Replace nested ternaries in JSX with separate conditional blocks using `&&` for clarity and scannability.
 - When many pass-through props accumulate, refactor to use context, hooks, or self-contained subcomponents.
 - Only set `displayName` on components wrapped with `forwardRef` or created via higher-order functions that obscure the original name.
 - Before submitting a component refactor, diff old vs. new prop interfaces and verify every previously supported feature is retained or explicitly removed.
@@ -165,6 +181,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Check the existing icon library before inlining SVGs; if unavailable, create a named icon component.
 - Before creating custom state-management abstractions (e.g., `Loadable`), check whether existing libraries (React Query, Apollo) already provide equivalent functionality.
 - When regenerating components from library defaults, verify behavioral customizations (sticky headers, event handlers) are preserved.
+- Structure React files as: imports → props interface → component → supporting code (helpers, constants, types) below.
 
 ### Routing & Navigation
 - When a UI has distinct "steps" or "views" with different data needs, model them as nested routes with a shared layout.
@@ -236,11 +253,14 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Give each Prisma migration a descriptive name; aim for one migration per PR.
 - Squash all feature-branch migrations into one clean migration before merging.
 - When adding constraints to existing tables, include a pre-constraint data cleanup step.
+- Split migrations into separate files for schema changes vs. data migration so failures are isolated and easier to diagnose.
+- Never edit a migration file that has already been applied to any environment; Prisma tracks checksums and changes cause mismatches.
 
 ### Schema Patterns
 - Define Prisma enums for any field with a fixed set of valid values instead of bare `String`.
 - Follow Prisma's convention of camelCase relation field names.
 - Never leave unexplained or vestigial fields in database schemas.
+- Add `@@unique` constraints pairing the parent foreign key with the `order` column on any ordered relation table to prevent ambiguous display ordering.
 - PostgreSQL does not consider `NULL = NULL` for unique constraints; either make the column non-nullable or add application-level validation.
 - When changing a one-to-one relationship to one-to-many, update the database constraint, Prisma schema, and all query methods together in a single migration.
 
@@ -248,10 +268,12 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Use `findFirstOrThrow` / `findUniqueOrThrow` when the record is expected to exist.
 - Guard database queries with an early return when the input array is empty.
 - Encapsulate "get latest version" logic in a single repository method so callers cannot forget the sort order.
+- For record-scoped endpoints, filter queries tightly by the specific record identifier; do not include namespace-wide events that cannot be attributed to the individual record.
 - Use `createMany` for bulk test data setup when ordering is irrelevant.
 - When updating multiple related rows, prefer batch operations or document why sequential updates are safe.
 - Combine pagination total count as part of the primary data query rather than a separate count query.
 - Hoist shared queries above conditional blocks when multiple validations need the same data.
+- When updating Prisma records with optional fields, pass the payload object directly — Prisma already ignores `undefined` properties; avoid redundant `!== undefined` guards.
 
 ### Upserts & Projections
 - Audit upsert operations to ensure write-once fields (creator, creation timestamp) are only set in the create clause, not the update clause.
@@ -286,6 +308,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - When a missing env var could enable a security-relevant code path, treat `undefined` as disallowed and throw immediately.
 - Place environment/safety assertions in constructors of dangerous implementations.
 - Set `NODE_ENV` explicitly in all Docker Compose services.
+- Prefix environment variable names with the service they configure (e.g., `FRONTEND_BASE_URL`, `E2E_API_URL`) rather than using generic names like `BASE_URL`.
 - Any setting that enables PII collection/storage must require explicit opt-in.
 - Always default new feature flags to `false` (opt-in, not opt-out).
 - Complement runtime environment guards with monitoring/alerting to catch misconfigurations that slip through.
@@ -316,6 +339,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 ### Error Structure
 - Narrow try-catch blocks to the smallest necessary scope; always document the reason for empty catch blocks.
 - Add descriptive error messages to every runtime assertion explaining what invariant it guards.
+- Always include a throwing `default` branch in switch statements that map persisted data, even when cases look exhaustive, because runtime data may not match compile-time types.
 - When suppressing error reporting for a category of errors, document the convention clearly so future error types are handled intentionally.
 
 ### Error Types
@@ -338,6 +362,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Name conversion functions as `sourceToTarget` (not `mapSourceToTarget`) so they compose cleanly with `.map()`.
 - Use verb prefixes matching operation semantics: `get` for guaranteed returns, `find` for optional lookups, `resolve` for transformations, `check` for booleans.
 - Name queries by what they return, not what they check.
+- When a query gains implicit filtering, rename it to advertise the filter (e.g., `getRegistryForms` → `getCustomRegistryForms`) so callers understand exactly what subset they receive.
 - Name event handlers to describe their effect (e.g., `toggleSidebarOnBackgroundClick`), not generically.
 - When a function exists for a performance reason (like building a lookup map), name it to convey the "why."
 - Establish a team convention for event handler naming -- choose either `handle{EventName}` or imperative `{action}` and apply consistently.
@@ -362,6 +387,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 ### General
 - Match the naming convention already established in surrounding code, even if imperfect -- inconsistency is worse.
 - Use consistent naming across the full stack (frontend routes, GraphQL operations, backend domain models).
+- Before starting implementation, agree on the canonical name for each new domain concept and use it consistently across schema, events, application code, GraphQL types, and file names.
 - After a large rename, grep for the old name in string literals, comments, and error messages.
 - If you are already changing a file, fix any nearby naming inconsistencies so the codebase stays internally consistent.
 
@@ -387,6 +413,8 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Use early returns and guard clauses to keep conditional logic flat; avoid nesting if-else more than one level deep.
 - Document the boundary between component directories (components/ vs ui/) with purpose, abstraction level, and usage guidance.
 - Use domain keys directly as dictionary keys when possible to avoid redundant mapping layers.
+- Order type and constant declarations so dependencies appear before the things that depend on them; code should read top-to-bottom like an article.
+- Document a CRUD directory naming convention (e.g., `{entity}/create/`, `{entity}/update/`, `{entity}/delete/`) and follow it consistently across all domains.
 
 ### Dead Code & Cleanup
 - Remove unused props, imports, variables, and files immediately.
@@ -418,6 +446,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - When refactoring a page into multiple pages, extract shared localization into a common file.
 - Include translated UI strings in the initial review request so copy issues surface early, not after approval.
 - When fixing a locale-specific formatting bug, search for the same pattern across the codebase and centralize the formatting logic.
+- Extract shared translation keys into a dedicated file when three or more components use the same labels; duplication leads to inconsistent wording when one copy is updated.
 
 ---
 
@@ -446,6 +475,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Treat AI tool configuration changes with the same rigor as CI/CD or infrastructure changes.
 - When a tool enforces an opinionated format, either adopt it project-wide or set up a plugin.
 - Ensure files end with a single trailing newline; configure editor/linter to enforce.
+- Keep codegen glob patterns consistent between production and test configurations to avoid silent omissions of generated types.
 
 ### Infrastructure
 - Before renaming any shared infrastructure resource, audit every consumer and update all references atomically.
@@ -470,6 +500,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 ### Before Review
 - Run the linter locally and resolve all warnings before marking a PR as ready.
 - Before opening a PR, search the diff for temporary code, debug statements, or unintentional changes.
+- Audit the changeset for development artifacts (scaffolding files, AI prompt files) that served a dev-time purpose but are redundant in the final codebase.
 - Remove auto-generated comments that add no information.
 - Audit `package.json` for dependencies added during experimentation but no longer used.
 - For styling PRs, attach visual evidence (screenshots or Storybook links).
@@ -482,6 +513,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - For features that introduce new domain concepts, open a draft PR or discuss the approach before building the full implementation.
 - Before implementing a feature by copying an existing pattern, confirm it's still the preferred approach.
 - When a PR includes changes outside the main feature scope, add a brief note explaining why.
+- Always state the reason for configuration changes (timeouts, feature flags, test settings) so reviewers can assess necessity and future maintainers understand intent.
 - If a PR description says "basically a copy of X implementation," verify X is still the canonical approach.
 - When multiple hooks share a name, use explicit re-exports to make the canonical import path unambiguous; verify imports after large file moves.
 - Before removing a domain concept, run a codebase-wide search for all related terminology (error messages, comments, test fixtures, route constants, type discriminators) and verify every remaining reference is intentional.
@@ -502,6 +534,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - When a date field could be ambiguous (data entry date vs observation date), name timestamps explicitly.
 - Before adding a new field, validate with stakeholders that its semantics match the user's mental model.
 - Use metadata/extension tables for optional, template-driven fields rather than nullable columns.
+- Place time-varying attributes on history/timeline records, not on the parent entity; ask whether an attribute's value can change over the entity's lifetime to decide placement.
 
 ### Validation & Constraints
 - For every new database constraint, enumerate all code paths that write to that table and add explicit validation.
@@ -533,6 +566,7 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - When designing pub/sub architectures, document which event types each subscriber filters for.
 - When an endpoint copies data between entities, enforce permissions on both source (read) and target (write).
 - Validate the entire input before committing partial results in batch operations.
+- When a use case both publishes a domain event and calls an external service for cleanup, publish the event first so that cleanup failure leaves orphaned data rather than a primary entity missing its dependent resources.
 
 ---
 
@@ -551,6 +585,8 @@ Consolidated guidelines from ~120 PR reviews. Duplicates merged, organized by ca
 - Format all numeric values in a table column to the same number of decimal places and use right-alignment for visual comparison.
 - Search the codebase for existing UI patterns that solve the same problem before designing a new interaction; prefer consistency over novelty.
 - Novel interactions should be treated as experiments with explicit rollback criteria, not permanent features.
+- For optional fields rendered as select inputs, always include a deselectable empty/placeholder option so users can clear their selection.
+- When using Playwright's `baseURL` config, pass only relative paths to `page.goto()` so test navigation respects the centralized URL configuration.
 
 ---
 
