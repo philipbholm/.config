@@ -1,8 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+    echo "Error: Not inside a git repository"
+    exit 1
+}
+cd "$REPO_ROOT"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -30,7 +33,7 @@ if [ -z "$GITHUB_TOKEN" ]; then
     echo "  Set it with: export GITHUB_TOKEN=<your-token>"
 fi
 
-SERVICES=(apps/main-frontend services/codelist services/registries services/admin)
+SERVICES=(apps/main-frontend services/codelist services/registries)
 
 # ------------------------------------------------------------------
 # 1. npm install for each service
@@ -39,7 +42,7 @@ step "Installing npm dependencies"
 
 for svc in "${SERVICES[@]}"; do
     echo "  $svc ..."
-    (cd "$SCRIPT_DIR/$svc" && npm ci --loglevel=warn) || fail "npm ci failed in $svc"
+    (cd "$REPO_ROOT/$svc" && npm ci --loglevel=warn) || fail "npm ci failed in $svc"
 done
 
 # ------------------------------------------------------------------
@@ -47,9 +50,9 @@ done
 # ------------------------------------------------------------------
 step "Generating types for backend services"
 
-for svc in services/codelist services/registries services/admin; do
+for svc in services/codelist services/registries; do
     echo "  $svc ..."
-    (cd "$SCRIPT_DIR/$svc" && npm run generate) || fail "generate failed in $svc"
+    (cd "$REPO_ROOT/$svc" && npm run generate) || fail "generate failed in $svc"
 done
 
 # ------------------------------------------------------------------
@@ -57,21 +60,17 @@ done
 # ------------------------------------------------------------------
 step "Composing Apollo Router supergraph"
 
-(cd "$SCRIPT_DIR/services/apollo-router" && ./compose-supergraph.sh) || fail "supergraph composition failed"
+(cd "$REPO_ROOT/services/apollo-router" && ./compose-supergraph.sh) || fail "supergraph composition failed"
 
 # ------------------------------------------------------------------
 # 4. Generate frontend GraphQL types (needs supergraph + service schemas)
 # ------------------------------------------------------------------
 step "Generating frontend types"
 
-(cd "$SCRIPT_DIR/apps/main-frontend" && npm run generate) || fail "frontend generate failed"
+(cd "$REPO_ROOT/apps/main-frontend" && npm run generate) || fail "frontend generate failed"
 
 # ------------------------------------------------------------------
 # Done
 # ------------------------------------------------------------------
 echo ""
-echo -e "${GREEN}${BOLD}Worktree setup complete.${NC}"
-echo ""
-echo "Next steps:"
-echo "  docker compose up -d          # Start all containers"
-echo "  rebuild frontend registries   # Rebuild specific services"
+echo -e "${GREEN}${BOLD}Stack setup complete.${NC}"

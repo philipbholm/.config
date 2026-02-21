@@ -103,11 +103,10 @@ gwc() {
       cp "$file" "'"$worktree_path"'/$file"
     done
   ' _ {} +)
-  # Run setup-worktree.sh in the new worktree (suppressed output with spinner)
-  cp /Users/philip/.config/dev/setup-worktree.sh "$worktree_path/"
+  # Run setup-stack.sh in the new worktree (suppressed output with spinner)
   local log_file=$(mktemp)
   (
-    (cd "$worktree_path" && bash setup-worktree.sh > "$log_file" 2>&1) &
+    (cd "$worktree_path" && bash /Users/philip/.config/dev/setup-stack.sh > "$log_file" 2>&1) &
     local pid=$!
     local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     local i=0
@@ -123,11 +122,9 @@ gwc() {
   printf "\r\033[K"
   if [ $exit_code -ne 0 ]; then
     echo "Worktree setup failed. Log: $log_file"
-    rm -f "$worktree_path/setup-worktree.sh"
     return 1
   fi
   rm -f "$log_file"
-  rm -f "$worktree_path/setup-worktree.sh"
   echo "✔ Worktree setup complete"
   cursor "$worktree_path" || { echo "Failed to open Cursor"; return 1; }
 }
