@@ -3,10 +3,6 @@
     "EDITOR": "cursor",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
-  "attribution": {
-    "commit": "",
-    "pr": ""
-  },
   "permissions": {
     "deny": [
       "Read(./.env)",
@@ -30,7 +26,7 @@
       "Bash(rm -rf:*)"
     ]
   },
-  "model": "claude-sonnet-4-6",
+  "model": "sonnet",
   "hooks": {
     "Notification": [
       {
