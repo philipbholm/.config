@@ -4,7 +4,7 @@ This file provides guidance to agents when working with code in this repository.
 
 ## Project Overview
 
-This is a monorepo for Ledidi, a medical registry platform. It uses npm workspaces with the following structure:
+This is a monorepo for Ledidi, a medical registry platform. Each service/app has its own independent package.json. Structure:
 
 - `apps/main-frontend/` - React 19 + Vite frontend
 - `services/` - Backend microservices (Node.js, Prisma)
@@ -30,7 +30,7 @@ This is a monorepo for Ledidi, a medical registry platform. It uses npm workspac
 | Frontend | http://localhost:{{FRONTEND_PORT}}/en/registries |
 | Router (GraphQL) | http://localhost:{{ROUTER_PORT}} |
 | Codelist (gRPC) | localhost:{{CODELIST_GRPC_PORT}} |
-| Registries (GraphQL) | http://localhost:{{REGISTRIES_PORT}} |
+| Registries (GraphQL) | http://localhost:{{REGISTRIES_PORT}}/graphql |
 | Registries (gRPC) | localhost:{{REGISTRIES_GRPC_PORT}} |
 | PostgreSQL | localhost:{{POSTGRES_PORT}} |
 
@@ -190,16 +190,16 @@ Run all unit tests:
 cd apps/main-frontend && npm test
 ```
 
-Vitest and Playwright interpret file arguments as regex. Bracket directories like `[lang]` must be replaced with `.*` in paths.
+Playwright interprets file arguments as regex, so bracket directories like `[lang]` must be replaced with `.*`. Vitest accepts literal paths (including brackets) or just the filename.
 
 Run tests for a specific file:
 ```bash
-cd apps/main-frontend && npm test -- "src/app/.*/registries/.*/patients/.*/delete/delete-patient-dialog.test.tsx"
+cd apps/main-frontend && npm test -- "src/app/[lang]/registries/[registryId]/patients/ImportPatientsDialog/import-patients-dialog.test.tsx"
 ```
 
 Run tests for a specific directory:
 ```bash
-cd apps/main-frontend && npm test -- "src/app/.*/registries/.*/patients/.*/medications"
+cd apps/main-frontend && npm test -- "src/app/[lang]/registries/[registryId]/patients/[patientId]/DiagnosisList"
 ```
 
 #### Frontend E2E Tests (Playwright)
@@ -211,12 +211,12 @@ cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" 
 
 Run E2E tests for a specific file:
 ```bash
-cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test "src/app/.*/registries/.*/patients/.*/delete/delete-patient\.spec\.tsx"
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test "src/app/.*/registries/.*/patients/.*/medications/create/create-medication\.spec\.tsx"
 ```
 
 Run E2E tests for a directory:
 ```bash
-cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test "src/app/.*/registries/.*/patients/.*/medications/.*\.spec\.tsx"
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test "src/app/.*/registries/.*/registry-design/.*\.spec\.tsx"
 ```
 
 Verification: `cd apps/main-frontend && npm run lint:fix && npm run build && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test`
@@ -275,11 +275,13 @@ Services follow a 3-layer pattern:
 
 ### Handler Architecture
 
-Each service orchestrates three handler types in `src/handlers/index.ts`:
+The registries service orchestrates three handler types in `src/handlers/index.ts`:
 
 - **GraphQL Handler** - Fastify + Apollo Server for frontend queries/mutations
 - **gRPC Handler** - Service-to-service communication
 - **Cron Handler** - Scheduled background tasks
+
+Other services may have fewer handlers (e.g., codelist only has a gRPC handler).
 
 All handlers receive `logger`, `environment`, `application`, and `ports` as dependencies.
 
@@ -289,7 +291,7 @@ Each service defines a `Ports` type in `src/ports/index.ts` containing all exter
 
 ```typescript
 type Ports = {
-  authentication: AuthenticationProvider;
+  authentication: EndUserAuthenticationProvider;
   authorizationRepository: AuthorizationRepository;
   registryProjection: RegistryProjection;
   eventStore: EventStore;
@@ -303,7 +305,7 @@ This enables complete dependency injection and test mocking. Use cases and handl
 
 Services use projection classes for read models that transform event store data into queryable views:
 
-- Located in `src/adapters/projections/`
+- Located in `src/application/` subdirectories (e.g., `src/application/registry/registry-projection.ts`, `src/application/patient/patient-projection.ts`)
 - Examples: `RegistryProjection`, `FormProjection`, `PatientProjection`
 - Injected as dependencies into use cases
 - Enable efficient queries without re-processing events
@@ -330,13 +332,10 @@ Apollo Router federates subgraph schemas from each service. Each service has its
 Each service defines typed errors in `src/application/errors.ts`:
 
 ```typescript
-throw new NotFoundError({
-  message: "Registry not found",
-  subcode: ErrorSubcode.RegistryNotFound,
-});
+throw new NotFoundError("Registry not found");
 ```
 
-All errors extend `ApplicationError` and use `ErrorSubcode` enums for granular error handling. **Never throw plain `Error`.** Always use the appropriate typed error class (e.g., `NotFoundError`, `ValidationError`, `NotAuthorizedError`).
+All errors extend `ApplicationError` and use `ErrorSubcode` string union types for granular error handling. **Never throw plain `Error`.** Always use the appropriate typed error class (e.g., `NotFoundError`, `ValidationError`, `NotAuthorizedError`).
 
 ## Frontend
 
@@ -390,7 +389,7 @@ it("should reorder the elements", ...)
 Use `buildTestApplication()` from `services/registries/src/test/test-application.ts` and `registryTestBuilder` from `services/registries/src/test/test-setup-builder.ts`:
 
 ```typescript
-const { application } = buildTestApplication({
+const { application } = await buildTestApplication({
   overridePorts: {
     emailService: mockEmailService,
   },
