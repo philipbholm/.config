@@ -171,7 +171,7 @@ else
     mode="main"       # .git is a directory in main checkouts
 fi
 
-tmp_dir="${DEV_STACKS_DIR:-${WORKTREE_TMP_DIR:-$HOME/work/tmp/dev-stacks}}/$project_name"
+tmp_dir="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name"
 
 # --- Slot management ---
 

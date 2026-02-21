@@ -18,7 +18,7 @@ cd "$MONOREPO_ROOT"
 PROJECT_NAME="$(basename "$MONOREPO_ROOT")"
 
 # Determine ports from worktree slot
-worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$PROJECT_NAME/worktree-slot"
+worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$PROJECT_NAME/worktree-slot"
 if [[ -f "$worktree_slot_file" ]]; then
   slot=$(cat "$worktree_slot_file")
   offset=$((slot * 100))
@@ -47,7 +47,7 @@ DOCKER_COMPOSE="$MONOREPO_ROOT/docker-compose.yml"
 ROUTER_CONFIG="$MONOREPO_ROOT/services/apollo-router/router.docker.yaml"
 
 # Worktree overlay files (outside git, backed up/restored manually)
-TMP_BASE="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$PROJECT_NAME"
+TMP_BASE="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$PROJECT_NAME"
 WT_COMPOSE="$TMP_BASE/docker-compose.stack.yml"
 WT_ROUTER_CONFIG="$TMP_BASE/router.docker.worktree.yaml"
 WT_COMPOSE_BACKUP=""

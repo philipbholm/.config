@@ -64,7 +64,7 @@ done
 # --- Determine ports from worktree slot ---
 
 project_name="$(basename "$monorepo_root")"
-worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$project_name/worktree-slot"
+worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name/worktree-slot"
 if [[ -f "$worktree_slot_file" ]]; then
   slot=$(cat "$worktree_slot_file")
 else

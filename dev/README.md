@@ -70,10 +70,10 @@ Each worktree gets a unique slot (1–9). Ports are offset by `slot × 100`:
 `dev` writes a generated compose override to:
 
 ```
-~/work/tmp/dev-stacks/<project-name>/docker-compose.stack.yml
+~/work/.dev-stacks/<project-name>/docker-compose.stack.yml
 ```
 
-This file is regenerated on every command. The `DEV_STACKS_DIR` env var (with `WORKTREE_TMP_DIR` fallback) controls the base directory.
+This file is regenerated on every command. The `DEV_STACKS_DIR` env var controls the base directory.
 
 ## Setup
 

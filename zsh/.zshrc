@@ -145,7 +145,7 @@ gwd() {
   local worktree_path="/Users/philip/work/worktrees/$1"
   local project_name="$1"
   [[ ! -d "$worktree_path" ]] && { echo "Worktree not found: $worktree_path"; return 1; }
-  local slot_file="${DEV_STACKS_DIR:-${WORKTREE_TMP_DIR:-$HOME/work/tmp/dev-stacks}}/$project_name/worktree-slot"
+  local slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name/worktree-slot"
   if [ -f "$slot_file" ]; then
     (cd "$worktree_path" && /Users/philip/.config/dev/dev.sh nuke)
     local containers=$(docker ps -q --filter "label=com.docker.compose.project=$project_name" 2>/dev/null)
@@ -223,7 +223,7 @@ prisma() {
   }
   local project_name slot worktree_slot_file
   project_name="$(basename "$monorepo_root")"
-  worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/tmp/dev-stacks}/$project_name/worktree-slot"
+  worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name/worktree-slot"
   if [[ -f "$worktree_slot_file" ]]; then
     slot=$(cat "$worktree_slot_file")
   else
