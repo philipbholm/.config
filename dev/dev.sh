@@ -524,6 +524,8 @@ case "$subcommand" in
 
         # Create per-slot bridge network so compose services can reach admin-mock
         if [ "$mode" = "worktree" ]; then
+            # Remove stale default network from a previous project that used this slot
+            docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
             docker network create "admin-bridge-wt-${resolved_slot}" 2>/dev/null || true
             docker network connect "admin-bridge-wt-${resolved_slot}" admin-mock 2>/dev/null || true
         fi
@@ -544,6 +546,10 @@ case "$subcommand" in
     down)
         generate_override "$resolved_slot"
         dc down "$@"
+        if [ "$mode" = "worktree" ]; then
+            docker network disconnect "default-network-wt-${resolved_slot}" admin-mock 2>/dev/null || true
+            docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
+        fi
         remove_claude_ports
         ;;
 
@@ -562,7 +568,9 @@ case "$subcommand" in
         dc down -v --rmi local --remove-orphans
         if [ "$mode" = "worktree" ]; then
             docker network disconnect "admin-bridge-wt-${resolved_slot}" admin-mock 2>/dev/null || true
+            docker network disconnect "default-network-wt-${resolved_slot}" admin-mock 2>/dev/null || true
             docker network rm "admin-bridge-wt-${resolved_slot}" 2>/dev/null || true
+            docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
             clear_saved_slot
         fi
         remove_claude_ports
