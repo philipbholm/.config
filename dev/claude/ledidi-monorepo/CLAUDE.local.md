@@ -21,7 +21,18 @@ This is a monorepo for Ledidi, a medical registry platform. It uses npm workspac
 
 ### Development Environment
 
-The development environment is always running. **Always use `dev` instead of `docker compose`** — it automatically includes the correct compose files for your environment. Running `docker compose` directly will use wrong ports and break the stack.
+**Always use `dev` instead of `docker compose`** — it automatically includes the correct compose files for your environment. Running `docker compose` directly will use wrong ports and break the stack.
+
+### Ports Reference
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:{{FRONTEND_PORT}}/en/registries |
+| Router (GraphQL) | http://localhost:{{ROUTER_PORT}} |
+| Codelist (gRPC) | localhost:{{CODELIST_GRPC_PORT}} |
+| Registries (GraphQL) | http://localhost:{{REGISTRIES_PORT}} |
+| Registries (gRPC) | localhost:{{REGISTRIES_GRPC_PORT}} |
+| PostgreSQL | localhost:{{POSTGRES_PORT}} |
 
 ### Common Commands
 
@@ -98,23 +109,23 @@ dev restart registries
 
 #### Changed `prisma/schema.prisma` in a backend service
 
-Prisma commands connect to PostgreSQL from the host, so you must override `POSTGRES_URL` with the correct port from the ports table at the bottom of this file. Replace `<PORT>` below with that port.
+Prisma commands connect to PostgreSQL from the host, so you must override `POSTGRES_URL` with the correct port.
 
 1. Create a migration:
 ```bash
-cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries" npm run migrate-create
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npm run migrate-create
 ```
 
 This creates a migration file in `prisma/migrations/`. Review the generated SQL.
 
 2. Apply the migration:
 ```bash
-cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries" npm run migrate
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npm run migrate
 ```
 
 3. Regenerate Prisma client:
 ```bash
-cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries" npm run generate
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npm run generate
 ```
 
 4. Restart the service:
@@ -170,16 +181,43 @@ The frontend dev server runs `generate-watch` which watches for `.graphql` file 
 npm run build           # Production build
 npm run generate        # Generate GraphQL types
 npm run lint:fix        # Fix linting issues
-npm run test            # Unit tests (Vitest)
 ```
 
-E2E tests (Playwright) require environment variables with the correct ports from the ports table at the bottom of this file. Replace `<FRONTEND_PORT>` and `<API_PORT>` below with those ports.
+#### Frontend Unit Tests (Vitest)
 
+Run all unit tests:
 ```bash
-cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:<FRONTEND_PORT>" E2E_API_URL="http://localhost:<API_PORT>" npx playwright test
+cd apps/main-frontend && npm test
 ```
 
-Verification: `cd apps/main-frontend && npm run lint:fix && npm run build && FRONTEND_BASE_URL="http://localhost:<FRONTEND_PORT>" E2E_API_URL="http://localhost:<API_PORT>" npx playwright test`
+Run tests for a specific file:
+```bash
+cd apps/main-frontend && npm test -- src/app/path/to/your.test.tsx
+```
+
+Run tests for a specific directory:
+```bash
+cd apps/main-frontend && npm test -- src/app/path/to/test-directory
+```
+
+#### Frontend E2E Tests (Playwright)
+
+Run all E2E tests:
+```bash
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test "src/app/.*/registries/.*\.spec\.tsx"
+```
+
+Run E2E tests for a specific file:
+```bash
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test src/app/path/to/your.spec.tsx
+```
+
+Run E2E tests for a specific directory:
+```bash
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test src/app/path/to/e2e-directory
+```
+
+Verification: `cd apps/main-frontend && npm run lint:fix && npm run build && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test`
 
 ### Backend Service Commands
 
@@ -192,20 +230,36 @@ npm run build-ts        # TypeScript-only build (faster, no codegen)
 npm run generate        # Generate GraphQL, Prisma, gRPC types
 ```
 
-`test` and `migrate` require `POSTGRES_URL` with the correct port from the ports table at the bottom of this file. Replace `<PORT>` below with that port.
+#### Registries Service Tests (Jest)
 
+Run all tests:
 ```bash
-# Run integration tests
-POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries-test" npm run test
-
-# Run a specific test by pattern
-POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries-test" npm run test -- --testPathPattern="get-registries"
-
-# Deploy database migrations
-POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries" npm run migrate
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" npm run test
 ```
 
-Verification: `cd services/registries && npm run lint:fix && npm run build-ts && POSTGRES_URL="postgresql://postgres:postgres@localhost:<PORT>/registries-test" npm run test`
+Run tests for a specific file:
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" npm run test -- src/path/to/your.test.ts
+```
+
+Run tests for a specific directory:
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" npm run test -- src/path/to/test-directory
+```
+
+Run tests matching a pattern:
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" npm run test -- --testPathPattern="get-registries"
+```
+
+#### Database Migrations
+
+```bash
+# Deploy database migrations
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npm run migrate
+```
+
+Verification: `cd services/registries && npm run lint:fix && npm run build-ts && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" npm run test`
 
 ## Architecture
 

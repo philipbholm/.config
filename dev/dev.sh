@@ -417,123 +417,43 @@ dc() {
 # --- CLAUDE.local.md management ---
 
 claude_local_md="$repo_root/CLAUDE.local.md"
-marker_start="<!-- dev-ports-start -->"
-marker_end="<!-- dev-ports-end -->"
-old_marker_start="<!-- worktree-ports-start -->"
-old_marker_end="<!-- worktree-ports-end -->"
 
 write_claude_ports() {
     local s=$1
     local offset=$(( s * 100 ))
+    local claude_template="$HOME/.config/dev/claude/ledidi-monorepo/CLAUDE.local.md"
 
-    local label="Dev Stack Ports"
-    if [ "$mode" = "worktree" ]; then
-        label="Worktree Ports (slot $s)"
+    if [ ! -f "$claude_template" ]; then
+        echo "Warning: CLAUDE.local.md template not found at $claude_template" >&2
+        return
     fi
 
-    local block
-    block=$(cat <<EOF
-${marker_start}
-## ${label}
+    cp "$claude_template" "$claude_local_md"
 
-This ${mode} is running a Docker stack. Use these ports:
-
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:$(( 3001 + offset ))/en/registries |
-| Router (GraphQL) | http://localhost:$(( 4000 + offset )) |
-| Codelist (gRPC) | localhost:$(( 50005 + offset )) |
-| Registries (GraphQL) | http://localhost:$(( 4006 + offset )) |
-| Registries (gRPC) | localhost:$(( 50006 + offset )) |
-| Agent | http://localhost:$(( 4007 + offset )) |
-| PostgreSQL | localhost:$(( 5432 + offset )) |
-
-When opening the app in the browser, use port $(( 3001 + offset )).
-
-## Running Tests
-
-### Frontend unit tests (Vitest)
-
-Run all unit tests:
-\`\`\`bash
-cd $repo_root/apps/main-frontend && npm test
-\`\`\`
-
-Run tests for a specific file:
-\`\`\`bash
-cd $repo_root/apps/main-frontend && npm test -- src/app/path/to/your.test.tsx
-\`\`\`
-
-Run tests for a specific directory:
-\`\`\`bash
-cd $repo_root/apps/main-frontend && npm test -- src/app/path/to/test-directory
-\`\`\`
-
-### Registries service tests (Jest)
-
-Run all tests:
-\`\`\`bash
-cd $repo_root/services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:$(( 5432 + offset ))/registries-test" npm run test
-\`\`\`
-
-Run tests for a specific file:
-\`\`\`bash
-cd $repo_root/services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:$(( 5432 + offset ))/registries-test" npm run test -- src/path/to/your.test.ts
-\`\`\`
-
-Run tests for a specific directory:
-\`\`\`bash
-cd $repo_root/services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:$(( 5432 + offset ))/registries-test" npm run test -- src/path/to/test-directory
-\`\`\`
-
-### Frontend E2E tests (Playwright)
-
-Run all E2E tests:
-\`\`\`bash
-cd $repo_root/apps/main-frontend && FRONTEND_BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test "src/app/.*/registries/.*\.spec\.tsx"
-\`\`\`
-
-Run E2E tests for a specific file:
-\`\`\`bash
-cd $repo_root/apps/main-frontend && FRONTEND_BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test src/app/path/to/your.spec.tsx
-\`\`\`
-
-Run E2E tests for a specific directory:
-\`\`\`bash
-cd $repo_root/apps/main-frontend && FRONTEND_BASE_URL="http://localhost:$(( 3001 + offset ))" E2E_API_URL="http://localhost:$(( 4000 + offset ))" npx playwright test src/app/path/to/e2e-directory
-\`\`\`
-${marker_end}
-EOF
+    local replacements=(
+        "{{FRONTEND_PORT}}:$(( 3001 + offset ))"
+        "{{ROUTER_PORT}}:$(( 4000 + offset ))"
+        "{{POSTGRES_PORT}}:$(( 5432 + offset ))"
+        "{{CODELIST_PORT}}:$(( 4005 + offset ))"
+        "{{CODELIST_GRPC_PORT}}:$(( 50005 + offset ))"
+        "{{REGISTRIES_PORT}}:$(( 4006 + offset ))"
+        "{{REGISTRIES_GRPC_PORT}}:$(( 50006 + offset ))"
+        "{{AGENT_PORT}}:$(( 4007 + offset ))"
     )
 
-    # Remove existing block if present, then append
-    remove_claude_ports 2>/dev/null
-    if [ -f "$claude_local_md" ]; then
-        printf '\n%s\n' "$block" >> "$claude_local_md"
-    else
-        printf '%s\n' "$block" > "$claude_local_md"
-    fi
+    for pair in "${replacements[@]}"; do
+        local tag="${pair%%:*}"
+        local value="${pair##*:}"
+        if [[ "$OSTYPE" == darwin* ]]; then
+            sed -i '' "s|${tag}|${value}|g" "$claude_local_md"
+        else
+            sed -i "s|${tag}|${value}|g" "$claude_local_md"
+        fi
+    done
 }
 
 remove_claude_ports() {
-    if [ -f "$claude_local_md" ]; then
-        if [[ "$OSTYPE" == darwin* ]]; then
-            # Remove new markers
-            sed -i '' "/${marker_start}/,/${marker_end}/d" "$claude_local_md"
-            # Remove old worktree markers
-            sed -i '' "/${old_marker_start}/,/${old_marker_end}/d" "$claude_local_md"
-            # Remove trailing blank lines
-            sed -i '' -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$claude_local_md"
-        else
-            sed -i "/${marker_start}/,/${marker_end}/d" "$claude_local_md"
-            sed -i "/${old_marker_start}/,/${old_marker_end}/d" "$claude_local_md"
-            sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$claude_local_md"
-        fi
-        # Remove file if empty
-        if [ ! -s "$claude_local_md" ]; then
-            rm -f "$claude_local_md"
-        fi
-    fi
+    rm -f "$claude_local_md"
 }
 
 # --- Status ---

@@ -103,8 +103,6 @@ gwc() {
       cp "$file" "'"$worktree_path"'/$file"
     done
   ' _ {} +)
-  # Remove localhost line from root CLAUDE.local.md (not relevant for worktrees)
-  sed -i '' '/App runs at http:\/\/localhost:3001\/en\/registries/d' "$worktree_path/CLAUDE.local.md"
   # Run setup-worktree.sh in the new worktree (suppressed output with spinner)
   cp /Users/philip/.config/dev/setup-worktree.sh "$worktree_path/"
   local log_file=$(mktemp)
