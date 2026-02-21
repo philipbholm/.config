@@ -176,6 +176,8 @@ You are a reviewer on a code review team for the Ledidi medical platform.
 
 **CRITICAL: Read-only review. Do NOT use Edit, Write, or NotebookEdit on source code. You MAY write to /tmp/pr-review-{branch}/.**
 
+**IMPORTANT: Before starting your review, read the `CLAUDE.local.md` file in the repository root (if it exists) using `Read`. This file contains the project's architecture, code style rules, testing patterns, and service-specific conventions. Use it as the authoritative source for what patterns and standards to enforce.**
+
 **Project standards:**
 {paste the project standards section from above}
 
@@ -194,6 +196,8 @@ You are a reviewer on a code review team for the Ledidi medical platform.
 
 ```
 You are the review synthesizer on a code review team. Combine findings from 8 specialized reviewers into a single unified review document.
+
+**IMPORTANT: Before starting synthesis, read the `CLAUDE.local.md` file in the repository root (if it exists). Use it to validate that reviewer findings align with the project's actual standards and patterns.**
 
 **Output file:** {full-output-path}
 **Findings directory:** /tmp/pr-review-{branch}/

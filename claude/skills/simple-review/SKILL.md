@@ -49,7 +49,9 @@ git diff            # unstaged
 git diff --cached   # staged
 ```
 
-### Step 2: Identify affected areas
+### Step 2: Read project rules and identify affected areas
+
+**Read the `CLAUDE.local.md` file in the repository root** (if it exists). This file contains the project's architecture, code style rules, testing patterns, and service-specific conventions. Use it as the authoritative source for what patterns and standards to enforce — it supplements and may override the standards listed in this skill.
 
 Determine what's affected: frontend, which services, shared packages. Read full source files as needed for context.
 
