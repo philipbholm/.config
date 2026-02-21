@@ -292,6 +292,9 @@ services:
     profiles: ["disabled"]
 
   router:
+    networks:
+      - default
+      - admin-bridge
     volumes: !override
       - $repo_root/services/apollo-router/supergraph.graphql:/dist/schema/supergraph.graphql
       - $tmp_dir/router.docker.worktree.yaml:/dist/config/router.yaml
@@ -315,6 +318,9 @@ services:
       - "$(( 50005 + offset )):50051"
 
   registries:
+    networks:
+      - default
+      - admin-bridge
     volumes: !override
       - $repo_root/services/registries/src:/app/services/registries/src
       - $repo_root/services/registries/api:/app/services/registries/api
@@ -345,6 +351,9 @@ networks:
   default:
     name: default-network-wt-${s}
     driver: bridge
+  admin-bridge:
+    name: admin-bridge-wt-${s}
+    external: true
 
 volumes:
   database_data_wt_${s}:
@@ -513,17 +522,18 @@ case "$subcommand" in
             touch "$repo_root/services/apollo-router/supergraph.graphql"
         fi
 
+        # Create per-slot bridge network so compose services can reach admin-mock
+        if [ "$mode" = "worktree" ]; then
+            docker network create "admin-bridge-wt-${resolved_slot}" 2>/dev/null || true
+            docker network connect "admin-bridge-wt-${resolved_slot}" admin-mock 2>/dev/null || true
+        fi
+
         generate_override "$resolved_slot"
 
         if [ "$#" -gt 0 ]; then
             dc up "$@" -d --wait
         else
             dc up -d --wait $default_services
-        fi
-
-        # Connect admin-mock to worktree's isolated network
-        if [ "$mode" = "worktree" ]; then
-            docker network connect "default-network-wt-${resolved_slot}" admin-mock 2>/dev/null || true
         fi
         run_seed
         write_claude_ports "$resolved_slot"
@@ -550,7 +560,11 @@ case "$subcommand" in
         fi
         generate_override "$resolved_slot"
         dc down -v --rmi local --remove-orphans
-        [ "$mode" = "worktree" ] && clear_saved_slot
+        if [ "$mode" = "worktree" ]; then
+            docker network disconnect "admin-bridge-wt-${resolved_slot}" admin-mock 2>/dev/null || true
+            docker network rm "admin-bridge-wt-${resolved_slot}" 2>/dev/null || true
+            clear_saved_slot
+        fi
         remove_claude_ports
         rm -rf "$tmp_dir"
         echo
@@ -564,10 +578,6 @@ case "$subcommand" in
             dc up -d "$@"
         else
             dc up -d $default_services
-        fi
-        # Reconnect admin-mock (Docker drops ephemeral network connections on stop)
-        if [ "$mode" = "worktree" ]; then
-            docker network connect "default-network-wt-${resolved_slot}" admin-mock 2>/dev/null || true
         fi
         ;;
 
