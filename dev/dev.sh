@@ -64,6 +64,21 @@ prerequisites_check() {
     check_docker
 }
 
+# Remove stopped containers whose network references may be stale.
+# Docker Desktop (or a Docker daemon restart) can recreate networks with new
+# IDs while stopped containers still reference the old ones, causing
+# "network <id> not found" on start.
+cleanup_stale_containers() {
+    local stale
+    stale=$(docker ps -aq \
+        --filter "label=com.docker.compose.project=${project_name}" \
+        --filter "status=exited" 2>/dev/null)
+    if [ -n "$stale" ]; then
+        echo "Removing stale containers..."
+        docker rm -f $stale 2>/dev/null || true
+    fi
+}
+
 wait_for_migrations() {
     local service=$1
     local db_name=$service
@@ -522,6 +537,10 @@ case "$subcommand" in
             touch "$repo_root/services/apollo-router/supergraph.graphql"
         fi
 
+        # Clean up stopped containers before network setup — their stale network
+        # references would prevent network removal and cause start failures.
+        cleanup_stale_containers
+
         # Create per-slot bridge network so compose services can reach admin-mock
         if [ "$mode" = "worktree" ]; then
             # Remove stale default network from a previous project that used this slot
@@ -581,6 +600,14 @@ case "$subcommand" in
 
     start)
         check_admin_mock
+        cleanup_stale_containers
+
+        if [ "$mode" = "worktree" ]; then
+            docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
+            docker network create "admin-bridge-wt-${resolved_slot}" 2>/dev/null || true
+            docker network connect "admin-bridge-wt-${resolved_slot}" admin-mock 2>/dev/null || true
+        fi
+
         generate_override "$resolved_slot"
         if [ "$#" -gt 0 ]; then
             dc up -d "$@"
