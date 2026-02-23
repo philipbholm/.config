@@ -390,6 +390,34 @@ All errors extend `ApplicationError` and use `ErrorSubcode` string union types f
 - Use stable data IDs as React `key`, not array indices
 - Use translation keys for ALL UI text including toasts and error messages — never hardcode strings
 
+### Component and File Structure
+
+Each frontend component file follows a consistent internal structure:
+
+**Exported component owns all logic and translations.** The top-level exported function is the only place that calls `useLanguage()`, looks up `DICTIONARY[lang]`, fetches data, and computes derived values. It then passes resolved primitives (strings, numbers) down to private sub-components — never the translation object itself.
+
+**Private sub-components receive plain props.** Functions defined below the export in the same file are private helpers. They accept only the resolved values they render — `label: string`, `value: string`, `trendText: string`, etc. They have no awareness of DICTIONARY, language, or data-fetching. This makes their prop types self-documenting and keeps them easy to test in isolation.
+
+**No shared abstractions for one-off variations.** When similar-looking components differ in any meaningful way (different footer content, different data shape), give each its own named function rather than creating a generic wrapper with conditional props. Duplication of structure is preferable to an abstraction that obscures differences.
+
+**File layout order:**
+1. Imports
+2. Local type aliases (e.g. extracting a nested query type)
+3. Exported component
+4. Private sub-components (in the order they appear in the exported component's JSX)
+5. Pure helper functions (formatting, data transformation)
+6. Zod schemas and inferred types (if any)
+7. `DICTIONARY`
+
+**Variable declaration placement:**
+Declare variables as late as possible — just before the code that first uses them. Never declare a variable before an early return that doesn't need it. This applies to `chartConfig`, derived data, computed values, and any other non-hook local variables.
+
+Hooks are the only exception: React hooks must always be called unconditionally at the top of the component, before any early returns.
+
+**Examples:**
+- `apps/main-frontend/src/app/[lang]/registries/[registryId]/overview/components/section-cards.tsx`
+- `apps/main-frontend/src/app/[lang]/registries/[registryId]/overview/components/form-completeness-chart.tsx`
+
 ### Error Handling
 
 Use error helpers from `src/lib/errors.ts` to check GraphQL error codes:
@@ -434,6 +462,7 @@ it("should reorder the elements", ...)
 - Use MSW to mock GraphQL requests in frontend tests, not custom Apollo client mocks
 - Use the project's mock builder pattern (`registriesMocks().withX().apply()`)
 - Prefer integration tests that call the actual service endpoint over directly invoking use case functions
+- Avoid writing separate tests solely to assert one additional property that could be checked in an existing test — consolidate related assertions into a single test unless the scenario genuinely requires different setup
 
 ### Required Test Coverage
 
@@ -572,6 +601,44 @@ const handleButtonClicked = () => { ... }
 ```
 - Name conversion functions as `sourceToTarget` (not `mapSourceToTarget`) — composes cleanly with `.map()`
 - Verb prefixes: `get` (guaranteed return), `find` (optional lookup), `resolve` (transform), `check` (boolean)
+
+### Component Props Types
+
+Inline prop types directly in the function signature by default:
+
+```typescript
+// Good — inline for single-use props
+export function PatientChart({
+  registryId,
+  timeUnit,
+}: {
+  registryId: string;
+  timeUnit: TimeUnit;
+}) {
+```
+
+Use a named type only when at least one of these applies:
+- The type is referenced in more than one place (e.g., a parent component constructs the props)
+- The prop list exceeds roughly 5–6 properties and the signature becomes hard to scan
+- The type carries semantic meaning beyond its structure (e.g., `type PatientFilter = { ... }` used in both a component and a utility)
+
+```typescript
+// Good — named type because it's reused
+type PatientFilter = {
+  registryId: string;
+  siteId: string;
+  status: PatientStatus;
+  dateRange: DateRange;
+  searchQuery: string;
+  sortField: SortField;
+};
+
+export function PatientList({ filter }: { filter: PatientFilter }) { ... }
+export function PatientExport({ filter }: { filter: PatientFilter }) { ... }
+```
+
+Never create a `FooProps` type that is used in exactly one place — inline it instead.
+
 - Prefix boolean props with `is` or `has` (e.g., `isOptional`, `isLoading`)
 - Use Luxon `DateTime.toLocaleString` for date formatting
 - Use `useXXXId` hooks for type-safe route params (e.g., `useRegistryId`, `useFormId`)
