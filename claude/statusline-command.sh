@@ -5,6 +5,8 @@ used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
 cost_usd=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
 session_id=$(echo "$input" | jq -r '.session_id // empty')
 cwd=$(echo "$input" | jq -r '.cwd // empty')
+model=$(echo "$input" | jq -r '.model.display_name // empty')
+effort=$(jq -r '.effortLevel // empty' ~/.config/claude/settings.json 2>/dev/null)
 
 # Git branch from cwd
 branch=""
@@ -42,10 +44,19 @@ if [ -n "$cost_usd" ]; then
   nok="NOK $total_nok (+$delta_nok)"
 fi
 
+# Model + effort label
+model_effort=""
+if [ -n "$model" ] && [ -n "$effort" ]; then
+  model_effort="$model ($effort)"
+elif [ -n "$model" ]; then
+  model_effort="$model"
+fi
+
 # Build output
 parts=()
 [ -n "$bar" ] && parts+=("$bar")
 [ -n "$branch" ] && parts+=("$branch")
+[ -n "$model_effort" ] && parts+=("$model_effort")
 [ -n "$nok" ] && parts+=("$nok")
 
 first=true
