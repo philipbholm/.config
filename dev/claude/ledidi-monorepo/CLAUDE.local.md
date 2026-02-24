@@ -275,6 +275,25 @@ Services follow a 3-layer pattern:
 
 Domain layer types must be self-contained; map between transport types (gRPC, GraphQL) and domain types at the handler boundary. Never import transport-generated types into application code. Generate IDs in the use case/domain layer, not in resolvers or transport handlers. Validate domain invariants in the use case layer, never in transport-layer code alone.
 
+#### Application Layer File Organization
+
+Each use case goes in its own subdirectory within the feature directory. Integration tests are co-located with the use case. Shared utilities, projections, domain files, and event files live at the feature directory level.
+
+```
+src/application/overview/
+├── get-form-completeness/
+│   ├── get-form-completeness.ts
+│   └── get-form-completeness.integration.test.ts
+├── get-patient-stats/
+│   ├── get-patient-stats.ts
+│   └── get-patient-stats.integration.test.ts
+├── overview-projection.ts
+├── overview-shared.ts
+└── overview-shared.unit.test.ts
+```
+
+Do not place use case files flat in the feature directory (e.g., `overview/get-form-completeness.ts`). Always use a subdirectory per use case.
+
 ### Handler Architecture
 
 The registries service orchestrates three handler types in `src/handlers/index.ts`:
@@ -311,12 +330,14 @@ Services use projection classes for read models that transform event store data 
 - Examples: `RegistryProjection`, `FormProjection`, `PatientProjection`
 - Injected as dependencies into use cases
 - Enable efficient queries without re-processing events
+- Use cases must depend on projection classes (e.g. `patientProjection: PatientProjection`), never on `PrismaClient`, for reading domain data. If a use case needs a query that doesn't exist on a projection, add a new method to the appropriate projection class rather than passing in `PrismaClient`.
+- Static reference tables that are not event-sourced (e.g. `icd10Code`, `atcCode`) may be queried via `PrismaClient` directly.
 
 ### Event Sourcing
 
 - Never use direct Prisma mutations for domain entities — always emit domain events
 - All create/update/delete operations must emit domain events; projections handle persistence
-- Route all reads through the projection layer, not by calling Prisma directly
+- Route all reads of domain data through the projection layer — use case dependencies should be projection classes, not `PrismaClient`. Direct Prisma reads are only acceptable for static reference data (e.g. `icd10Code`, `atcCode`).
 - When deprecating an event field, add a projection fallback for existing events
 - When a single action triggers multiple state-changing events, wrap in a transaction
 - Check event metadata schemas before duplicating fields in event payloads
@@ -394,9 +415,9 @@ All errors extend `ApplicationError` and use `ErrorSubcode` string union types f
 
 Each frontend component file follows a consistent internal structure:
 
-**Exported component owns all logic and translations.** The top-level exported function is the only place that calls `useLanguage()`, looks up `DICTIONARY[lang]`, fetches data, and computes derived values. It then passes resolved primitives (strings, numbers) down to private sub-components — never the translation object itself.
+**Exported component owns data-fetching and top-level orchestration.** The top-level exported function is the main entry point that fetches data, handles loading/error states, and composes private sub-components.
 
-**Private sub-components receive plain props.** Functions defined below the export in the same file are private helpers. They accept only the resolved values they render — `label: string`, `value: string`, `trendText: string`, etc. They have no awareness of DICTIONARY, language, or data-fetching. This makes their prop types self-documenting and keeps them easy to test in isolation.
+**Sub-components resolve their own translations.** Private sub-components call `useLanguage()` themselves and read `DICTIONARY[lang]` internally. Do not pass translated strings as props — translations are an implementation detail of rendering, not a meaningful input. Since the sub-component and DICTIONARY are in the same file, the dependency is visible. Props should represent data and behavior, not pre-resolved UI text.
 
 **No shared abstractions for one-off variations.** When similar-looking components differ in any meaningful way (different footer content, different data shape), give each its own named function rather than creating a generic wrapper with conditional props. Duplication of structure is preferable to an abstraction that obscures differences.
 
@@ -415,8 +436,34 @@ Declare variables as late as possible — just before the code that first uses t
 Hooks are the only exception: React hooks must always be called unconditionally at the top of the component, before any early returns.
 
 **Examples:**
-- `apps/main-frontend/src/app/[lang]/registries/[registryId]/overview/components/section-cards.tsx`
-- `apps/main-frontend/src/app/[lang]/registries/[registryId]/overview/components/form-completeness-chart.tsx`
+- `apps/main-frontend/src/app/[lang]/registries/[registryId]/overview/components/section-cards/section-cards.tsx`
+- `apps/main-frontend/src/app/[lang]/registries/[registryId]/overview/components/form-completeness-chart/form-completeness-chart.tsx`
+
+### Component Directory Organization
+
+Each component gets its own subfolder containing the component, its test, and its `.graphql` operation file. This makes related code easy to find and removable as a unit.
+
+```
+components/
+├── chart-utils.ts              ← shared by multiple components, stays flat
+├── chart-utils.test.ts
+├── form-completeness-chart/
+│   ├── form-completeness-chart.tsx
+│   ├── form-completeness-chart.integration.test.tsx
+│   └── getFormCompleteness.graphql
+├── section-cards/
+│   ├── section-cards.tsx
+│   ├── section-cards.integration.test.tsx
+│   └── getRegistryOverviewStats.graphql
+└── overview-controls/
+    ├── overview-controls.tsx
+    └── overview-controls.integration.test.tsx
+```
+
+Rules:
+- Co-locate each `.graphql` file with the component that _consumes_ it (calls the generated hook) — not in a separate `graphql/` directory
+- Shared utilities used by multiple sibling components stay flat at the parent level
+- Every component gets a subfolder for consistency, even if it has no GraphQL file
 
 ### Error Handling
 
@@ -461,8 +508,28 @@ it("should reorder the elements", ...)
 - Unit tests for edge cases that integration tests can't cover
 - Use MSW to mock GraphQL requests in frontend tests, not custom Apollo client mocks
 - Use the project's mock builder pattern (`registriesMocks().withX().apply()`)
+- Always add type parameters to `TEST_GRAPHQL_API.query` and `TEST_GRAPHQL_API.mutation` calls using generated types from `test-util/generated/gql-test-sdk`:
+  ```typescript
+  import type { GetPatientsQuery, GetPatientsQueryVariables } from "test-util/generated/gql-test-sdk";
+
+  TEST_GRAPHQL_API.query<GetPatientsQuery, GetPatientsQueryVariables>("GetPatients", () => { ... })
+  ```
+  Also type mock data parameters using indexed access on the query type (e.g., `patients: GetPatientsQuery["getPatients"]["patients"] = [...]`).
+- Do not add `server.listen()`, `server.resetHandlers()`, or `server.close()` calls in individual test files. The global test setup file (`test-util/setup.ts`) already manages the MSW server lifecycle. Test files should only have:
+  ```typescript
+  afterEach(() => {
+    cleanup();
+  });
+  ```
+  Import `server` from `test-util/mswServer` only when the test uses `server.use(...)` to add per-test handlers.
 - Prefer integration tests that call the actual service endpoint over directly invoking use case functions
 - Avoid writing separate tests solely to assert one additional property that could be checked in an existing test — consolidate related assertions into a single test unless the scenario genuinely requires different setup
+- Assert the full response shape — when a test sets up data for a use case, assert all relevant output fields, not just the one the test name focuses on. If a test creates PROM entries, it should check `promStats`; if it creates patients, it should check both `total` and `previousPeriodCount`.
+- Test intermediate computed values — for percentage or ratio calculations, don't only test boundary values (0% and 100%). Include at least one test with a non-trivial intermediate value (e.g., 50%) to verify the computation logic.
+- Inline `server.use(...)` directly in the test body when a handler is used in only one test. Extract a named setup function only when the same handler is called from multiple tests.
+- Order tests consistently: error case first, then empty state, then with-data, then special cases.
+- Do not create shared helper files for simple test values — inline them directly in each test file. Prefer plain variable declarations (e.g., `const currentMonth = new Date(2026, 1, 15, 12)`) over helper functions (e.g., `getCurrentMonthMidday()`) when the logic is trivial.
+- Do not write unit tests for test-only utility functions. If a test helper is simple enough to trust by reading it, it does not need its own test suite.
 
 ### Required Test Coverage
 
@@ -520,7 +587,7 @@ const result = await e2eRegistryTestBuilder(client)
 - Use generous newlines between code blocks
 - Avoid unnecessary comments. Only use comments to explain _why_ some code exists, not _what_ it does. If code needs a comment to explain what it does, the code should be rewritten to be self-explanatory.
 - No TypeScript enums - use string types or const maps
-- NEVER use the `any` type or cast types (e.g., `as SomeType`, `as unknown`). Use proper type narrowing, generics, or Zod parsing instead.
+- Never use `as any` or `as unknown`. Use `as SomeType` when TypeScript cannot infer the type but the shape is known — e.g. `event.target as HTMLInputElement`, or third-party callback args typed as `any` where you control the data passed in. Avoid `as` when it widens or fabricates a type; prefer type narrowing, generics, or Zod parsing in those cases.
 - Use Zod for parsing unknown types
 - Use Zod only at trust boundaries (API inputs, env vars, external responses); internal code uses compile-time checks
 - Never use `z.coerce.boolean()` for env vars; use `z.stringbool()` which correctly interprets `"false"`
@@ -581,6 +648,7 @@ const DICTIONARY = {
 ### Backend Style (services/**/*.ts)
 
 - Use lowercase first letter for Prisma relations
+- Do not destructure `input` in use cases — access properties directly (e.g., `input.registryId`) for consistent provenance
 
 ### Frontend Style (apps/main-frontend/)
 
