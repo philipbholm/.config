@@ -97,6 +97,11 @@ cleanup() {
         cp "$WT_ROUTER_BACKUP" "$WT_ROUTER_CONFIG"
         rm -f "$WT_ROUTER_BACKUP"
     fi
+    # Rebuild frontend to restore clean vite.config.ts in the container image
+    # (vite.config.ts is not volume-mounted, so it's baked into the image)
+    echo "Rebuilding frontend with clean config..."
+    dc build main-frontend 2>/dev/null && dc up -d main-frontend 2>/dev/null || true
+    dc restart router 2>/dev/null || true
 
     # Remove temp files
     rm -f "$FRONTEND_LOG" "$API_LOG"
@@ -162,15 +167,11 @@ apply_config_changes() {
     # 1. amplify-config.ts - Fix process.env -> import.meta.env
     sed -i '' 's/process\.env\./import.meta.env./g' "$AMPLIFY_CONFIG"
 
-    # 2. vite.config.ts - Add allowedHosts for cloudflare
+    # 2. vite.config.ts - Add allowedHosts inside the existing server block
     if ! grep -q "allowedHosts" "$VITE_CONFIG"; then
-        # Add server block before the closing });
-        sed -i '' 's/});$/\
-\
-  server: {\
-    allowedHosts: [".trycloudflare.com"]\
-  }\
-});/' "$VITE_CONFIG"
+        sed -i '' '/host: true,/a\
+    allowedHosts: [".trycloudflare.com"],
+' "$VITE_CONFIG"
     fi
 
     # 3. docker-compose.yml - Update VITE_GRAPHQL_URI with API tunnel URL
@@ -184,20 +185,13 @@ apply_config_changes() {
         echo "  Patched worktree compose overlay"
     fi
 
-    # 4. Router CORS origins - add frontend tunnel URL
-    # Patch the worktree router config if it exists (it takes precedence), otherwise patch the base
-    if [[ -f "$WT_ROUTER_CONFIG" ]]; then
-        WT_ROUTER_BACKUP=$(mktemp)
-        cp "$WT_ROUTER_CONFIG" "$WT_ROUTER_BACKUP"
-        if ! grep -q "$frontend_url" "$WT_ROUTER_CONFIG"; then
-            sed -i '' "/- http:\/\/localhost:$frontend_port/a\\
-        - $frontend_url" "$WT_ROUTER_CONFIG"
-        fi
-        echo "  Patched worktree router config"
-    fi
-    if ! grep -q "$frontend_url" "$ROUTER_CONFIG"; then
-        sed -i '' "/- http:\/\/localhost:3001/a\\
-        - $frontend_url" "$ROUTER_CONFIG"
+    # 4. Router CORS origins - add frontend tunnel URL to the base config.
+    # The dev script's generate_router_config transforms this into the generated
+    # config that's actually mounted. Patching the base means any dev command
+    # that regenerates the override will preserve the tunnel URL.
+    if ! grep -q "trycloudflare" "$ROUTER_CONFIG"; then
+        awk -v url="$frontend_url" '/match_origins:/ { print; print "    - " url; next } { print }' \
+            "$ROUTER_CONFIG" > "$ROUTER_CONFIG.tmp" && mv "$ROUTER_CONFIG.tmp" "$ROUTER_CONFIG"
     fi
 
     echo "Configuration changes applied."
@@ -213,8 +207,8 @@ rebuild_services() {
     dc up -d main-frontend
 
     echo ""
-    echo "Restarting router..."
-    dc restart router
+    echo "Restarting router (regenerating config from patched base)..."
+    dev restart router
 
     echo ""
     echo "Waiting for services to be ready..."
