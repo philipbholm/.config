@@ -91,7 +91,14 @@ export PS1='%c %# '  # Current directory
 # Git & worktrees
 
 gwc() {
-  [[ -z "$1" ]] && { echo "Usage: gwc <branch-name>"; return 1; }
+  local no_setup=false
+  while [[ "$1" == -* ]]; do
+    case "$1" in
+      -n|--no-setup) no_setup=true; shift ;;
+      *) echo "Unknown flag: $1"; return 1 ;;
+    esac
+  done
+  [[ -z "$1" ]] && { echo "Usage: gwc [-n|--no-setup] <branch-name>"; return 1; }
   setopt LOCAL_OPTIONS NO_MONITOR
   local worktree_path="/Users/philip/work/worktrees/$1"
   local claude_src="/Users/philip/.config/dev/claude/ledidi-monorepo"
@@ -103,29 +110,31 @@ gwc() {
       cp "$file" "'"$worktree_path"'/$file"
     done
   ' _ {} +)
-  # Run setup-stack.sh in the new worktree (suppressed output with spinner)
-  local log_file=$(mktemp)
-  (
-    (cd "$worktree_path" && bash /Users/philip/.config/dev/setup-stack.sh > "$log_file" 2>&1) &
-    local pid=$!
-    local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-    local i=0
-    while kill -0 $pid 2>/dev/null; do
-      printf "\r  ${spin:$i:1} Setting up worktree..."
-      i=$(( (i + 1) % ${#spin} ))
-      sleep 0.1
-    done
-    wait $pid
-    exit $?
-  )
-  local exit_code=$?
-  printf "\r\033[K"
-  if [ $exit_code -ne 0 ]; then
-    echo "Worktree setup failed. Log: $log_file"
-    return 1
+  if [[ "$no_setup" == false ]]; then
+    # Run setup-stack.sh in the new worktree (suppressed output with spinner)
+    local log_file=$(mktemp)
+    (
+      (cd "$worktree_path" && bash /Users/philip/.config/dev/setup-stack.sh > "$log_file" 2>&1) &
+      local pid=$!
+      local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+      local i=0
+      while kill -0 $pid 2>/dev/null; do
+        printf "\r  ${spin:$i:1} Setting up worktree..."
+        i=$(( (i + 1) % ${#spin} ))
+        sleep 0.1
+      done
+      wait $pid
+      exit $?
+    )
+    local exit_code=$?
+    printf "\r\033[K"
+    if [ $exit_code -ne 0 ]; then
+      echo "Worktree setup failed. Log: $log_file"
+      return 1
+    fi
+    rm -f "$log_file"
+    echo "✔ Worktree setup complete"
   fi
-  rm -f "$log_file"
-  echo "✔ Worktree setup complete"
   cursor "$worktree_path" || { echo "Failed to open Cursor"; return 1; }
 }
 
