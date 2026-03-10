@@ -2,7 +2,7 @@
 name: review
 description: CTO-style code review - rigorous, opinionated feedback on code and files
 disable-model-invocation: true
-argument-hint: "[diff | branch <current/name> | pr <number>] [--opus]"
+argument-hint: "[diff | branch <current/name> | pr <number>] [--opus] [--all]"
 allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(gh:*), Read, Write(/Users/philip/vaults/main/dev/*), Glob, Grep, Task, TeamCreate, TeamDelete, TaskCreate, TaskUpdate, TaskList, TaskGet, SendMessage
 ---
 
@@ -22,12 +22,13 @@ Based on $ARGUMENTS:
 - `branch` - Review changes on current branch compared to master/main
 - `pr <number>` - Review a pull request
 - `--opus` - Optional flag (can be combined with any of the above): use `opus` model for all reviewers and synthesizer. Default is `sonnet`.
+- `--all` - Optional flag: force all 8 reviewer agents to run. Default is selective mode (only relevant agents).
 
 If no argument provided, ask what to review.
 
-Parse `$ARGUMENTS` for the `--opus` flag. Strip it before interpreting the review mode. Store the result:
-- If `--opus` present → `$REVIEW_MODEL = "opus"`
-- Otherwise → `$REVIEW_MODEL = "sonnet"`
+Parse `$ARGUMENTS` for flags. Strip them before interpreting the review mode. Store the results:
+- If `--opus` present → `$REVIEW_MODEL = "opus"`, otherwise → `$REVIEW_MODEL = "sonnet"`
+- If `--all` present → `$RUN_ALL = true`, otherwise → `$RUN_ALL = false`
 
 **Review checklist (pass to reviewers):**
 
@@ -141,25 +142,30 @@ Determine what's affected: frontend, which services, shared packages.
 mkdir -p /tmp/pr-review-{branch}
 ```
 
+**Determine which reviewers to run:**
+
+The Ledidi agents (`auth-reviewer`, `security-reviewer`) always run. For the toolkit agents, use the table below to decide relevance based on the changed files — unless `$RUN_ALL = true`, in which case run all.
+
+| Agent | `subagent_type` | Run when... |
+|-------|-----------------|-------------|
+| `auth-reviewer` | `ledidi-auth-reviewer` | **Always** |
+| `security-reviewer` | `ledidi-security-reviewer` | **Always** |
+| `code-reviewer` | `pr-review-toolkit:code-reviewer` | **Always** |
+| `silent-failure-hunter` | `pr-review-toolkit:silent-failure-hunter` | Diff contains try/catch, error handling, `.catch(`, or async operations |
+| `code-simplifier` | `pr-review-toolkit:code-simplifier` | Diff has substantial logic changes (not just config/schema/migration-only) |
+| `comment-analyzer` | `pr-review-toolkit:comment-analyzer` | Diff adds or modifies comments, JSDoc, or docstrings |
+| `test-analyzer` | `pr-review-toolkit:pr-test-analyzer` | Diff touches test files OR adds new non-trivial functionality |
+| `type-analyzer` | `pr-review-toolkit:type-design-analyzer` | Diff introduces new types, interfaces, or significant type changes |
+
+Select the relevant subset. You will spawn only those agents (plus the synthesizer).
+
 1. **Create team**: `TeamCreate(team_name="pr-review")`
-2. **Create 8 reviewer tasks** — one per agent below. Use concise subjects.
-3. **Create 1 synthesizer task** — subject: "Synthesize review findings". Set `addBlockedBy` to all 8 reviewer task IDs.
+2. **Create reviewer tasks** — one per selected agent. Use concise subjects.
+3. **Create 1 synthesizer task** — subject: "Synthesize review findings". Set `addBlockedBy` to all selected reviewer task IDs.
 
-### Step 5: Spawn all 9 teammates
+### Step 5: Spawn selected teammates
 
-Spawn all teammates in a **SINGLE message** for parallel execution. Use `team_name="pr-review"` on every Task call. Pass `model=$REVIEW_MODEL` on every Task call (either `"sonnet"` or `"opus"` as determined above).
-
-| Name | `subagent_type` |
-|------|-----------------|
-| `auth-reviewer` | `ledidi-auth-reviewer` |
-| `security-reviewer` | `ledidi-security-reviewer` |
-| `code-reviewer` | `pr-review-toolkit:code-reviewer` |
-| `silent-failure-hunter` | `pr-review-toolkit:silent-failure-hunter` |
-| `code-simplifier` | `pr-review-toolkit:code-simplifier` |
-| `comment-analyzer` | `pr-review-toolkit:comment-analyzer` |
-| `test-analyzer` | `pr-review-toolkit:pr-test-analyzer` |
-| `type-analyzer` | `pr-review-toolkit:type-design-analyzer` |
-| `synthesizer` | `general-purpose` |
+Spawn all selected teammates in a **SINGLE message** for parallel execution. Use `team_name="pr-review"` on every Task call. Pass `model=$REVIEW_MODEL` on every Task call (either `"sonnet"` or `"opus"` as determined above).
 
 #### Reviewer prompt template
 
@@ -202,7 +208,7 @@ You are the review synthesizer on a code review team. Combine findings from 8 sp
 **Output file:** {full-output-path}
 **Findings directory:** /tmp/pr-review-{branch}/
 
-**Expected files:** auth-reviewer.md, security-reviewer.md, code-reviewer.md, silent-failure-hunter.md, code-simplifier.md, comment-analyzer.md, test-analyzer.md, type-analyzer.md
+**Expected files:** {list the .md filenames for each selected reviewer, e.g. auth-reviewer.md, security-reviewer.md, code-reviewer.md, ...}
 
 **Instructions:**
 1. Wait for the team lead to message you that all reviews are complete. Do NOT start until you receive this message.
@@ -213,7 +219,7 @@ You are the review synthesizer on a code review team. Combine findings from 8 sp
    - Assign final severity: Critical > Major > Minor > Nitpick
    - Group by severity, then by file/area
    - Give a verdict: Approve, Request changes, or Comment
-   - Skip empty sections
+   - Skip empty sections (omit entire section headings if no content)
 5. Write the review to {full-output-path} using the Write tool
 6. SendMessage to team lead: the FULL ABSOLUTE path to the review file (nothing else)
 7. TaskUpdate(taskId="{task-id}", status="completed")
@@ -265,8 +271,8 @@ While reviewers work, additionally check:
 
 Track reviewer completion:
 1. As idle notifications arrive, check `TaskList`
-2. When **all 8 reviewer tasks** show status "completed", message the synthesizer:
-   `SendMessage(type="message", recipient="synthesizer", content="All 8 reviews are complete. Proceed with synthesis.", summary="Triggering synthesis")`
+2. When **all selected reviewer tasks** show status "completed", message the synthesizer:
+   `SendMessage(type="message", recipient="synthesizer", content="All reviews are complete. Proceed with synthesis.", summary="Triggering synthesis")`
 3. Wait for the synthesizer to reply with the review file path
 
 ### Step 7: Finalize
