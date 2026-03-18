@@ -209,7 +209,7 @@ sync-claude-md() {
     cp "$template" "$dest"
 
     sed -i '' \
-      -e "s|{{FRONTEND_PORT}}|$(( 3001 + offset ))|g" \
+      -e "s|{{FRONTEND_PORT}}|$(( 3003 + offset ))|g" \
       -e "s|{{ROUTER_PORT}}|$(( 4000 + offset ))|g" \
       -e "s|{{POSTGRES_PORT}}|$(( 5432 + offset ))|g" \
       -e "s|{{CODELIST_PORT}}|$(( 4005 + offset ))|g" \

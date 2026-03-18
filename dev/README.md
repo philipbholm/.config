@@ -59,7 +59,7 @@ Each worktree gets a unique slot (1–9). Ports are offset by `slot × 100`:
 
 | Service | Main (slot 0) | Slot 1 | Slot 2 |
 |---------|--------------|--------|--------|
-| Frontend | 3001 | 3101 | 3201 |
+| Frontend | 3003 | 3103 | 3203 |
 | Router | 4000 | 4100 | 4200 |
 | Postgres | 5432 | 5532 | 5632 |
 | Codelist | 4005 | 4105 | 4205 |

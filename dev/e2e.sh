@@ -16,16 +16,18 @@ monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
   exit 1
 }
 
+FRONTEND_BASE_PORT=3003
+
 # Determine ports from worktree slot
 project_name="$(basename "$monorepo_root")"
 worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name/worktree-slot"
 if [[ -f "$worktree_slot_file" ]]; then
   slot=$(cat "$worktree_slot_file")
   offset=$((slot * 100))
-  frontend_port=$((3001 + offset))
+  frontend_port=$((FRONTEND_BASE_PORT + offset))
   api_port=$((4000 + offset))
 else
-  frontend_port=3001
+  frontend_port=$FRONTEND_BASE_PORT
   api_port=4000
 fi
 
