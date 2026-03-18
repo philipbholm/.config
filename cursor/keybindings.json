@@ -235,11 +235,11 @@
   },
   {
     "key": "cmd+h",
-    "command": "chatgpt.openSidebar"
+    "command": "claude-vscode.sidebar.open"
   },
   {
     "key": "cmd+shift+h",
-    "command": "chatgpt.newChat"
+    "command": "claude-vscode.newConversation"
   },
   {
     "key": "tab",
@@ -278,5 +278,10 @@
     "key": "cmd+j",
     "command": "workbench.action.focusPanel",
     "when": "!panelVisible"
+  },
+  {
+    "key": "alt+cmd+s",
+    "command": "workbench.action.toggleUnifiedSidebarFromKeyboard",
+    "when": "cursor.agentIdeUnification.enabled == true && !isAuxiliaryWindowFocusedContext"
   }
 ]
