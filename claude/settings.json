@@ -26,21 +26,7 @@
       "Bash(rm -rf:*)"
     ]
   },
-  "model": "sonnet",
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "permission_prompt|idle_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/Users/philip/.claude/hooks/notification-desktop.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
-  },
+  "model": "opus[1m]",
   "statusLine": {
     "type": "command",
     "command": "/Users/philip/.claude/statusline-command.sh"
@@ -53,6 +39,7 @@
     "code-simplifier@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true
   },
+  "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true,
-  "effortLevel": "medium"
+  "voiceEnabled": true
 }
