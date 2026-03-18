@@ -106,7 +106,12 @@ gwc() {
   setopt LOCAL_OPTIONS NO_MONITOR
   local worktree_path="/Users/philip/work/worktrees/$1"
   local claude_src="/Users/philip/.config/dev/claude/ledidi-monorepo"
-  git worktree add "$worktree_path" "$1" 2>/dev/null || return 1
+  git fetch origin
+  if git show-ref --verify --quiet "refs/heads/$1"; then
+    git worktree add "$worktree_path" "$1" || return 1
+  else
+    git worktree add -b "$1" "$worktree_path" origin/master || return 1
+  fi
   # Copy CLAUDE.local.md files from config to worktree
   (cd "$claude_src" && find . -name 'CLAUDE.local.md' -exec sh -c '
     for file; do
