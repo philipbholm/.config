@@ -19,4 +19,4 @@ options=(
 	inactive_color=$inactive_color
 )
 
-borders "${options[@]}"
+/opt/homebrew/bin/borders "${options[@]}"
