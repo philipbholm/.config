@@ -35,7 +35,7 @@ export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--no-deprecation"
 
 echo "Running e2e tests against $FRONTEND_BASE_URL (API: $E2E_API_URL)..."
 
-cd "$monorepo_root/apps/main-frontend"
+cd "$monorepo_root/apps/registries-frontend"
 
 if [[ "$validation_mode" == true ]]; then
   npx playwright test --config=playwright.validation.config.ts "src/app/\[lang\]/registries" "${remaining_args[@]}"

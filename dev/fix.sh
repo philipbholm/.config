@@ -85,7 +85,7 @@ run_step() {
 
 if [[ "$mode" == "full" ]]; then
   echo -e "\n${GREEN}${BOLD}==>${NC} ${BOLD}Installing npm dependencies${NC}"
-  for svc in services/registries services/codelist apps/main-frontend; do
+  for svc in services/registries services/codelist apps/registries-frontend; do
     if ! run_step "npm ci — $svc" "cd '$monorepo_root/$svc' && npm ci --loglevel=warn"; then
       failed+=("npm ci — $svc")
     fi
@@ -119,14 +119,14 @@ fi
 # --- Phase 3: Generate frontend types ---
 
 echo -e "\n${GREEN}${BOLD}==>${NC} ${BOLD}Generating frontend types${NC}"
-if ! run_step "generate — apps/main-frontend" "cd '$monorepo_root/apps/main-frontend' && npm run generate"; then
-  failed+=("generate — apps/main-frontend")
+if ! run_step "generate — apps/registries-frontend" "cd '$monorepo_root/apps/registries-frontend' && npm run generate"; then
+  failed+=("generate — apps/registries-frontend")
 fi
 
 # --- Phase 4: Restart or rebuild services ---
 
-services=(registries main-frontend)
-[[ "$mode" == "full" ]] && services=(registries codelist main-frontend)
+services=(registries registries-frontend)
+[[ "$mode" == "full" ]] && services=(registries codelist registries-frontend)
 
 if [[ "$mode" == "build" || "$mode" == "full" ]]; then
   echo -e "\n${GREEN}${BOLD}==>${NC} ${BOLD}Rebuilding services${NC}"

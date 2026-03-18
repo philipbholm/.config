@@ -33,7 +33,7 @@ if [ -z "$GITHUB_TOKEN" ]; then
     echo "  Set it with: export GITHUB_TOKEN=<your-token>"
 fi
 
-SERVICES=(apps/main-frontend services/codelist services/registries)
+SERVICES=(apps/registries-frontend services/codelist services/registries)
 
 # ------------------------------------------------------------------
 # 1. npm install for each service
@@ -67,7 +67,7 @@ step "Composing Apollo Router supergraph"
 # ------------------------------------------------------------------
 step "Generating frontend types"
 
-(cd "$REPO_ROOT/apps/main-frontend" && npm run generate) || fail "frontend generate failed"
+(cd "$REPO_ROOT/apps/registries-frontend" && npm run generate) || fail "frontend generate failed"
 
 # ------------------------------------------------------------------
 # Done
