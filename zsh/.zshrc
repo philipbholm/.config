@@ -46,6 +46,10 @@ export PATH="/opt/homebrew/opt/gradle@8/bin:$PATH"
 export PATH=/Users/philip/.opencode/bin:$PATH
 export PATH="$HOME/.local/bin:$PATH"
 
+# Bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
 # NVM (must load before npm config get prefix)
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -331,3 +335,6 @@ bindkey -M viins '\e[Z' autosuggest-accept
 bindkey -M viins '^[[Z' autosuggest-accept
 bindkey -M emacs '\e[Z' autosuggest-accept
 bindkey -M emacs '^[[Z' autosuggest-accept
+
+# bun completions
+[ -s "/Users/philip/.bun/_bun" ] && source "/Users/philip/.bun/_bun"
