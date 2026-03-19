@@ -1,5 +1,5 @@
 {
-  "editor.tabSize": 2,
+  "editor.tabSize": 4,
   "editor.cursorBlinking": "solid",
   "editor.cursorSurroundingLines": 4,
   "editor.lineNumbers": "relative",
@@ -29,7 +29,7 @@
   },
   "git.confirmSync": false,
   "git.ignoreRebaseWarning": true,
-  "prettier.tabWidth": 2,
+  "prettier.tabWidth": 4,
   "prettier.printWidth": 1000,
   "notebook.output.textLineLimit": 2000,
   "notebook.formatOnSave.enabled": true,
@@ -69,7 +69,8 @@
   },
   "[typescriptreact]": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
   },
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
