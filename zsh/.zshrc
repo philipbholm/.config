@@ -95,56 +95,7 @@ export PS1='%c %# '  # Current directory
 # Git & worktrees
 
 gwc() {
-  local no_setup=false
-  while [[ "$1" == -* ]]; do
-    case "$1" in
-      -n|--no-setup) no_setup=true; shift ;;
-      *) echo "Unknown flag: $1"; return 1 ;;
-    esac
-  done
-  [[ -z "$1" ]] && { echo "Usage: gwc [-n|--no-setup] <branch-name>"; return 1; }
-  setopt LOCAL_OPTIONS NO_MONITOR
-  local worktree_path="/Users/philip/work/worktrees/$1"
-  local claude_src="/Users/philip/.config/dev/claude/ledidi-monorepo"
-  git fetch origin
-  if git show-ref --verify --quiet "refs/heads/$1"; then
-    git worktree add "$worktree_path" "$1" || return 1
-  else
-    git worktree add -b "$1" "$worktree_path" origin/master || return 1
-  fi
-  # Copy CLAUDE.local.md files from config to worktree
-  (cd "$claude_src" && find . -name 'CLAUDE.local.md' -exec sh -c '
-    for file; do
-      mkdir -p "'"$worktree_path"'/$(dirname "$file")"
-      cp "$file" "'"$worktree_path"'/$file"
-    done
-  ' _ {} +)
-  if [[ "$no_setup" == false ]]; then
-    # Run setup-stack.sh in the new worktree (suppressed output with spinner)
-    local log_file=$(mktemp)
-    (
-      (cd "$worktree_path" && bash /Users/philip/.config/dev/setup-stack.sh > "$log_file" 2>&1) &
-      local pid=$!
-      local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-      local i=0
-      while kill -0 $pid 2>/dev/null; do
-        printf "\r  ${spin:$i:1} Setting up worktree..."
-        i=$(( (i + 1) % ${#spin} ))
-        sleep 0.1
-      done
-      wait $pid
-      exit $?
-    )
-    local exit_code=$?
-    printf "\r\033[K"
-    if [ $exit_code -ne 0 ]; then
-      echo "Worktree setup failed. Log: $log_file"
-      return 1
-    fi
-    rm -f "$log_file"
-    echo "✔ Worktree setup complete"
-  fi
-  cursor "$worktree_path" || { echo "Failed to open Cursor"; return 1; }
+  /Users/philip/.config/dev/gwc.sh "$@"
 }
 
 _gwc_completions() {
@@ -154,17 +105,7 @@ _gwc_completions() {
 compdef _gwc_completions gwc
 
 gwd() {
-  [[ -z "$1" ]] && { echo "Usage: gwd <branch-name>"; return 1; }
-  local worktree_path="/Users/philip/work/worktrees/$1"
-  local project_name="$1"
-  [[ ! -d "$worktree_path" ]] && { echo "Worktree not found: $worktree_path"; return 1; }
-  local slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name/worktree-slot"
-  if [ -f "$slot_file" ]; then
-    (cd "$worktree_path" && /Users/philip/.config/dev/dev.sh nuke)
-    local containers=$(docker ps -q --filter "label=com.docker.compose.project=$project_name" 2>/dev/null)
-    [ -n "$containers" ] && docker wait "$containers" >/dev/null 2>&1
-  fi
-  git -C "$worktree_path" checkout -- . && git -C "$worktree_path" clean -fd && git worktree remove "$worktree_path"
+  /Users/philip/.config/dev/gwd.sh "$@"
 }
 
 _gwd_completions() {
