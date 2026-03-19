@@ -28,7 +28,6 @@ This is a monorepo for Ledidi, a medical registry platform. Each service/app has
 | Service | URL |
 |---------|-----|
 | Frontend | http://localhost:{{FRONTEND_PORT}}/en/registries |
-| Router (GraphQL) | http://localhost:{{ROUTER_PORT}} |
 | Codelist (gRPC) | localhost:{{CODELIST_GRPC_PORT}} |
 | Registries (GraphQL) | http://localhost:{{REGISTRIES_PORT}}/graphql |
 | Registries (gRPC) | localhost:{{REGISTRIES_GRPC_PORT}} |
@@ -59,40 +58,28 @@ No commands needed. The running Docker container mounts `src/` and uses nodemon 
 
 #### Changed `.graphql` schema files (e.g., `services/registries/api/*.graphql`)
 
-This is the most involved workflow because GraphQL schema changes ripple through codegen, the supergraph, and the frontend.
+This is the most involved workflow because GraphQL schema changes ripple through codegen and the frontend.
 
 1. **Regenerate types in the backend service that owns the schema:**
 ```bash
 cd services/registries && npm run generate
 ```
 
-2. **Recompose the supergraph** — a `router-autoupdate` container should do this automatically, but it doesn't always work reliably. Always run this manually after GraphQL schema changes:
+2. **Regenerate frontend GraphQL types** (if the frontend consumes the changed types):
 ```bash
-rover supergraph compose --config services/apollo-router/supergraph.yaml 2>/dev/null > services/apollo-router/supergraph.graphql
+cd apps/registries-frontend && npm run generate
 ```
 
-3. **Regenerate frontend GraphQL types** (if the frontend consumes the changed types):
-```bash
-cd apps/main-frontend && npm run generate
-```
-
-4. **Restart the backend service** to pick up any new resolvers or type changes:
+3. **Restart the backend service** to pick up any new resolvers or type changes:
 ```bash
 dev restart registries
-```
-
-5. **Restart the router** to pick up the recomposed supergraph:
-```bash
-dev restart router
 ```
 
 **Summary for GraphQL changes:**
 ```bash
 cd services/registries && npm run generate
-rover supergraph compose --config services/apollo-router/supergraph.yaml 2>/dev/null > services/apollo-router/supergraph.graphql
-cd apps/main-frontend && npm run generate
+cd apps/registries-frontend && npm run generate
 dev restart registries
-dev restart router
 ```
 
 #### Changed `.proto` files (gRPC schema)
@@ -167,10 +154,10 @@ The frontend dev server runs `generate-watch` which watches for `.graphql` file 
 |-----------|---------|-----------|
 | `services/registries` | `npm run generate` | GraphQL resolver types, Prisma client, gRPC/proto TS types |
 | `services/codelist` | `npm run generate` | Prisma client, gRPC/proto TS types (no GraphQL) |
-| `apps/main-frontend` | `npm run generate` | Typed GraphQL hooks and types from all service schemas |
+| `apps/registries-frontend` | `npm run generate` | Typed GraphQL hooks and types from all service schemas |
 
 **When to run it:**
-- After changing any `.graphql` schema file → run in the owning service AND in `apps/main-frontend`
+- After changing any `.graphql` schema file → run in the owning service AND in `apps/registries-frontend`
 - After changing `prisma/schema.prisma` → run in the owning service
 - After changing `.proto` files → run in the owning service and any consuming services
 
@@ -206,20 +193,20 @@ cd apps/main-frontend && npm test -- "src/app/[lang]/registries/[registryId]/pat
 
 Run all E2E tests:
 ```bash
-cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test "src/app/.*/registries/.*\.spec\.tsx"
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" npx playwright test "src/app/.*/registries/.*\.spec\.tsx"
 ```
 
 Run E2E tests for a specific file:
 ```bash
-cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test "src/app/.*/registries/.*/patients/.*/medications/create/create-medication\.spec\.tsx"
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" npx playwright test "src/app/.*/registries/.*/patients/.*/medications/create/create-medication\.spec\.tsx"
 ```
 
 Run E2E tests for a directory:
 ```bash
-cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test "src/app/.*/registries/.*/registry-design/.*\.spec\.tsx"
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" npx playwright test "src/app/.*/registries/.*/registry-design/.*\.spec\.tsx"
 ```
 
-Verification: `cd apps/main-frontend && npm run lint:fix && npm run build && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{ROUTER_PORT}}" npx playwright test`
+Verification: `cd apps/main-frontend && npm run lint:fix && npm run build && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" npx playwright test`
 
 ### Backend Service Commands
 
@@ -356,7 +343,7 @@ Apollo Router federates subgraph schemas from each service. Each service has its
 ### Service Communication
 
 - Service-to-service: gRPC with ts-proto
-- Frontend-to-backend: GraphQL via Apollo Router
+- Frontend-to-backend: GraphQL (registries-frontend connects directly to registries service)
 - Authentication: JWT tokens (JWKS-verified), separate JWT for service-to-service
 - Authorization: Custom RBAC stored in PostgreSQL (subject-object-relation permission tuples)
 
