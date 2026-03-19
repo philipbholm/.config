@@ -78,10 +78,19 @@ done
 # --- Determine ports from worktree slot ---
 
 project_name="$(basename "$monorepo_root")"
-worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name/worktree-slot"
-if [[ -f "$worktree_slot_file" ]]; then
-  slot=$(cat "$worktree_slot_file")
+stacks_dir="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}"
+worktree_slot_file="$stacks_dir/$project_name/worktree-slot"
+
+if [[ -f "$monorepo_root/.git" ]]; then
+  # Worktree — .git is a file, not a directory
+  if [[ -f "$worktree_slot_file" ]]; then
+    slot=$(cat "$worktree_slot_file")
+  else
+    echo "Error: No slot assigned for worktree '$project_name'. Run 'dev up' first."
+    exit 1
+  fi
 else
+  # Main repo — always slot 0
   slot=0
 fi
 offset=$((slot * 100))
