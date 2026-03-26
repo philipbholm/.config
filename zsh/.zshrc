@@ -45,6 +45,7 @@ export PATH="/Users/philip/.duckdb/cli/latest:$PATH"
 export PATH="/opt/homebrew/opt/gradle@8/bin:$PATH"
 export PATH=/Users/philip/.opencode/bin:$PATH
 export PATH="$HOME/.local/bin:$PATH"
+export PATH="/Users/philip/.browser-use/bin:$PATH"
 
 # Bun
 export BUN_INSTALL="$HOME/.bun"
@@ -69,6 +70,7 @@ export CPPFLAGS="-I/opt/homebrew/opt/openjdk@17/include"
 export DISABLE_TELEMETRY=1
 export DISABLE_ERROR_REPORTING=1
 export NODE_NO_WARNINGS=1
+# export LEFTHOOK=0
 export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
 
 # Secrets
