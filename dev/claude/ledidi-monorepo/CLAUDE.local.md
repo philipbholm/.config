@@ -406,6 +406,8 @@ Each frontend component file follows a consistent internal structure:
 
 **Sub-components resolve their own translations.** Private sub-components call `useLanguage()` themselves and read `DICTIONARY[lang]` internally. Do not pass translated strings as props — translations are an implementation detail of rendering, not a meaningful input. Since the sub-component and DICTIONARY are in the same file, the dependency is visible. Props should represent data and behavior, not pre-resolved UI text.
 
+**Exception:** Passing translated strings as props is allowed for generic, presentational sub-components that act as reusable form primitives within the file (e.g., a `DatePickerField` that accepts `label` and `error`). These components don't know *which* field they represent — the parent decides that by passing the appropriate label. Hardcoding dictionary keys inside them would couple a generic component to a specific use case. The test: if the sub-component is used multiple times with different labels in the same file, it's a presentational primitive and string props are the right interface.
+
 **No shared abstractions for one-off variations.** When similar-looking components differ in any meaningful way (different footer content, different data shape), give each its own named function rather than creating a generic wrapper with conditional props. Duplication of structure is preferable to an abstraction that obscures differences.
 
 **File layout order:**
