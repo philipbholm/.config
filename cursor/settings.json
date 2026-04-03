@@ -65,12 +65,25 @@
   },
   "[typescript]": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.tabSize": 4,
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit",
+      "source.organizeImports.biome": "explicit"
+    }
   },
   "[typescriptreact]": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.tabSize": 2
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.tabSize": 2,
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit",
+      "source.organizeImports.biome": "explicit"
+    }
+  },
+  "[graphql]": {
+    "editor.tabSize": 2,
+    "prettier.tabWidth": 2
   },
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
@@ -152,5 +165,6 @@
   "claudeCode.preferredLocation": "sidebar",
   "claudeCode.useTerminal": true,
   "claudeCode.selectedModel": "opus",
-  "cursor.windowSwitcher.sidebarHoverCollapsed": true
+  "cursor.windowSwitcher.sidebarHoverCollapsed": true,
+  "biome.lsp.bin": "apps/registries-frontend/node_modules/.bin/biome"
 }
