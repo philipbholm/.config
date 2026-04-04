@@ -24,10 +24,10 @@ if [[ -f "$worktree_slot_file" ]]; then
   slot=$(cat "$worktree_slot_file")
   offset=$((slot * 100))
   frontend_port=$((FRONTEND_BASE_PORT + offset))
-  api_port=$((4000 + offset))
+  api_port=$((4006 + offset))
 else
   frontend_port=$FRONTEND_BASE_PORT
-  api_port=4000
+  api_port=4006
 fi
 
 # docker compose wrapper: use stack compose file from tmp dir when present
@@ -42,8 +42,8 @@ dc() {
 }
 
 # Files that will be modified (git-tracked, reverted via git checkout)
-AMPLIFY_CONFIG="$MONOREPO_ROOT/apps/main-frontend/src/features/auth/amplify-config.ts"
-VITE_CONFIG="$MONOREPO_ROOT/apps/main-frontend/vite.config.ts"
+AMPLIFY_CONFIG="$MONOREPO_ROOT/apps/registries-frontend/src/features/auth/amplify-config.ts"
+VITE_CONFIG="$MONOREPO_ROOT/apps/registries-frontend/vite.config.ts"
 DOCKER_COMPOSE="$MONOREPO_ROOT/docker-compose.yml"
 ROUTER_CONFIG="$MONOREPO_ROOT/services/apollo-router/router.docker.yaml"
 
@@ -101,7 +101,7 @@ cleanup() {
     # Rebuild frontend to restore clean vite.config.ts in the container image
     # (vite.config.ts is not volume-mounted, so it's baked into the image)
     echo "Rebuilding frontend with clean config..."
-    dc build main-frontend 2>/dev/null && dc up -d main-frontend 2>/dev/null || true
+    dc build registries-frontend 2>/dev/null && dc up -d registries-frontend 2>/dev/null || true
     dc restart router 2>/dev/null || true
 
     # Remove temp files
@@ -204,8 +204,8 @@ apply_config_changes() {
 rebuild_services() {
     echo ""
     echo "Rebuilding frontend..."
-    dc build main-frontend
-    dc up -d main-frontend
+    dc build registries-frontend
+    dc up -d registries-frontend
 
     echo ""
     echo "Restarting router (regenerating config from patched base)..."

@@ -97,7 +97,7 @@ offset=$((slot * 100))
 FRONTEND_BASE_PORT=3003
 postgres_port=$((5432 + offset))
 frontend_port=$((FRONTEND_BASE_PORT + offset))
-api_port=$((4000 + offset))
+api_port=$((4006 + offset))
 
 # --- Collect changed files (when not --all) ---
 

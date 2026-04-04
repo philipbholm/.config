@@ -25,10 +25,10 @@ if [[ -f "$worktree_slot_file" ]]; then
   slot=$(cat "$worktree_slot_file")
   offset=$((slot * 100))
   frontend_port=$((FRONTEND_BASE_PORT + offset))
-  api_port=$((4000 + offset))
+  api_port=$((4006 + offset))
 else
   frontend_port=$FRONTEND_BASE_PORT
-  api_port=4000
+  api_port=4006
 fi
 
 export FRONTEND_BASE_URL="http://localhost:$frontend_port"
