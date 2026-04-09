@@ -9,3 +9,5 @@ raycast
 tmp
 node_modules
 browseruse
+.DS_Store
+uv
