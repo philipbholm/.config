@@ -1,0 +1,22 @@
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
+personality = "pragmatic"
+[projects."/Users/philip/work/ledidi-monorepo"]
+trust_level = "trusted"
+
+[projects."/Users/philip/.config"]
+trust_level = "trusted"
+
+[projects."/Users/philip/work/legacy"]
+trust_level = "trusted"
+
+[notice.model_migrations]
+"gpt-5.1-codex-max" = "gpt-5.2-codex"
+"gpt-5.3-codex" = "gpt-5.4"
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["chrome-devtools-mcp@latest", "--isolated"]
+
+[tui]
+status_line = ["model-with-reasoning", "context-remaining", "current-dir", "five-hour-limit", "weekly-limit", "context-used", "used-tokens", "total-input-tokens", "total-output-tokens"]
