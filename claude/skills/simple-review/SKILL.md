@@ -3,7 +3,7 @@ name: simple-review
 description: Lightweight single-pass code review — all review areas, one agent, lower token cost
 model: opus
 argument-hint: "[diff | branch <current/name> | pr <number>]"
-allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(gh:*), Read, Write(/Users/philip/vaults/main/dev/*), Glob, Grep
+allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(date *), Bash(gh:*), Read, Write(/tmp/*), Glob, Grep
 ---
 
 **CRITICAL: This is a READ-ONLY review. Do NOT modify any source code files.**
@@ -57,14 +57,14 @@ Determine what's affected: frontend, which services, shared packages. Read full 
 
 ### Step 3: Compute the output directory
 
-1. **Get repo name**: `git remote get-url origin` → extract repo name
-2. **Get branch**: `git branch --show-current`
-3. **Find or create issue directory**:
-   - Check: `ls ~/vaults/main/dev/{repo}/issues/ | grep -E "^[0-9]{3}-{branch}$"`
-   - If found, use it. If not, find highest number + 1 (zero-padded: `001`, `002`, etc.)
-4. **Create directory**: `mkdir -p ~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/`
-5. **Determine review sequence**: Next `REVIEW-{seq}.md` number
-6. **Store the full output path**
+1. **Get branch**: `git branch --show-current`
+2. **Generate a unique filename**:
+   - Use branch and a timestamp such as `$(date +%Y%m%d-%H%M%S)`
+   - Name the file `{branch}-review-{timestamp}.md`
+3. **Store the full output path**: `/tmp/{branch}-review-{timestamp}.md`
+4. **Never overwrite an existing review file**:
+   - Do not reuse fixed filenames
+   - If a filename collision somehow occurs, generate a new timestamp and try again
 
 ### Step 4: Review the diff
 
@@ -258,5 +258,5 @@ Write the unified review to the output file using this format. **Skip empty sect
 
 **Output the FULL ABSOLUTE PATH** to the review file starting from root `/`.
 
-**Correct:** `/Users/philip/vaults/main/dev/ledidi-monorepo/issues/003-update-registry-cards/REVIEW-01.md`
-**Wrong:** `REVIEW-01.md` or `issues/003-update-registry-cards/REVIEW-01.md`
+**Correct:** `/tmp/update-registry-cards-review-20260409-142530.md`
+**Wrong:** `update-registry-cards-review-20260409-142530.md` or `tmp/update-registry-cards-review-20260409-142530.md`
