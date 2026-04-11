@@ -13,6 +13,8 @@
 	  ff = only
 [rerere]
 	  enabled = true	
+[advice]
+	  addIgnoredFile = false
 [branch]
 	  sort = -committerdate
 [column]
@@ -25,7 +27,7 @@
     unstage = restore --staged
     db = branch -D
 [core]
-	  editor = cursor --wait
+	  editor = nvim
 [diff]
 	  tool = cursor
 [difftool "cursor"]
