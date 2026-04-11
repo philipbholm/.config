@@ -2,16 +2,16 @@
 set -euo pipefail
 
 ### gwc.sh — Create git worktree with dev environment
-### Sets up a new worktree, copies context files, runs setup-stack.sh, and opens Cursor.
+### Sets up a new worktree, copies context files, and runs setup-stack.sh.
 ###
 ### Usage:
 ###   gwc [-n|--no-setup] <branch-name>
 ###
 ### Options:
-###   -n, --no-setup    Skip running setup-stack.sh (just create worktree + open Cursor)
+###   -n, --no-setup    Skip running setup-stack.sh (just create worktree)
 ###
 ### Examples:
-###   gwc feat/my-feature        Create worktree from origin/master, setup stack, open Cursor
+###   gwc feat/my-feature        Create worktree from origin/master and setup stack
 ###   gwc -n fix/quick-patch     Create worktree without running setup
 
 WORKTREE_BASE="/Users/philip/work/worktrees"
@@ -40,6 +40,8 @@ git rev-parse --show-toplevel >/dev/null 2>&1 || { echo "Error: Not inside a git
 git fetch origin
 
 if git show-ref --verify --quiet "refs/heads/$branch"; then
+  git worktree add "$worktree_path" "$branch" || exit 1
+elif git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
   git worktree add "$worktree_path" "$branch" || exit 1
 else
   git worktree add -b "$branch" "$worktree_path" origin/master || exit 1
@@ -78,4 +80,4 @@ if [[ "$no_setup" == false ]]; then
   echo "✔ Worktree setup complete"
 fi
 
-cursor "$worktree_path" || { echo "Failed to open Cursor"; exit 1; }
+echo "Worktree ready: $worktree_path"
