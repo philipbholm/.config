@@ -1,9 +1,5 @@
 # ── Aliases ─────────────────────────────────────────
 
-# General
-alias ls='ls --color'
-alias ll='ls -lah --color'
-
 # Git
 alias ga='git add'
 alias gaa='git add --all'
@@ -55,12 +51,7 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-export PATH="$PATH:$(npm config get prefix)/bin"
-
-# pyenv
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
+(( $+commands[npm] )) && export PATH="$PATH:$(npm config get prefix)/bin"
 
 # OpenJDK
 export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
@@ -89,8 +80,10 @@ setopt HIST_IGNORE_ALL_DUPS
 setopt HIST_REDUCE_BLANKS
 setopt HIST_IGNORE_SPACE
 
-export PS1='%c %# '  # Current directory
+export PS1='%c %# '  # Fallback (overridden by starship if installed)
 
+fpath=(/opt/homebrew/share/zsh/site-functions $fpath)
+autoload -Uz compinit && compinit
 
 # ── Functions ───────────────────────────────────────
 
@@ -213,6 +206,156 @@ docker() {
   else
     command docker "$@"
   fi
+}
+
+
+# ── Terminal workflow ──────────────────────────────
+
+# Quick aliases
+alias n='nvim'
+alias g='git'
+alias gcad='git commit -a --amend'
+alias d='docker'
+alias t='tmux new-session -A -s Work'
+alias cc='claude'
+alias cx='codex'
+alias oc='opencode'
+
+# Modern ls (eza)
+if command -v eza &> /dev/null; then
+  alias ls='eza -lh --group-directories-first --icons=auto'
+  alias lsa='eza -lha --group-directories-first --icons=auto'
+  alias lt='eza --icons=auto --tree --level=2'
+fi
+
+# Fuzzy finder with preview
+alias ff='fzf --preview "bat --color=always --style=numbers --line-range=:500 {}"'
+
+# Open fuzzy-find result in editor
+eff() {
+  local file
+  file=$(fzf --preview "bat --color=always --style=numbers --line-range=:500 {}")
+  [ -n "$file" ] && ${EDITOR:-nvim} "$file"
+}
+
+# Zoxide (smart cd)
+if command -v zoxide &> /dev/null; then
+  eval "$(zoxide init zsh)"
+fi
+
+# Mise runtime manager
+if command -v mise &> /dev/null; then
+  eval "$(mise activate zsh)"
+fi
+
+# Starship prompt
+export STARSHIP_CONFIG="$HOME/.config/starship.toml"
+if command -v starship &> /dev/null; then
+  eval "$(starship init zsh)"
+fi
+
+# ── Tmux layout functions ─────────────────────────
+
+# tdl: Tmux Dev Layout — 3/4-pane IDE layout (run inside tmux)
+#   ┌──────────┬─────────┐
+#   │          │   AI    │
+#   │  Editor  │  Agent  │
+#   │          ├─────────┤
+#   ├──────────┤ (2nd AI)│
+#   │ Terminal │         │
+#   └──────────┴─────────┘
+_tdl_yolo() {
+  case "$1" in
+    cc|claude) echo "claude --dangerously-skip-permissions" ;;
+    cx|codex)  echo "codex --dangerously-bypass-approvals-and-sandbox" ;;
+    *)         echo "$1" ;;
+  esac
+}
+
+tdl() {
+  if [ -z "$1" ]; then
+    echo "Usage: tdl <ai_command> [<second_ai_command>]"
+    echo "  e.g.: tdl cc         (editor + claude code + terminal)"
+    echo "  e.g.: tdl cx         (editor + codex + terminal)"
+    echo "  e.g.: tdl cc cx      (editor + claude code + codex + terminal)"
+    return 1
+  fi
+
+  local ai_cmd="$(_tdl_yolo "$1")"
+  local second_ai_cmd="${2:+$(_tdl_yolo "$2")}"
+  local editor_pane="$TMUX_PANE"
+
+  tmux rename-window "$(basename "$PWD")"
+
+  # Split: 15% bottom for terminal
+  local terminal_pane=$(tmux split-window -v -l 15% -c "#{pane_current_path}" -P -F '#{pane_id}')
+
+  # Split editor pane: 30% right for AI
+  local ai_pane=$(tmux split-window -h -t "$editor_pane" -l 30% -c "#{pane_current_path}" -P -F '#{pane_id}')
+
+  # Optional: split AI pane for second AI
+  if [ -n "$second_ai_cmd" ]; then
+    local second_ai_pane=$(tmux split-window -v -t "$ai_pane" -l 50% -c "#{pane_current_path}" -P -F '#{pane_id}')
+    tmux send-keys -t "$second_ai_pane" "clear && $second_ai_cmd" Enter
+  fi
+
+  tmux send-keys -t "$ai_pane" "clear && $ai_cmd" Enter
+  tmux send-keys -t "$editor_pane" "${EDITOR:-nvim} ." Enter
+  tmux select-pane -t "$editor_pane"
+}
+
+# tdlm: Tmux Dev Layout Multiplier — tdl per subdirectory
+tdlm() {
+  if [ -z "$1" ]; then
+    echo "Usage: tdlm <ai_command> [<second_ai_command>]"
+    return 1
+  fi
+
+  local ai_cmd="$1"
+  local second_ai_cmd="$2"
+  local first_window=true
+
+  for dir in */; do
+    [ -d "$dir" ] || continue
+    dir="${dir%/}"
+
+    if [ "$first_window" = true ]; then
+      tmux rename-window "$dir"
+      pushd "$dir" > /dev/null
+      tdl "$ai_cmd" "$second_ai_cmd"
+      popd > /dev/null
+      first_window=false
+    else
+      tmux new-window -n "$dir" -c "$(pwd)/$dir"
+      pushd "$dir" > /dev/null
+      tdl "$ai_cmd" "$second_ai_cmd"
+      popd > /dev/null
+    fi
+  done
+}
+
+# tsl: Tmux Swarm Layout — N tiled panes running the same command
+tsl() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: tsl <pane_count> <command>"
+    echo "  e.g.: tsl 4 cx      (4 panes of Claude Code)"
+    return 1
+  fi
+
+  local count="$1"
+  shift
+  local cmd="$*"
+
+  tmux rename-window "swarm"
+  tmux send-keys "clear && $cmd" Enter
+
+  for ((i = 2; i <= count; i++)); do
+    tmux split-window -c "#{pane_current_path}"
+    tmux send-keys "clear && $cmd" Enter
+    tmux select-layout tiled
+  done
+
+  tmux select-layout tiled
 }
 
 
