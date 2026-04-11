@@ -215,6 +215,7 @@ docker() {
 alias n='nvim'
 alias g='git'
 alias gcad='git commit -a --amend'
+alias gap='git add -p'
 alias d='docker'
 alias t='tmux new-session -A -s Work'
 alias cc='claude'
