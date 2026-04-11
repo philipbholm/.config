@@ -12,7 +12,8 @@ else
 fi
 
 options=(
-	style=round
+	# Matches macOS corner radii more reliably on newer releases.
+	style=uniform
 	width=10.0
 	hidpi=off
 	active_color=$active_color
