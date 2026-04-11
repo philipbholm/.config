@@ -42,3 +42,11 @@
 	  gpgsign = true
 [includeIf "gitdir:~/work/"]
 	path = ~/.config/git/work/config
+[includeIf "gitdir:~/private/"]
+	path = ~/.config/git/private/config
+[credential "https://github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential
