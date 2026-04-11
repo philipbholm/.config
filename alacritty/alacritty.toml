@@ -41,7 +41,7 @@ action = "PasteSelection"
 mouse = "Middle"
 
 [window]
-option_as_alt = "None"
+option_as_alt = "OnlyRight"
 
 [window.dimensions]
 columns = 160
@@ -55,3 +55,4 @@ y = 4
 key = "Return"
 mods = "Shift"
 chars = "\u001B\r"
+
