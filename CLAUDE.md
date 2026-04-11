@@ -8,7 +8,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 
 ## Repository Structure
 
-- `zsh/.zshrc` — Zsh config (symlinked to `~/.zshrc`). Key custom functions: `gwc` (create worktree + tmux + Cursor), `gwd` (delete worktree + nuke), `notify` (run command with macOS notification on finish)
+- `zsh/.zshrc` — Zsh config (symlinked to `~/.zshrc`). Key custom functions: `gwc` (create worktree + tmux + Cursor), `gwd` (delete worktree + nuke), `notify` (run command with macOS notification on finish), `tdl`/`tdlm`/`tsl` (tmux IDE layouts), `eff` (fuzzy open file). Aliases: `n` (nvim), `g` (git), `d` (docker), `t` (tmux attach/create), `ff` (fuzzy find with preview). Tool inits for eza, zoxide, fzf, starship, mise.
 - `claude/` — Claude Code config: hooks (desktop notifications via alerter), settings (model, permissions, plugins), custom agents (auth-reviewer, security-reviewer), custom skills (create-issue, plan, implement, review, learn)
 - `dev/` — Development helper scripts symlinked to `~/bin/`. Core scripts:
   - `dev.sh` — Dev stack manager (auto-detects main vs worktree, wraps docker compose with correct override files)
@@ -20,14 +20,16 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 - `dev/claude/` — Per-repo and per-service CLAUDE.local.md files copied into worktrees
 - `dev/feedback/` — PR review learnings extracted by `/learn` skill (mine/ and other/)
 - `aerospace/aerospace.toml` — AeroSpace tiling WM (alt-based keybinds, vim-style navigation)
-- `alacritty/` — Terminal config (JetBrainsMono Nerd Font, light/dark themes via symlink)
-- `tmux/tmux.conf` — Prefix: Ctrl-Space, vim pane nav, mouse enabled
+- `alacritty/` — Terminal config (JetBrainsMono Nerd Font, light/dark themes via symlink, Left Option as Alt for tmux)
+- `tmux/tmux.conf` — Omarchy-style config. Prefix: Ctrl-Space (+ Ctrl-B secondary). Pane nav: prefix+hjkl and Ctrl+Alt+Arrows. Resize: prefix+HJKL and Ctrl+Alt+Shift+Arrows. Window nav: Alt+1-9, Alt+Left/Right. Session nav: Alt+Up/Down. Splits: prefix+s/v. Vi copy mode. Seamless Ctrl+hjkl navigation between nvim splits and tmux panes via vim-tmux-navigator. Blue status bar with PREFIX/ZOOM indicators.
 - `git/config` — SSH commit signing, separate work identity via includeIf for `~/work/`
 - `cursor/` — Cursor editor settings (`settings.json`, `keybindings.json`), symlinked from `~/Library/Application Support/Cursor/User/`
 - `karabiner/` — Caps Lock → Esc (tap) / Ctrl (hold); Cmd+Tab → Ctrl+Tab in Cursor
 - `borders/bordersrc` — JankyBorders window highlight (auto light/dark)
-- `nvim/init.lua` — Minimal neovim (relative lines, 2-space tabs, persistent undo)
+- `nvim/` — LazyVim config (Space leader, Tokyo Night theme, vim-tmux-navigator). Custom options in `lua/config/options.lua`, plugins in `lua/plugins/`
+- `install.sh` — Idempotent bootstrap script (brew, dirs, symlinks, cleanup, verification)
 - `switch-theme.sh` — Toggle alacritty theme + borders based on macOS appearance
+- `GUIDE.md` — Quick-reference for tools, tmux/nvim shortcuts, shell aliases, layout functions
 
 ## Key Patterns
 
