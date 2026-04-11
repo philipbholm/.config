@@ -1,6 +1,6 @@
 # Mac Setup
 
-This repo is the source of truth for Philip's local Mac development setup.
+This repo is the source of truth for Philip's local Mac development environment.
 
 An agent setting up a new Mac should use this file as the bootstrap checklist.
 
@@ -9,13 +9,14 @@ An agent setting up a new Mac should use this file as the bootstrap checklist.
 This repo currently manages:
 
 - Homebrew packages and VS Code/Cursor extensions via [Brewfile](/Users/philip/.config/Brewfile)
-- Shell config in [zsh/.zshrc](/Users/philip/.config/zsh/.zshrc)
-- Terminal config in [alacritty/alacritty.toml](/Users/philip/.config/alacritty/alacritty.toml)
-- Tmux config in [tmux/tmux.conf](/Users/philip/.config/tmux/tmux.conf)
-- Neovim config in [nvim/init.lua](/Users/philip/.config/nvim/init.lua)
+- Shell config in [zsh/.zshrc](/Users/philip/.config/zsh/.zshrc) — git aliases, dev tool wrappers, Omarchy-style aliases (`n`, `g`, `d`, `t`), tmux layout functions (`tdl`, `tdlm`, `tsl`), and tool inits (eza, zoxide, fzf, starship, mise)
+- Terminal config in [alacritty/alacritty.toml](/Users/philip/.config/alacritty/alacritty.toml) — JetBrainsMono Nerd Font, light/dark themes, Option-as-Alt for tmux
+- Tmux config in [tmux/tmux.conf](/Users/philip/.config/tmux/tmux.conf) — Omarchy-style bindings (Ctrl+Space prefix, vim pane nav, Alt window/session nav, vi copy mode, vim-tmux-navigator, blue status bar)
+- Neovim config in [nvim/](/Users/philip/.config/nvim/) — LazyVim with Tokyo Night theme and vim-tmux-navigator
 - Cursor config in [cursor/settings.json](/Users/philip/.config/cursor/settings.json) and [cursor/keybindings.json](/Users/philip/.config/cursor/keybindings.json)
 - Claude/Codex config under `claude/`, `codex/`, and `.claude/`
 - Utility scripts under [dev](/Users/philip/.config/dev)
+- Bootstrap script in [install.sh](/Users/philip/.config/install.sh)
 
 This repo does not fully manage:
 
@@ -109,57 +110,17 @@ xcode-select --install
 
 ```sh
 git clone <repo-url> ~/.config
-cd ~/.config
-mkdir -p ~/work/worktrees ~/work/.dev-stacks ~/private ~/vaults ~/bin
 ```
 
-4. Install everything declared in the Brewfile:
+4. Run the install script:
 
 ```sh
-brew bundle --file ~/.config/Brewfile
+~/.config/install.sh
 ```
 
-5. Create standard config directories:
+This handles everything: Homebrew packages, directory creation, symlinks, stale symlink cleanup, neovim cache prep, and zsh-autosuggestions. See [install.sh](/Users/philip/.config/install.sh) for details.
 
-```sh
-mkdir -p ~/.config
-mkdir -p ~/.cursor
-mkdir -p ~/.claude
-mkdir -p ~/.nvm
-mkdir -p ~/bin
-```
-
-6. Link the managed config files:
-
-```sh
-ln -sf ~/.config/zsh/.zshrc ~/.zshrc
-ln -sf ~/.config/tmux/tmux.conf ~/.tmux.conf
-ln -sf ~/.config/nvim ~/.config/nvim
-ln -sf ~/.config/alacritty ~/.config/alacritty
-ln -sf ~/.config/aerospace ~/.config/aerospace
-ln -sf ~/.config/karabiner ~/.config/karabiner
-ln -sf ~/.config/cursor/settings.json ~/.cursor/settings.json
-ln -sf ~/.config/cursor/keybindings.json ~/.cursor/keybindings.json
-```
-
-7. Link the dev helper scripts into `~/bin`:
-
-```sh
-ln -sf ~/.config/dev/dev.sh ~/bin/dev
-ln -sf ~/.config/dev/check.sh ~/bin/check
-ln -sf ~/.config/dev/test.sh ~/bin/tests
-ln -sf ~/.config/dev/tunnel.sh ~/bin/tunnel
-ln -sf ~/.config/dev/gwc.sh ~/bin/gwc
-ln -sf ~/.config/dev/gwd.sh ~/bin/gwd
-ln -sf ~/.config/dev/sync-context.sh ~/bin/sync-context
-ln -sf ~/.config/dev/fix.sh ~/bin/fix
-```
-
-8. Reload the shell:
-
-```sh
-exec zsh -l
-```
+Note: tmux reads its config directly from `~/.config/tmux/tmux.conf` (XDG support since tmux 3.1). No `~/.tmux.conf` symlink is needed.
 
 ## Manual Follow-Up
 
@@ -171,8 +132,26 @@ These steps are intentionally not automated by this repo and should be handled m
 - Install and sign in to Docker Desktop
 - Reinstall or restore Cursor and sign in
 - Reinstall or restore Claude Desktop / related apps if needed
-- Restore any NVM-managed Node versions with `nvm install <version>`
+- Create a sync code for Brave before wiping (Settings > Sync > Start a new Sync Chain)
+- Install the required Node version and set it as the default:
+
+```sh
+nvm install 24
+nvm alias default 24
+```
 - Restore Bun if still needed
+- Increase key repeat speed for comfortable Vim navigation (System Settings > Keyboard):
+  - Set **Key repeat rate** to **Fast**
+  - Set **Delay until repeat** to **Short**
+- Launch `nvim` once to bootstrap LazyVim plugins (takes ~30-60 seconds, requires internet)
+- Start background services:
+
+```sh
+brew services start felixkratz/formulae/borders
+open -a AeroSpace
+open -a Karabiner-Elements
+open -a Raycast
+```
 
 ## Notes About Current Shell Config
 
@@ -195,6 +174,7 @@ Run these checks after setup:
 ```sh
 brew bundle check --file ~/.config/Brewfile
 zsh -lc 'command -v nvm uv brew tmux nvim watchman lefthook gh'
+zsh -lc 'command -v lazygit fzf bat eza zoxide starship rg fd'
 zsh -lc 'command -v dev check tests tunnel gwc gwd sync-context fix'
 cursor --list-extensions
 tmux -V
@@ -208,7 +188,10 @@ uv --version
 The Brewfile is intended to cover the stable baseline:
 
 - CLI/runtime tools like `gh`, `tmux`, `neovim`, `nvm`, `uv`, `watchman`, `lefthook`
-- window manager and app casks like `aerospace` and `chai`
+- Modern CLI replacements: `bat`, `eza`, `fd`, `fzf`, `ripgrep`, `zoxide`, `starship`
+- Development TUIs: `lazygit`, `lazydocker`, `btop`
+- Runtime management: `mise`, `node`
+- Window manager and app casks like `aerospace`, `alacritty`, and `chai`
 - Cursor/VS Code extensions needed for the current repo mix
 
 If a new machine is missing something that should always be present, add it to [Brewfile](/Users/philip/.config/Brewfile) rather than documenting it only here.
