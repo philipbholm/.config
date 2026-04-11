@@ -25,7 +25,7 @@ docker compose -f docker-compose.yml -f <override> restart registries
 
 | Command | Description |
 |---------|-------------|
-| `dev up` | Full init: generate override, start services, seed DB, write CLAUDE.local.md |
+| `dev up` | Full init: generate override, start services, seed DB, sync `CLAUDE.local.md` and `AGENTS.md` |
 | `dev up --build <service>` | Rebuild a specific service (replaces old `rebuild` command) |
 | `dev down` | Stop and remove containers |
 | `dev nuke` | Full teardown: containers, volumes, images, slot, tmp dir |

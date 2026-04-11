@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ### gwc.sh — Create git worktree with dev environment
-### Sets up a new worktree, copies CLAUDE.local.md files, runs setup-stack.sh, and opens Cursor.
+### Sets up a new worktree, copies context files, runs setup-stack.sh, and opens Cursor.
 ###
 ### Usage:
 ###   gwc [-n|--no-setup] <branch-name>
@@ -15,7 +15,7 @@ set -euo pipefail
 ###   gwc -n fix/quick-patch     Create worktree without running setup
 
 WORKTREE_BASE="/Users/philip/work/worktrees"
-CLAUDE_SRC="/Users/philip/.config/dev/claude/ledidi-monorepo"
+CONTEXT_SRC="/Users/philip/.config/dev/context/ledidi-monorepo"
 SETUP_CMD="/Users/philip/.config/dev/setup-stack.sh"
 
 no_setup=false
@@ -45,8 +45,8 @@ else
   git worktree add -b "$branch" "$worktree_path" origin/master || exit 1
 fi
 
-# Copy CLAUDE.local.md files from config to worktree
-(cd "$CLAUDE_SRC" && find . -name 'CLAUDE.local.md' -exec sh -c '
+# Copy context files from config to worktree
+(cd "$CONTEXT_SRC" && find . \( -name 'CLAUDE.local.md' -o -name 'AGENTS.md' \) -exec sh -c '
   for file; do
     mkdir -p "'"$worktree_path"'/$(dirname "$file")"
     cp "$file" "'"$worktree_path"'/$file"

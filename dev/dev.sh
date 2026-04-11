@@ -378,21 +378,46 @@ dc() {
         "$@"
 }
 
-# --- CLAUDE.local.md management ---
+# --- Context file management ---
 
+context_dir="$HOME/.config/dev/context/ledidi-monorepo"
 claude_local_md="$repo_root/CLAUDE.local.md"
+agents_md="$repo_root/AGENTS.md"
 
-write_claude_ports() {
+apply_context_replacements() {
+    local file=$1
+    shift
+
+    [ -f "$file" ] || return
+
+    for pair in "$@"; do
+        local tag="${pair%%:*}"
+        local value="${pair##*:}"
+        if [[ "$OSTYPE" == darwin* ]]; then
+            sed -i '' "s|${tag}|${value}|g" "$file"
+        else
+            sed -i "s|${tag}|${value}|g" "$file"
+        fi
+    done
+}
+
+sync_context_files() {
     local s=$1
     local offset=$(( s * 100 ))
-    local claude_template="$HOME/.config/dev/claude/ledidi-monorepo/CLAUDE.local.md"
+    local claude_template="$context_dir/CLAUDE.local.md"
+    local agents_template="$context_dir/AGENTS.md"
 
     if [ ! -f "$claude_template" ]; then
         echo "Warning: CLAUDE.local.md template not found at $claude_template" >&2
-        return
+    else
+        cp "$claude_template" "$claude_local_md"
     fi
 
-    cp "$claude_template" "$claude_local_md"
+    if [ ! -f "$agents_template" ]; then
+        echo "Warning: AGENTS.md template not found at $agents_template" >&2
+    else
+        cp "$agents_template" "$agents_md"
+    fi
 
     local replacements=(
         "{{FRONTEND_PORT}}:$(( FRONTEND_BASE_PORT + offset ))"
@@ -404,19 +429,13 @@ write_claude_ports() {
         "{{AGENT_PORT}}:$(( 4007 + offset ))"
     )
 
-    for pair in "${replacements[@]}"; do
-        local tag="${pair%%:*}"
-        local value="${pair##*:}"
-        if [[ "$OSTYPE" == darwin* ]]; then
-            sed -i '' "s|${tag}|${value}|g" "$claude_local_md"
-        else
-            sed -i "s|${tag}|${value}|g" "$claude_local_md"
-        fi
-    done
+    apply_context_replacements "$claude_local_md" "${replacements[@]}"
+    apply_context_replacements "$agents_md" "${replacements[@]}"
 }
 
-remove_claude_ports() {
+remove_context_files() {
     rm -f "$claude_local_md"
+    rm -f "$agents_md"
 }
 
 write_env_files() {
@@ -549,7 +568,7 @@ case "$subcommand" in
             dc up -d --wait $default_services
         fi
         run_seed
-        write_claude_ports "$resolved_slot"
+        sync_context_files "$resolved_slot"
         write_env_files "$resolved_slot"
 
         echo "Stack is running at http://localhost:$(( FRONTEND_BASE_PORT + offset ))/en/registries"
@@ -562,7 +581,7 @@ case "$subcommand" in
             docker network disconnect "default-network-wt-${resolved_slot}" admin-mock 2>/dev/null || true
             docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
         fi
-        remove_claude_ports
+        remove_context_files
         remove_env_files
         ;;
 
@@ -586,7 +605,7 @@ case "$subcommand" in
             docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
             clear_saved_slot
         fi
-        remove_claude_ports
+        remove_context_files
         remove_env_files
         rm -rf "$tmp_dir"
         echo

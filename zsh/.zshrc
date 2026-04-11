@@ -117,65 +117,11 @@ _gwd_completions() {
 }
 compdef _gwd_completions gwd
 
-sync-claude-md() {
-  local template="$HOME/.config/dev/claude/ledidi-monorepo/CLAUDE.local.md"
-  if [[ ! -f "$template" ]]; then
-    echo "Template not found: $template" >&2
-    return 1
-  fi
-
-  local -a targets=()
-
-  # Main repo (slot 0)
-  local main_repo="$HOME/work/ledidi-monorepo"
-  if [[ -d "$main_repo" ]]; then
-    targets+=("$main_repo:0")
-  fi
-
-  # Worktrees with active dev stacks (have a slot file)
-  for wt in "$HOME/work/worktrees"/*/; do
-    [[ -d "$wt" ]] || continue
-    local name="${wt:t}"
-    local slot_file="$HOME/work/.dev-stacks/$name/worktree-slot"
-    if [[ -f "$slot_file" ]]; then
-      targets+=("${wt%/}:$(< "$slot_file")")
-    fi
-  done
-
-  if (( ${#targets} == 0 )); then
-    echo "No targets found"
-    return 0
-  fi
-
-  local count=0
-  for entry in "${targets[@]}"; do
-    local target="${entry%%:*}"
-    local slot="${entry##*:}"
-    local offset=$(( slot * 100 ))
-    local dest="$target/CLAUDE.local.md"
-
-    cp "$template" "$dest"
-
-    sed -i '' \
-      -e "s|{{FRONTEND_PORT}}|$(( 3003 + offset ))|g" \
-      -e "s|{{ROUTER_PORT}}|$(( 4000 + offset ))|g" \
-      -e "s|{{POSTGRES_PORT}}|$(( 5432 + offset ))|g" \
-      -e "s|{{CODELIST_PORT}}|$(( 4005 + offset ))|g" \
-      -e "s|{{CODELIST_GRPC_PORT}}|$(( 50005 + offset ))|g" \
-      -e "s|{{REGISTRIES_PORT}}|$(( 4006 + offset ))|g" \
-      -e "s|{{REGISTRIES_GRPC_PORT}}|$(( 50006 + offset ))|g" \
-      -e "s|{{AGENT_PORT}}|$(( 4007 + offset ))|g" \
-      "$dest"
-
-    (( count++ ))
-    echo "  ✓ ${target##*/} (slot $slot)"
-  done
-
-  echo "Synced $count workspace(s)"
+sync-context() {
+  /Users/philip/.config/dev/sync-context.sh "$@"
 }
 
 # Git alias completions
-
 _git_local_branches() {
   local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
   _describe 'branch' branches
