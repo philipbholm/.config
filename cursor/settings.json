@@ -65,19 +65,21 @@
   },
   "[typescript]": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "biomejs.biome",
+    "editor.defaultFormatter": "fronterior.biome-monorepo",
     "editor.tabSize": 4,
     "editor.codeActionsOnSave": {
       "quickfix.biome": "explicit",
+      "source.fixAll.biome": "explicit",
       "source.organizeImports.biome": "explicit"
     }
   },
   "[typescriptreact]": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "biomejs.biome",
+    "editor.defaultFormatter": "fronterior.biome-monorepo",
     "editor.tabSize": 2,
     "editor.codeActionsOnSave": {
       "quickfix.biome": "explicit",
+      "source.fixAll.biome": "explicit",
       "source.organizeImports.biome": "explicit"
     }
   },
