@@ -19,4 +19,4 @@ command = "npx"
 args = ["chrome-devtools-mcp@latest", "--isolated"]
 
 [tui]
-status_line = ["model-with-reasoning", "context-remaining", "current-dir", "five-hour-limit", "weekly-limit", "context-used", "used-tokens", "total-input-tokens", "total-output-tokens"]
+status_line = ["model-with-reasoning", "context-used", "used-tokens", "total-input-tokens", "total-output-tokens", "five-hour-limit", "weekly-limit"]
