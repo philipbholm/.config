@@ -12,10 +12,11 @@ else
 fi
 
 options=(
-	# Matches macOS corner radii more reliably on newer releases.
-	style=uniform
+	# Use the supported rounded border style and retina rendering so
+	# corner arcs don't appear thicker than the straight edges.
+	style=round
 	width=10.0
-	hidpi=off
+	hidpi=on
 	active_color=$active_color
 	inactive_color=$inactive_color
 )
