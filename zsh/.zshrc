@@ -276,6 +276,14 @@ _tdl_yolo() {
   esac
 }
 
+_tdl_ai_kind() {
+  case "$1" in
+    cc|claude|claude\ *) echo "claude" ;;
+    cx|codex|codex\ *)   echo "codex" ;;
+    *)                   echo "other" ;;
+  esac
+}
+
 tdl() {
   if [ -z "$1" ]; then
     echo "Usage: tdl <ai_command> [<second_ai_command>]"
@@ -287,19 +295,24 @@ tdl() {
 
   local ai_cmd="$(_tdl_yolo "$1")"
   local second_ai_cmd="${2:+$(_tdl_yolo "$2")}"
+  local ai_kind="$(_tdl_ai_kind "$1")"
+  local second_ai_kind="${2:+$(_tdl_ai_kind "$2")}"
   local editor_pane="$TMUX_PANE"
 
   tmux rename-window "$(basename "$PWD")"
 
   # Split: 15% bottom for terminal
   local terminal_pane=$(tmux split-window -v -l 15% -c "#{pane_current_path}" -P -F '#{pane_id}')
+  tmux select-pane -t "$terminal_pane" -T "shell"
 
   # Split editor pane: 30% right for AI
   local ai_pane=$(tmux split-window -h -t "$editor_pane" -l 30% -c "#{pane_current_path}" -P -F '#{pane_id}')
+  tmux select-pane -t "$ai_pane" -T "ai:$ai_kind"
 
   # Optional: split AI pane for second AI
   if [ -n "$second_ai_cmd" ]; then
     local second_ai_pane=$(tmux split-window -v -t "$ai_pane" -l 50% -c "#{pane_current_path}" -P -F '#{pane_id}')
+    tmux select-pane -t "$second_ai_pane" -T "ai:$second_ai_kind"
     tmux send-keys -t "$second_ai_pane" "clear && $second_ai_cmd" Enter
   fi
 
@@ -349,12 +362,15 @@ tsl() {
   local count="$1"
   shift
   local cmd="$*"
+  local ai_kind="$(_tdl_ai_kind "$cmd")"
 
   tmux rename-window "swarm"
+  tmux select-pane -T "ai:$ai_kind"
   tmux send-keys "clear && $cmd" Enter
 
   for ((i = 2; i <= count; i++)); do
-    tmux split-window -c "#{pane_current_path}"
+    local pane_id=$(tmux split-window -c "#{pane_current_path}" -P -F '#{pane_id}')
+    tmux select-pane -t "$pane_id" -T "ai:$ai_kind"
     tmux send-keys "clear && $cmd" Enter
     tmux select-layout tiled
   done

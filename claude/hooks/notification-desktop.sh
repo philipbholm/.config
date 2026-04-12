@@ -21,9 +21,13 @@ ctx_tag="${context:+ [$context]}"
 
 case "$event" in
   "permission_prompt")
+    tmux set-option -wq -t "$TMUX_PANE" @ai_attention_claude 1 2>/dev/null || true
+    tmux set-option -wq -t "$TMUX_PANE" @ai_attention 1 2>/dev/null || true
     alerter -message "Claude needs your permission to proceed" -title "Claude Code${ctx_tag} - Permission Required" -sound "Glass" -timeout 10 > /dev/null 2>&1 &
     ;;
   "idle_prompt")
+    tmux set-option -wq -t "$TMUX_PANE" @ai_attention_claude 1 2>/dev/null || true
+    tmux set-option -wq -t "$TMUX_PANE" @ai_attention 1 2>/dev/null || true
     alerter -message "Claude is waiting for your input" -title "Claude Code${ctx_tag} - Ready" -sound "Glass" -timeout 10 > /dev/null 2>&1 &
     ;;
 esac
