@@ -56,3 +56,8 @@ key = "Return"
 mods = "Shift"
 chars = "\u001B\r"
 
+[[keyboard.bindings]]
+key = "ø"
+mods = "Control"
+chars = "\u001b[99;5~"
+
