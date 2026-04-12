@@ -5,6 +5,8 @@
 
 set -euo pipefail
 
+. "$HOME/.config/dev/lib/workspace.sh"
+
 # Ensure Docker CLI is in PATH (Docker Desktop on macOS)
 [[ -d "/Applications/Docker.app/Contents/Resources/bin" ]] && \
     export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
@@ -15,11 +17,11 @@ if ! git rev-parse --show-toplevel &>/dev/null; then
 fi
 MONOREPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$MONOREPO_ROOT"
-PROJECT_NAME="$(basename "$MONOREPO_ROOT")"
+PROJECT_NAME="$(dev_workspace_id_for_repo "$MONOREPO_ROOT")"
 FRONTEND_BASE_PORT=3003
 
 # Determine ports from worktree slot
-worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$PROJECT_NAME/worktree-slot"
+worktree_slot_file="$(dev_slot_file_for_repo "$MONOREPO_ROOT")"
 if [[ -f "$worktree_slot_file" ]]; then
   slot=$(cat "$worktree_slot_file")
   offset=$((slot * 100))
@@ -48,7 +50,7 @@ DOCKER_COMPOSE="$MONOREPO_ROOT/docker-compose.yml"
 ROUTER_CONFIG="$MONOREPO_ROOT/services/apollo-router/router.docker.yaml"
 
 # Worktree overlay files (outside git, backed up/restored manually)
-TMP_BASE="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$PROJECT_NAME"
+TMP_BASE="$(dev_stack_dir_for_repo "$MONOREPO_ROOT")"
 WT_COMPOSE="$TMP_BASE/docker-compose.stack.yml"
 WT_ROUTER_CONFIG="$TMP_BASE/router.docker.worktree.yaml"
 WT_COMPOSE_BACKUP=""

@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+. "$HOME/.config/dev/lib/workspace.sh"
+
 ### gwc.sh — Create git worktree with dev environment
 ### Sets up a new worktree, copies context files, and runs setup-stack.sh.
 ###
@@ -11,12 +13,40 @@ set -euo pipefail
 ###   -n, --no-setup    Skip running setup-stack.sh (just create worktree)
 ###
 ### Examples:
-###   gwc feat/my-feature        Create worktree from origin/master and setup stack
+###   gwc feat/my-feature        Create worktree from origin/HEAD and setup stack
 ###   gwc -n fix/quick-patch     Create worktree without running setup
 
-WORKTREE_BASE="/Users/philip/work/worktrees"
+WORKTREE_BASE="$(dev_worktree_base)"
 CONTEXT_SRC="/Users/philip/.config/dev/context/ledidi-monorepo"
 SETUP_CMD="/Users/philip/.config/dev/setup-stack.sh"
+
+default_base_ref() {
+  if [[ -n "${GWC_BASE_REF:-}" ]]; then
+    printf '%s\n' "$GWC_BASE_REF"
+    return 0
+  fi
+
+  local origin_head
+  origin_head=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null || true)
+  if [[ -n "$origin_head" ]]; then
+    printf '%s\n' "${origin_head#refs/remotes/}"
+    return 0
+  fi
+
+  if git show-ref --verify --quiet refs/remotes/origin/main; then
+    printf '%s\n' "origin/main"
+    return 0
+  fi
+
+  if git show-ref --verify --quiet refs/remotes/origin/master; then
+    printf '%s\n' "origin/master"
+    return 0
+  fi
+
+  echo "Error: Could not determine a default base branch from origin." >&2
+  echo "Set GWC_BASE_REF to an explicit ref, for example: export GWC_BASE_REF=origin/main" >&2
+  exit 1
+}
 
 no_setup=false
 while [[ "${1:-}" == -* ]]; do
@@ -38,13 +68,14 @@ worktree_path="$WORKTREE_BASE/$branch"
 git rev-parse --show-toplevel >/dev/null 2>&1 || { echo "Error: Not inside a git repository"; exit 1; }
 
 git fetch origin
+base_ref=$(default_base_ref)
 
 if git show-ref --verify --quiet "refs/heads/$branch"; then
   git worktree add "$worktree_path" "$branch" || exit 1
 elif git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
   git worktree add "$worktree_path" "$branch" || exit 1
 else
-  git worktree add -b "$branch" "$worktree_path" origin/master || exit 1
+  git worktree add -b "$branch" "$worktree_path" "$base_ref" || exit 1
 fi
 
 # Copy context files from config to worktree
@@ -57,7 +88,7 @@ fi
 
 if [[ "$no_setup" == false ]]; then
   log_file=$(mktemp)
-  (
+  if (
     (cd "$worktree_path" && bash "$SETUP_CMD" > "$log_file" 2>&1) &
     pid=$!
     spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
@@ -68,11 +99,13 @@ if [[ "$no_setup" == false ]]; then
       sleep 0.1
     done
     wait $pid
-    exit $?
-  )
-  exit_code=$?
+  ); then
+    exit_code=0
+  else
+    exit_code=$?
+  fi
   printf "\r\033[K"
-  if [ $exit_code -ne 0 ]; then
+  if [ "$exit_code" -ne 0 ]; then
     echo "Worktree setup failed. Log: $log_file"
     exit 1
   fi

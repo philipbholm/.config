@@ -1,6 +1,8 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
+. "$HOME/.config/dev/lib/workspace.sh"
+
 # Parse flags
 validation_mode=false
 remaining_args=()
@@ -19,8 +21,7 @@ monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
 FRONTEND_BASE_PORT=3003
 
 # Determine ports from worktree slot
-project_name="$(basename "$monorepo_root")"
-worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name/worktree-slot"
+worktree_slot_file="$(dev_slot_file_for_repo "$monorepo_root")"
 if [[ -f "$worktree_slot_file" ]]; then
   slot=$(cat "$worktree_slot_file")
   offset=$((slot * 100))

@@ -25,7 +25,7 @@ docker compose -f docker-compose.yml -f <override> restart registries
 
 | Command | Description |
 |---------|-------------|
-| `dev up` | Full init: generate override, start services, seed DB, sync `CLAUDE.local.md` and `AGENTS.md` |
+| `dev up` | Full init: generate override, start services, and when `registries` is started also seed DB and sync context files |
 | `dev up --build <service>` | Rebuild a specific service (replaces old `rebuild` command) |
 | `dev down` | Stop and remove containers |
 | `dev nuke` | Full teardown: containers, volumes, images, slot, tmp dir |
@@ -70,10 +70,10 @@ Each worktree gets a unique slot (1–9). Ports are offset by `slot × 100`:
 `dev` writes a generated compose override to:
 
 ```
-~/work/.dev-stacks/<project-name>/docker-compose.stack.yml
+~/work/.dev-stacks/<workspace-id>/docker-compose.stack.yml
 ```
 
-This file is regenerated on every command. The `DEV_STACKS_DIR` env var controls the base directory.
+This file is regenerated on every command. The `DEV_STACKS_DIR` env var controls the base directory. Worktree IDs are derived from the branch name and include a stable hash so similarly named branches do not collide.
 
 ## Setup
 
@@ -95,7 +95,7 @@ ln -sf ~/.config/dev/check.sh ~/bin/check
 ```bash
 ~/bin/dev     -> ~/.config/dev/dev.sh
 ~/bin/check   -> ~/.config/dev/check.sh
-~/bin/tests   -> ~/.config/dev/test.sh
+~/bin/tests   -> ~/.config/dev/tests.sh
 ~/bin/tunnel  -> ~/.config/dev/tunnel.sh
 ```
 

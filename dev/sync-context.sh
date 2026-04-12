@@ -1,12 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
+. "$HOME/.config/dev/lib/workspace.sh"
+
 CONTEXT_DIR="$HOME/.config/dev/context/ledidi-monorepo"
 CLAUDE_TEMPLATE="$CONTEXT_DIR/CLAUDE.local.md"
 AGENTS_TEMPLATE="$CONTEXT_DIR/AGENTS.md"
 MAIN_REPO="$HOME/work/ledidi-monorepo"
-WORKTREE_BASE="$HOME/work/worktrees"
-DEV_STACKS_DIR="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}"
+WORKTREE_BASE="$(dev_worktree_base)"
 
 apply_replacements() {
   local file="$1"
@@ -36,15 +37,13 @@ if [[ -d "$MAIN_REPO" ]]; then
   targets+=("$MAIN_REPO:0")
 fi
 
-for wt in "$WORKTREE_BASE"/*/; do
-  [[ -d "$wt" ]] || continue
-  name="${wt%/}"
-  name="${name##*/}"
-  slot_file="$DEV_STACKS_DIR/$name/worktree-slot"
+while IFS= read -r git_file; do
+  wt=$(dirname "$git_file")
+  slot_file="$(dev_slot_file_for_repo "$wt")"
   if [[ -f "$slot_file" ]]; then
-    targets+=("${wt%/}:$(< "$slot_file")")
+    targets+=("$wt:$(< "$slot_file")")
   fi
-done
+done < <(find "$WORKTREE_BASE" -type f -name .git 2>/dev/null | sort)
 
 if (( ${#targets[@]} == 0 )); then
   echo "No targets found"

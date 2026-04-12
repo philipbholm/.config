@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+. "$HOME/.config/dev/lib/workspace.sh"
+
 ### dev.sh — Unified dev stack manager
 ### Auto-detects main vs worktree, wraps docker compose with correct override files.
 ###
@@ -117,14 +119,71 @@ run_seed() {
 }
 
 available_services() {
-    local all_services="$1"
-    local result=""
-    for svc in $all_services; do
-        if grep -qE "^\s+${svc}:" "$repo_root/docker-compose.yml" 2>/dev/null; then
-            result="$result $svc"
+    local defined_services=""
+    local result=()
+    local svc
+
+    defined_services=$(docker compose -f "$repo_root/docker-compose.yml" config --services 2>/dev/null || true)
+
+    for svc in "$@"; do
+        if [ -n "$defined_services" ]; then
+            if printf '%s\n' "$defined_services" | grep -qx "$svc"; then
+                result+=("$svc")
+            fi
+        elif grep -qE "^\s+${svc}:" "$repo_root/docker-compose.yml" 2>/dev/null; then
+            result+=("$svc")
         fi
     done
-    echo "$result"
+
+    printf '%s\n' "${result[@]}"
+}
+
+collect_compose_services() {
+    local expect_value=false
+    local stop_parsing_options=false
+    local arg
+
+    for arg in "$@"; do
+        if [ "$expect_value" = true ]; then
+            expect_value=false
+            continue
+        fi
+
+        if [ "$stop_parsing_options" = true ]; then
+            printf '%s\n' "$arg"
+            continue
+        fi
+
+        case "$arg" in
+            --)
+                stop_parsing_options=true
+                ;;
+            --attach|--exit-code-from|--no-attach|--pull|--scale|--timeout|--wait-timeout|-t)
+                expect_value=true
+                ;;
+            --abort-on-container-exit|--abort-on-container-failure|--always-recreate-deps|--build|--detach|--force-recreate|--menu|--no-build|--no-color|--no-deps|--no-log-prefix|--no-recreate|--no-start|--quiet-build|--quiet-pull|--remove-orphans|--renew-anon-volumes|--timestamps|--wait|-V|-d)
+                ;;
+            -*)
+                ;;
+            *)
+                printf '%s\n' "$arg"
+                ;;
+        esac
+    done
+}
+
+service_list_contains() {
+    local target=$1
+    shift
+    local service
+
+    for service in "$@"; do
+        if [ "$service" = "$target" ]; then
+            return 0
+        fi
+    done
+
+    return 1
 }
 
 # --- Mode detection ---
@@ -134,7 +193,7 @@ if ! git rev-parse --show-toplevel &>/dev/null; then
     exit 1
 fi
 repo_root="$(git rev-parse --show-toplevel)"
-project_name="$(basename "$repo_root")"
+project_name="$(dev_workspace_id_for_repo "$repo_root")"
 
 if [ -f "$repo_root/.git" ]; then
     mode="worktree"   # .git is a file in worktrees, containing gitdir pointer
@@ -142,17 +201,30 @@ else
     mode="main"       # .git is a directory in main checkouts
 fi
 
-tmp_dir="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name"
+tmp_dir="$(dev_stack_dir_for_repo "$repo_root")"
 
 # --- Slot management ---
 
-slot_file="$tmp_dir/worktree-slot"
+slot_file="$(dev_slot_file_for_repo "$repo_root")"
 
 is_slot_in_use() {
     local s=$1
     local containers
     containers=$(docker ps -aq --filter "label=${DEV_SLOT_LABEL}=${s}" 2>/dev/null)
     [ -n "$containers" ]
+}
+
+slot_from_existing_stack() {
+    local container
+
+    container=$(docker ps -aq \
+        --filter "label=com.docker.compose.project=${project_name}" \
+        --filter "label=${DEV_SLOT_LABEL}" 2>/dev/null | head -1)
+    if [ -z "$container" ]; then
+        return 1
+    fi
+
+    docker inspect --format "{{index .Config.Labels \"$DEV_SLOT_LABEL\"}}" "$container" 2>/dev/null
 }
 
 next_available_slot() {
@@ -217,15 +289,31 @@ resolve_slot() {
         return
     fi
 
+    local detected
     local saved
+
+    detected=$(slot_from_existing_stack || true)
+    if [ -n "$detected" ]; then
+        if [ "$detected" != "$(read_saved_slot)" ]; then
+            save_slot "$detected"
+        fi
+        echo "$detected"
+        return
+    fi
+
     saved=$(read_saved_slot)
     if [ -n "$saved" ]; then
-        if is_slot_in_use "$saved"; then
+        if ! is_slot_in_use "$saved"; then
             echo "$saved"
             return
         else
-            # Stale slot file — clear it and fall through to auto-assign
-            clear_saved_slot
+            if [ "$subcommand" = "up" ]; then
+                clear_saved_slot
+            else
+                echo "Error: Saved slot $saved is already in use by another stack." >&2
+                echo "Run 'dev up' to allocate a new slot." >&2
+                exit 1
+            fi
         fi
     fi
 
@@ -541,11 +629,26 @@ if [ "$offset" -gt 0 ]; then
 fi
 echo
 
-default_services=$(available_services "registries-frontend postgres codelist registries agent")
+default_services=()
+while IFS= read -r service; do
+    [ -n "$service" ] && default_services+=("$service")
+done < <(available_services registries-frontend postgres codelist registries agent)
 
 case "$subcommand" in
     up)
-        check_admin_mock
+        requested_services=()
+        while IFS= read -r service; do
+            [ -n "$service" ] && requested_services+=("$service")
+        done < <(collect_compose_services "$@")
+        if [ "${#requested_services[@]}" -eq 0 ]; then
+            requested_services=("${default_services[@]}")
+        fi
+
+        needs_admin_mock=false
+        if service_list_contains "registries" "${requested_services[@]}"; then
+            needs_admin_mock=true
+            check_admin_mock
+        fi
         [ "$mode" = "worktree" ] && save_slot "$resolved_slot"
 
         # Clean up stopped containers before network setup — their stale network
@@ -553,7 +656,7 @@ case "$subcommand" in
         cleanup_stale_containers
 
         # Create per-slot bridge network so compose services can reach admin-mock
-        if [ "$mode" = "worktree" ]; then
+        if [ "$mode" = "worktree" ] && [ "$needs_admin_mock" = true ]; then
             # Remove stale default network from a previous project that used this slot
             docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
             docker network create "admin-bridge-wt-${resolved_slot}" 2>/dev/null || true
@@ -565,13 +668,20 @@ case "$subcommand" in
         if [ "$#" -gt 0 ]; then
             dc up "$@" -d --wait
         else
-            dc up -d --wait $default_services
+            dc up -d --wait "${default_services[@]}"
         fi
-        run_seed
-        sync_context_files "$resolved_slot"
-        write_env_files "$resolved_slot"
 
-        echo "Stack is running at http://localhost:$(( FRONTEND_BASE_PORT + offset ))/en/registries"
+        if service_list_contains "registries" "${requested_services[@]}"; then
+            run_seed
+            sync_context_files "$resolved_slot"
+            write_env_files "$resolved_slot"
+        fi
+
+        if service_list_contains "registries-frontend" "${requested_services[@]}"; then
+            echo "Stack is running at http://localhost:$(( FRONTEND_BASE_PORT + offset ))/en/registries"
+        else
+            echo "Stack is running."
+        fi
         ;;
 
     down)
@@ -613,10 +723,22 @@ case "$subcommand" in
         ;;
 
     start)
-        check_admin_mock
+        requested_services=()
+        while IFS= read -r service; do
+            [ -n "$service" ] && requested_services+=("$service")
+        done < <(collect_compose_services "$@")
+        if [ "${#requested_services[@]}" -eq 0 ]; then
+            requested_services=("${default_services[@]}")
+        fi
+
+        needs_admin_mock=false
+        if service_list_contains "registries" "${requested_services[@]}"; then
+            needs_admin_mock=true
+            check_admin_mock
+        fi
         cleanup_stale_containers
 
-        if [ "$mode" = "worktree" ]; then
+        if [ "$mode" = "worktree" ] && [ "$needs_admin_mock" = true ]; then
             docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
             docker network create "admin-bridge-wt-${resolved_slot}" 2>/dev/null || true
             docker network connect "admin-bridge-wt-${resolved_slot}" admin-mock 2>/dev/null || true
@@ -626,7 +748,7 @@ case "$subcommand" in
         if [ "$#" -gt 0 ]; then
             dc up -d "$@"
         else
-            dc up -d $default_services
+            dc up -d "${default_services[@]}"
         fi
         ;;
 

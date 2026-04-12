@@ -1,6 +1,8 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
+. "$HOME/.config/dev/lib/workspace.sh"
+
 ### tests.sh — Run tests for the Ledidi monorepo
 ###
 ### Usage:
@@ -77,16 +79,14 @@ done
 
 # --- Determine ports from worktree slot ---
 
-project_name="$(basename "$monorepo_root")"
-stacks_dir="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}"
-worktree_slot_file="$stacks_dir/$project_name/worktree-slot"
+worktree_slot_file="$(dev_slot_file_for_repo "$monorepo_root")"
 
 if [[ -f "$monorepo_root/.git" ]]; then
   # Worktree — .git is a file, not a directory
   if [[ -f "$worktree_slot_file" ]]; then
     slot=$(cat "$worktree_slot_file")
   else
-    echo "Error: No slot assigned for worktree '$project_name'. Run 'dev up' first."
+    echo "Error: No slot assigned for worktree at '$monorepo_root'. Run 'dev up' first."
     exit 1
   fi
 else
