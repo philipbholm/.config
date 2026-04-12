@@ -6,12 +6,26 @@
     <string>com.philip.theme-watcher</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/philip/.config/theme-watcher/theme-watcher</string>
+        <string>/bin/bash</string>
+        <string>/Users/philip/.config/switch-theme.sh</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
-    <key>KeepAlive</key>
-    <true/>
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>7</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>18</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+    </array>
     <key>StandardErrorPath</key>
     <string>/tmp/theme-watcher.err</string>
 </dict>

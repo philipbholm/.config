@@ -3,11 +3,20 @@
 THEME_DIR="$HOME/.config/alacritty/themes"
 ACTIVE_THEME="$HOME/.config/alacritty/active_theme.toml"
 
-CURRENT_MODE=$(defaults read -g AppleInterfaceStyle 2>/dev/null || echo "Light")
+# Determine theme based on time in Europe/Oslo (dark 18:00–07:00)
+HOUR=$(TZ=Europe/Oslo date +%-H)
+if [ "$HOUR" -ge 18 ] || [ "$HOUR" -lt 7 ]; then
+    MODE="Dark"
+else
+    MODE="Light"
+fi
 
-if [ "$CURRENT_MODE" = "Dark" ]; then
+# Set macOS appearance
+if [ "$MODE" = "Dark" ]; then
+    osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true'
     ln -sf "$THEME_DIR/dark.toml" "$ACTIVE_THEME"
 else
+    osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to false'
     ln -sf "$THEME_DIR/light.toml" "$ACTIVE_THEME"
 fi
 
@@ -17,7 +26,7 @@ touch "$ACTIVE_THEME"
 ~/.config/borders/bordersrc
 
 # Update all running nvim instances
-if [ "$CURRENT_MODE" = "Dark" ]; then
+if [ "$MODE" = "Dark" ]; then
     BG="dark"
 else
     BG="light"
