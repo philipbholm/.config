@@ -3,9 +3,11 @@ return {
     "Mofiqul/vscode.nvim",
     lazy = false,
     priority = 1000,
-    opts = {
-      style = "dark",
-    },
+    opts = function()
+      return {
+        style = vim.o.background,
+      }
+    end,
   },
   {
     "LazyVim/LazyVim",
