@@ -27,7 +27,7 @@
     unstage = restore --staged
     db = branch -D
 [core]
-	  editor = nvim
+	  editor = vim
 [diff]
 	  tool = cursor
 [difftool "cursor"]
