@@ -5,7 +5,7 @@ handle:close()
 vim.o.background = result:match("Dark") and "dark" or "light"
 
 -- Omarchy defaults
-vim.opt.relativenumber = false
+vim.opt.relativenumber = true
 vim.opt.swapfile = false
 
 -- Preserved from previous config
