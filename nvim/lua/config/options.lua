@@ -7,7 +7,7 @@ local function sync_appearance(reload)
     local handle = io.popen("defaults read -g AppleInterfaceStyle 2>/dev/null")
     local result = handle:read("*a")
     handle:close()
-    link = result:match("Dark") and "dark" or "light"
+    link = result:match("Dark") and "dark" or ""
   end
   local bg = link:match("dark") and "dark" or "light"
   if vim.o.background ~= bg then
@@ -21,12 +21,12 @@ end
 
 sync_appearance(false)
 
-if vim.g._theme_timer then
-  vim.g._theme_timer:stop()
-  vim.g._theme_timer:close()
+if _G._theme_timer then
+  _G._theme_timer:stop()
+  _G._theme_timer:close()
 end
 local timer = vim.uv.new_timer()
-vim.g._theme_timer = timer
+_G._theme_timer = timer
 timer:start(5000, 5000, vim.schedule_wrap(function()
   sync_appearance(true)
 end))
