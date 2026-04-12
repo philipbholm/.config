@@ -1,8 +1,35 @@
--- Follow macOS appearance
-local handle = io.popen("defaults read -g AppleInterfaceStyle 2>/dev/null")
-local result = handle:read("*a")
-handle:close()
-vim.o.background = result:match("Dark") and "dark" or "light"
+-- Follow macOS appearance by watching the symlink that switch-theme.sh updates
+local theme_file = vim.fn.expand("~/.config/alacritty/active_theme.toml")
+
+local function sync_appearance(reload)
+  local link = vim.uv.fs_readlink(theme_file)
+  if not link then
+    local handle = io.popen("defaults read -g AppleInterfaceStyle 2>/dev/null")
+    local result = handle:read("*a")
+    handle:close()
+    link = result:match("Dark") and "dark" or "light"
+  end
+  local bg = link:match("dark") and "dark" or "light"
+  if vim.o.background ~= bg then
+    if reload then
+      require("vscode").load(bg)
+    else
+      vim.o.background = bg
+    end
+  end
+end
+
+sync_appearance(false)
+
+if vim.g._theme_timer then
+  vim.g._theme_timer:stop()
+  vim.g._theme_timer:close()
+end
+local timer = vim.uv.new_timer()
+vim.g._theme_timer = timer
+timer:start(5000, 5000, vim.schedule_wrap(function()
+  sync_appearance(true)
+end))
 
 -- Omarchy defaults
 vim.opt.relativenumber = true

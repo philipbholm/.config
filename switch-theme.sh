@@ -20,18 +20,5 @@ else
     ln -sf "$THEME_DIR/light.toml" "$ACTIVE_THEME"
 fi
 
-touch "$ACTIVE_THEME"
-
 # Update borders colors by re-executing bordersrc (supports live reconfiguration)
 ~/.config/borders/bordersrc
-
-# Update all running nvim instances
-if [ "$MODE" = "Dark" ]; then
-    BG="dark"
-else
-    BG="light"
-fi
-for sock in /var/folders/*/*/T/nvim.*/*/nvim.*.0; do
-    [ -S "$sock" ] && nvim --server "$sock" --remote-send "<Cmd>set background=$BG<CR>" 2>/dev/null &
-done
-wait
