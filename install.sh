@@ -99,6 +99,11 @@ for plist in "$DOTFILES"/launchd/*.plist; do
   launchctl bootstrap "gui/$(id -u)" "$LAUNCH_AGENTS/$name"
 done
 
+# ─── Theme ───────────────────────────────────────────────────
+
+echo "Setting initial theme..."
+"$DOTFILES/switch-theme.sh"
+
 # ─── Cleanup Stale Symlinks ──────────────────────────────────
 
 # tmux 3.1+ reads from ~/.config/tmux/tmux.conf natively
