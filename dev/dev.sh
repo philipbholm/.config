@@ -671,9 +671,11 @@ case "$subcommand" in
             dc up -d --wait "${default_services[@]}"
         fi
 
+        # Always sync context files so Claude has correct ports
+        sync_context_files "$resolved_slot"
+
         if service_list_contains "registries" "${requested_services[@]}"; then
             run_seed
-            sync_context_files "$resolved_slot"
             write_env_files "$resolved_slot"
         fi
 

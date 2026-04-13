@@ -4,7 +4,7 @@ set -euo pipefail
 . "$HOME/.config/dev/lib/workspace.sh"
 
 ### gwc.sh — Create git worktree with dev environment
-### Sets up a new worktree, copies context files, and runs setup-stack.sh.
+### Sets up a new worktree, copies context files, syncs existing worktrees, and runs setup-stack.sh.
 ###
 ### Usage:
 ###   gwc [-n|--no-setup] <branch-name>
@@ -17,8 +17,8 @@ set -euo pipefail
 ###   gwc -n fix/quick-patch     Create worktree without running setup
 
 WORKTREE_BASE="$(dev_worktree_base)"
-CONTEXT_SRC="/Users/philip/.config/dev/context/ledidi-monorepo"
 SETUP_CMD="/Users/philip/.config/dev/setup-stack.sh"
+CONTEXT_SRC="/Users/philip/.config/dev/context/ledidi-monorepo"
 
 default_base_ref() {
   if [[ -n "${GWC_BASE_REF:-}" ]]; then
@@ -78,13 +78,16 @@ else
   git worktree add -b "$branch" "$worktree_path" "$base_ref" || exit 1
 fi
 
-# Copy context files from config to worktree
+# Copy raw context templates to new worktree (placeholders will be replaced by dev up)
 (cd "$CONTEXT_SRC" && find . \( -name 'CLAUDE.local.md' -o -name 'AGENTS.md' \) -exec sh -c '
   for file; do
     mkdir -p "'"$worktree_path"'/$(dirname "$file")"
     cp "$file" "'"$worktree_path"'/$file"
   done
 ' _ {} +)
+
+# Sync context files with port replacements for existing worktrees (that have slots)
+"$HOME/.config/dev/sync-context.sh"
 
 if [[ "$no_setup" == false ]]; then
   log_file=$(mktemp)
