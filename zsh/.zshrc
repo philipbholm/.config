@@ -228,6 +228,7 @@ alias oc='opencode'
 # Modern ls (eza)
 if command -v eza &> /dev/null; then
   alias ls='eza -lh --group-directories-first --icons=auto'
+  alias ll='eza -lh --group-directories-first --icons=auto'
   alias lsa='eza -lha --group-directories-first --icons=auto'
   alias lt='eza --icons=auto --tree --level=2'
 fi
