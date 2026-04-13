@@ -22,6 +22,7 @@ ln -s ~/.config/claude/agents ~/.claude/agents
 ln -s ~/.config/claude/hooks ~/.claude/hooks
 ln -s ~/.config/claude/skills ~/.claude/skills
 ln -s ~/.config/claude/settings.json ~/.claude/settings.json
+ln -s ~/.config/claude/statusline-command.sh ~/.claude/statusline-command.sh
 ```
 
 Runtime files (history, cache, projects, etc.) live directly in `~/.claude` and are not version-controlled.
