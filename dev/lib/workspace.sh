@@ -83,10 +83,7 @@ dev_workspace_id_for_repo() {
         local hash
 
         raw_key=$(dev_worktree_raw_key_for_repo "$repo_root")
-        repo_family=$(dev_slugify "$(dev_repo_family_name "$repo_root")")
-        slug=$(dev_slugify "$raw_key")
-        hash=$(dev_hash_string "$raw_key")
-        printf '%s\n' "${repo_family}-wt-${slug}-${hash}"
+        dev_slugify "$raw_key"
     else
         dev_slugify "$(basename "$repo_root")"
     fi
@@ -100,4 +97,50 @@ dev_stack_dir_for_repo() {
 dev_slot_file_for_repo() {
     local repo_root=$1
     printf '%s/worktree-slot\n' "$(dev_stack_dir_for_repo "$repo_root")"
+}
+
+dev_existing_slot_file_for_repo() {
+    local repo_root=$1
+    local raw_key
+    local slug
+    local candidate
+
+    candidate=$(dev_slot_file_for_repo "$repo_root")
+    if [ -f "$candidate" ]; then
+        printf '%s\n' "$candidate"
+        return 0
+    fi
+
+    raw_key=$(dev_worktree_raw_key_for_repo "$repo_root")
+    slug=$(dev_slugify "$raw_key")
+
+    for candidate in \
+        "$(dev_stacks_dir)/${raw_key}/worktree-slot" \
+        "$(dev_stacks_dir)/${slug}/worktree-slot" \
+        "$(dev_stacks_dir)/$(basename "$repo_root")/worktree-slot"
+    do
+        if [ -f "$candidate" ]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+dev_slot_for_repo() {
+    local repo_root=$1
+    local slot_file
+
+    if ! dev_is_worktree_repo "$repo_root"; then
+        printf '0\n'
+        return 0
+    fi
+
+    slot_file=$(dev_existing_slot_file_for_repo "$repo_root" 2>/dev/null || true)
+    if [ -n "$slot_file" ] && [ -f "$slot_file" ]; then
+        cat "$slot_file"
+    else
+        printf '0\n'
+    fi
 }
