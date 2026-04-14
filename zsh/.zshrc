@@ -215,15 +215,11 @@ docker() {
 # ── Terminal workflow ──────────────────────────────
 
 # Quick aliases
-alias n='nvim'
-alias g='git'
 alias gcad='git commit -a --amend'
 alias gap='git add -N . && git add -p'
-alias d='docker'
-alias t='tmux new-session -A -s Work'
-alias claude='claude --model claude-opus-4-5-20251101'
-alias cc='claude'
-alias cx='codex'
+alias t='tmux new-session -A -s main'
+alias cc='claude --model claude-opus-4-5-20251101 --dangerously-skip-permissions'
+alias cx='codex --yolo'
 alias oc='opencode'
 
 # Modern ls (eza)
@@ -272,8 +268,8 @@ fi
 #   └──────────┴─────────┘
 _tdl_yolo() {
   case "$1" in
-    cc|claude) echo "claude --dangerously-skip-permissions" ;;
-    cx|codex)  echo "codex --dangerously-bypass-approvals-and-sandbox" ;;
+    cc|claude) echo "claude --model claude-opus-4-5-20251101 --dangerously-skip-permissions" ;;
+    cx|codex)  echo "codex --yolo" ;;
     *)         echo "$1" ;;
   esac
 }
