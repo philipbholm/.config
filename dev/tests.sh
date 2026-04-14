@@ -161,6 +161,7 @@ run_e2e() {
 
   echo -e "\n${GREEN}${BOLD}==>${NC} ${BOLD}$label${NC}"
   export FORCE_COLOR=1
+  setopt localoptions noglob
   eval "$@" 2>&1 | tee "$log_file" | awk '{
     plain = $0
     gsub(/\033\[[0-9;]*m/, "", plain)
@@ -259,7 +260,7 @@ if (( ${suites[(Ie)e2e]} )); then
 
   if [[ "$run_all" == true ]]; then
     ran_e2e=true
-    if run_e2e "E2E tests" "FRONTEND_BASE_URL=http://localhost:$frontend_port E2E_API_URL=http://localhost:$api_port npx playwright test --reporter=list 'src/app/.*/registries/.*\.spec\.tsx' $extra"; then
+    if run_e2e "E2E tests" "FRONTEND_BASE_URL=http://localhost:$frontend_port E2E_API_URL=http://localhost:$api_port npx playwright test --project=chromium --reporter=list 'src/app/.*/registries/.*\.spec\.tsx' $extra"; then
       passed_suites+=("E2E tests")
     else
       failed_suites+=("E2E tests")
@@ -303,7 +304,7 @@ if (( ${suites[(Ie)e2e]} )); then
         playwright_args+=("$(echo "$spec" | sed 's/\[[^]]*\]/.*/g')")
       done
       spec_args="${playwright_args[*]}"
-      if run_e2e "E2E tests" "FRONTEND_BASE_URL=http://localhost:$frontend_port E2E_API_URL=http://localhost:$api_port npx playwright test --reporter=list $spec_args $extra"; then
+      if run_e2e "E2E tests" "FRONTEND_BASE_URL=http://localhost:$frontend_port E2E_API_URL=http://localhost:$api_port npx playwright test --project=chromium --reporter=list $spec_args $extra"; then
         passed_suites+=("E2E tests")
       else
         failed_suites+=("E2E tests")
