@@ -178,13 +178,24 @@ apply_config_changes() {
     fi
 
     # 3. docker-compose.yml - Update VITE_GRAPHQL_URI with API tunnel URL
-    sed -i '' "s|VITE_GRAPHQL_URI=.*|VITE_GRAPHQL_URI=$api_url|" "$DOCKER_COMPOSE"
+    # Preserve /graphql path suffix where present
+    sed -i '' "s|VITE_GRAPHQL_URI=.*/graphql|VITE_GRAPHQL_URI=$api_url/graphql|" "$DOCKER_COMPOSE"
+    sed -i '' "s|VITE_GRAPHQL_URI=http://localhost:4000\$|VITE_GRAPHQL_URI=$api_url|" "$DOCKER_COMPOSE"
+
+    # 3c. Add VITE_DEV_ORIGIN for Vite server to use tunnel URL for script origins
+    if ! grep -q "VITE_DEV_ORIGIN" "$DOCKER_COMPOSE"; then
+        sed -i '' "s|VITE_COGNITO_SSO_URL_BASE=sso.systest.ledidi.no|VITE_COGNITO_SSO_URL_BASE=sso.systest.ledidi.no\n      - VITE_DEV_ORIGIN=$frontend_url|g" "$DOCKER_COMPOSE"
+    fi
+
+    # 3d. Add frontend tunnel URL to ALLOWED_ORIGINS for registries service CORS
+    sed -i '' "s|ALLOWED_ORIGINS=http://localhost:3003,http://localhost:3010|ALLOWED_ORIGINS=http://localhost:3003,http://localhost:3010,$frontend_url|" "$DOCKER_COMPOSE"
 
     # 3b. Worktree compose overlay - also patch VITE_GRAPHQL_URI there since it overrides the base
     if [[ -f "$WT_COMPOSE" ]]; then
         WT_COMPOSE_BACKUP=$(mktemp)
         cp "$WT_COMPOSE" "$WT_COMPOSE_BACKUP"
-        sed -i '' "s|VITE_GRAPHQL_URI=.*|VITE_GRAPHQL_URI=$api_url|" "$WT_COMPOSE"
+        sed -i '' "s|VITE_GRAPHQL_URI=.*/graphql|VITE_GRAPHQL_URI=$api_url/graphql|" "$WT_COMPOSE"
+        sed -i '' "s|VITE_GRAPHQL_URI=http://localhost:4000\$|VITE_GRAPHQL_URI=$api_url|" "$WT_COMPOSE"
         echo "  Patched worktree compose overlay"
     fi
 
