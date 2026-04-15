@@ -3,7 +3,7 @@ name: simple-review
 description: Lightweight single-pass code review — all review areas, one agent, lower token cost
 model: opus
 argument-hint: "[diff | branch <current/name> | pr <number>]"
-allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(date *), Bash(gh:*), Read, Write(/tmp/*), Glob, Grep
+allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(date *), Bash(gh:*), Read, Write(/Users/philip/main/dev/reviews/*), Glob, Grep
 ---
 
 **CRITICAL: This is a READ-ONLY review. Do NOT modify any source code files.**
@@ -57,12 +57,13 @@ Determine what's affected: frontend, which services, shared packages. Read full 
 
 ### Step 3: Compute the output directory
 
-1. **Get branch**: `git branch --show-current`
-2. **Generate a unique filename**:
-   - Use branch and a timestamp such as `$(date +%Y%m%d-%H%M%S)`
-   - Name the file `{branch}-review-{timestamp}.md`
-3. **Store the full output path**: `/tmp/{branch}-review-{timestamp}.md`
-4. **Never overwrite an existing review file**:
+1. **Get repo name**: `git remote get-url origin` → extract repo name
+2. **Get branch**: `git branch --show-current`
+3. **Generate a unique filename**:
+   - Use `{repo}-{branch}-{timestamp}.md` where timestamp is `$(date +%Y%m%d-%H%M%S)`
+4. **Create directory**: `mkdir -p /Users/philip/main/dev/reviews/`
+5. **Store the full output path**: `/Users/philip/main/dev/reviews/{repo}-{branch}-{timestamp}.md`
+6. **Never overwrite an existing review file**:
    - Do not reuse fixed filenames
    - If a filename collision somehow occurs, generate a new timestamp and try again
 
@@ -258,5 +259,5 @@ Write the unified review to the output file using this format. **Skip empty sect
 
 **Output the FULL ABSOLUTE PATH** to the review file starting from root `/`.
 
-**Correct:** `/tmp/update-registry-cards-review-20260409-142530.md`
-**Wrong:** `update-registry-cards-review-20260409-142530.md` or `tmp/update-registry-cards-review-20260409-142530.md`
+**Correct:** `/Users/philip/main/dev/reviews/ledidi-monorepo-update-registry-cards-20260415-142530.md`
+**Wrong:** `ledidi-monorepo-update-registry-cards-20260415-142530.md` or `reviews/ledidi-monorepo-update-registry-cards-20260415-142530.md`

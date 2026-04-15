@@ -3,7 +3,7 @@ name: review
 description: CTO-style code review - rigorous, opinionated feedback on code and files
 disable-model-invocation: true
 argument-hint: "[diff | branch <current/name> | pr <number>] [--opus] [--all]"
-allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(gh:*), Read, Write(/Users/philip/vaults/main/dev/*), Glob, Grep, Task, TeamCreate, TeamDelete, TaskCreate, TaskUpdate, TaskList, TaskGet, SendMessage
+allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(gh:*), Read, Write(/Users/philip/main/dev/reviews/*), Glob, Grep, Task, TeamCreate, TeamDelete, TaskCreate, TaskUpdate, TaskList, TaskGet, SendMessage
 ---
 
 **CRITICAL: This is a READ-ONLY review. You MUST NOT modify any source code files. When spawning reviewer teammates, explicitly instruct each one: "This is a read-only review. Do NOT use Edit, Write, or NotebookEdit tools on source code files. Do NOT modify, create, or delete any project files."**
@@ -129,12 +129,9 @@ Determine what's affected: frontend, which services, shared packages.
 
 1. **Get repo name**: `git remote get-url origin` → extract repo name
 2. **Get branch**: `git branch --show-current`
-3. **Find or create issue directory**:
-   - Check: `ls ~/vaults/main/dev/{repo}/issues/ | grep -E "^[0-9]{3}-{branch}$"`
-   - If found, use it. If not, find highest number + 1 (zero-padded: `001`, `002`, etc.)
-4. **Create directory**: `mkdir -p ~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/`
-5. **Determine review sequence**: Next `REVIEW-{seq}.md` number
-6. **Store the full output path** — you'll pass this to the synthesizer (e.g., `/Users/philip/vaults/main/dev/ledidi-monorepo/issues/003-update-registry-cards/REVIEW-01.md`)
+3. **Generate a unique filename**: Use `{repo}-{branch}-{timestamp}.md` where timestamp is `$(date +%Y%m%d-%H%M%S)`
+4. **Create directory**: `mkdir -p /Users/philip/main/dev/reviews/`
+5. **Store the full output path** — you'll pass this to the synthesizer (e.g., `/Users/philip/main/dev/reviews/ledidi-monorepo-update-registry-cards-20260415-142530.md`)
 
 ### Step 4: Create the review team
 
@@ -283,5 +280,5 @@ Track reviewer completion:
 
 **MANDATORY: Always output the complete absolute path so the user can click it to open it.**
 
-**Correct:** `/Users/philip/vaults/main/dev/ledidi-monorepo/issues/003-update-registry-cards/REVIEW-01.md`
-**Wrong:** `REVIEW-01.md` or `issues/003-update-registry-cards/REVIEW-01.md`
+**Correct:** `/Users/philip/main/dev/reviews/ledidi-monorepo-update-registry-cards-20260415-142530.md`
+**Wrong:** `ledidi-monorepo-update-registry-cards-20260415-142530.md` or `reviews/ledidi-monorepo-update-registry-cards-20260415-142530.md`
