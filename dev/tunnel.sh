@@ -190,12 +190,14 @@ apply_config_changes() {
     # 3d. Add frontend tunnel URL to ALLOWED_ORIGINS for registries service CORS
     sed -i '' "s|ALLOWED_ORIGINS=http://localhost:3003,http://localhost:3010|ALLOWED_ORIGINS=http://localhost:3003,http://localhost:3010,$frontend_url|" "$DOCKER_COMPOSE"
 
-    # 3b. Worktree compose overlay - also patch VITE_GRAPHQL_URI there since it overrides the base
+    # 3b. Worktree compose overlay - also patch VITE_GRAPHQL_URI and ALLOWED_ORIGINS there since it overrides the base
     if [[ -f "$WT_COMPOSE" ]]; then
         WT_COMPOSE_BACKUP=$(mktemp)
         cp "$WT_COMPOSE" "$WT_COMPOSE_BACKUP"
         sed -i '' "s|VITE_GRAPHQL_URI=.*/graphql|VITE_GRAPHQL_URI=$api_url/graphql|" "$WT_COMPOSE"
         sed -i '' "s|VITE_GRAPHQL_URI=http://localhost:4000\$|VITE_GRAPHQL_URI=$api_url|" "$WT_COMPOSE"
+        # Patch ALLOWED_ORIGINS to add frontend tunnel URL (handles any port via regex)
+        sed -i '' "s|ALLOWED_ORIGINS=http://localhost:[0-9]*,http://localhost:3010|ALLOWED_ORIGINS=http://localhost:$frontend_port,http://localhost:3010,$frontend_url|" "$WT_COMPOSE"
         echo "  Patched worktree compose overlay"
     fi
 
@@ -219,6 +221,10 @@ rebuild_services() {
     echo "Rebuilding frontend..."
     dc build registries-frontend
     dc up -d registries-frontend
+
+    echo ""
+    echo "Recreating registries service (to apply ALLOWED_ORIGINS change)..."
+    dc up -d registries
 
     echo ""
     echo "Restarting router (regenerating config from patched base)..."
