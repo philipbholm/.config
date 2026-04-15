@@ -211,7 +211,11 @@ is_slot_in_use() {
     local s=$1
     local containers
     containers=$(docker ps -aq --filter "label=${DEV_SLOT_LABEL}=${s}" 2>/dev/null)
-    [ -n "$containers" ]
+    if [ -n "$containers" ]; then
+        return 0
+    fi
+
+    dev_slot_reserved_by_other_repo "$repo_root" "$s"
 }
 
 slot_from_existing_stack() {
@@ -388,12 +392,16 @@ services:
     profiles: ["disabled"]
 
   postgres:
+    labels:
+      ${DEV_SLOT_LABEL}: "${s}"
     ports: !override
       - "$(( 5432 + offset )):5432"
     volumes: !override
       - database_data_wt_${s}:/var/lib/postgresql/data:rw
 
   codelist:
+    labels:
+      ${DEV_SLOT_LABEL}: "${s}"
     volumes: !override
       - $repo_root/services/codelist/src:/app/services/codelist/src
       - $repo_root/services/codelist/api:/app/services/codelist/api
@@ -404,6 +412,8 @@ services:
       - "$(( 50005 + offset )):50051"
 
   registries:
+    labels:
+      ${DEV_SLOT_LABEL}: "${s}"
     networks:
       - default
       - admin-bridge
@@ -427,6 +437,8 @@ YAML
         cat >> "$override_file" <<AGENT_YAML
 
   agent:
+    labels:
+      ${DEV_SLOT_LABEL}: "${s}"
     ports: !override
       - "$(( 4007 + offset )):4000"
 AGENT_YAML

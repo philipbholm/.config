@@ -41,13 +41,44 @@ while IFS= read -r git_file; do
   wt=$(dirname "$git_file")
   slot_file="$(dev_slot_file_for_repo "$wt")"
   if [[ -f "$slot_file" ]]; then
-    targets+=("$wt:$(< "$slot_file")")
+    slot="$(tr -d '[:space:]' < "$slot_file")"
+    targets+=("$wt:$slot")
   fi
 done < <(find "$WORKTREE_BASE" -type f -name .git 2>/dev/null | sort)
+
+duplicate_found=false
+reported_slots=" "
+for entry in "${targets[@]}"; do
+  slot="${entry##*:}"
+  case " $reported_slots " in
+    *" $slot "*) continue ;;
+  esac
+
+  matches=()
+  for candidate in "${targets[@]}"; do
+    candidate_slot="${candidate##*:}"
+    if [[ "$candidate_slot" == "$slot" ]]; then
+      matches+=("${candidate%%:*}")
+    fi
+  done
+
+  if (( ${#matches[@]} > 1 )); then
+    duplicate_found=true
+    reported_slots+="$slot "
+    echo "Warning: slot $slot is assigned to multiple worktrees:" >&2
+    for wt in "${matches[@]}"; do
+      echo "  - ${wt##*/}" >&2
+    done
+  fi
+done
 
 if (( ${#targets[@]} == 0 )); then
   echo "No targets found"
   exit 0
+fi
+
+if [[ "$duplicate_found" == true ]]; then
+  echo "Warning: run 'dev up' in a conflicting worktree to reassign its saved slot." >&2
 fi
 
 count=0

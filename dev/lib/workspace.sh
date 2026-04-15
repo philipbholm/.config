@@ -99,6 +99,37 @@ dev_slot_file_for_repo() {
     printf '%s/worktree-slot\n' "$(dev_stack_dir_for_repo "$repo_root")"
 }
 
+dev_list_slot_files() {
+    local stacks_dir
+    stacks_dir=$(dev_stacks_dir)
+
+    [ -d "$stacks_dir" ] || return 0
+
+    find "$stacks_dir" -mindepth 2 -maxdepth 2 -type f -name worktree-slot -print 2>/dev/null | sort
+}
+
+dev_slot_reserved_by_other_repo() {
+    local repo_root=$1
+    local slot=$2
+    local own_slot_file
+    local candidate
+    local candidate_slot
+
+    own_slot_file=$(dev_slot_file_for_repo "$repo_root")
+
+    while IFS= read -r candidate; do
+        [ -n "$candidate" ] || continue
+        [ "$candidate" = "$own_slot_file" ] && continue
+
+        candidate_slot=$(tr -d '[:space:]' < "$candidate")
+        if [ "$candidate_slot" = "$slot" ]; then
+            return 0
+        fi
+    done < <(dev_list_slot_files)
+
+    return 1
+}
+
 dev_existing_slot_file_for_repo() {
     local repo_root=$1
     local raw_key
