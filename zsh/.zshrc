@@ -220,9 +220,8 @@ docker() {
 alias gcad='git commit -a --amend'
 alias gap='git add -N . && git add -p'
 alias t='tmux new-session -A -s main'
-alias cc='claude --model claude-opus-4-5-20251101 --dangerously-skip-permissions'
-alias cx='codex --yolo'
-alias oc='opencode'
+alias claude='claude --model claude-opus-4-5-20251101 --dangerously-skip-permissions'
+alias codex='codex --yolo'
 
 # Modern ls (eza)
 if command -v eza &> /dev/null; then
