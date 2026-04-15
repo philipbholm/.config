@@ -66,9 +66,6 @@ export DISABLE_ERROR_REPORTING=1
 export NODE_NO_WARNINGS=1
 export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
 
-# Claude code
-export CLAUDE_CODE_NO_FLICKER=1
-
 # Secrets
 [ -f "$HOME/.config/zsh/.zsh_secrets" ] && source "$HOME/.config/zsh/.zsh_secrets"
 
