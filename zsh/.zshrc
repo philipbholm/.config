@@ -64,8 +64,10 @@ export CPPFLAGS="-I/opt/homebrew/opt/openjdk@17/include"
 export DISABLE_TELEMETRY=1
 export DISABLE_ERROR_REPORTING=1
 export NODE_NO_WARNINGS=1
-# export LEFTHOOK=0
 export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
+
+# Claude code
+export CLAUDE_CODE_NO_FLICKER=1
 
 # Secrets
 [ -f "$HOME/.config/zsh/.zsh_secrets" ] && source "$HOME/.config/zsh/.zsh_secrets"
