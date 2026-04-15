@@ -1,0 +1,722 @@
+# CLAUDE.md
+
+This file provides guidance to agents when working with code in this repository.
+
+## Project Overview
+
+This is a monorepo for Ledidi, a medical registry platform. Each service/app has its own independent package.json. Structure:
+
+- `apps/main-frontend/` - React 19 + Vite frontend
+- `services/` - Backend microservices (Node.js, Prisma)
+  - `registries/` - Medical registries service (PostgreSQL, GraphQL + gRPC)
+  - `codelist/` - Code list service (PostgreSQL, gRPC only)
+  - `apollo-router/` - Apollo Federation GraphQL supergraph router
+- `packages/` - Shared libraries (@ledidi-as npm scope)
+  - `eslint/` - Shared ESLint configuration
+  - `logger/` - Logging utilities
+  - `authentication/` - Authentication helpers
+  - `expression/` - Expression evaluation library
+
+## Development Commands
+
+### Development Environment
+
+**Always use `dev` instead of `docker compose`** — it automatically includes the correct compose files for your environment. Running `docker compose` directly will use wrong ports and break the stack.
+
+### Ports Reference
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:{{FRONTEND_PORT}}/en/registries |
+| Codelist (gRPC) | localhost:{{CODELIST_GRPC_PORT}} |
+| Registries (GraphQL) | http://localhost:{{REGISTRIES_PORT}}/graphql |
+| Registries (gRPC) | localhost:{{REGISTRIES_GRPC_PORT}} |
+| PostgreSQL | localhost:{{POSTGRES_PORT}} |
+
+### Common Commands
+
+- `dev restart <service>` — Restart a service if it's not picking up changes automatically
+- `dev up --build <service> -d` — Rebuild after package.json/Dockerfile changes (node_modules is in the image)
+- `dev exec <service> sh` — Shell into a running container
+- `dev logs -f <service>` — Tail service logs
+- `dev ps` — List running containers
+
+Never run:
+- `docker compose up` / `docker compose restart` — missing override files, will break ports
+- `npm run dev` / `npm start` — services run in Docker
+
+
+### Post-Change Workflows
+
+After making changes, follow the workflow that matches what you changed. Multiple workflows may apply (e.g., you edited both `.graphql` and `.ts` files).
+
+#### Changed `.ts` files in a backend service (e.g., `services/registries/src/`)
+
+No commands needed. The running Docker container mounts `src/` and uses nodemon to auto-reload on file changes.
+
+> If for some reason the service is not picking up changes: `dev restart registries`
+
+#### Changed `.graphql` schema files (e.g., `services/registries/api/*.graphql`)
+
+This is the most involved workflow because GraphQL schema changes ripple through codegen and the frontend.
+
+1. **Regenerate types in the backend service that owns the schema:**
+```bash
+cd services/registries && npm run generate
+```
+
+2. **Regenerate frontend GraphQL types** (if the frontend consumes the changed types):
+```bash
+cd apps/registries-frontend && npm run generate
+```
+
+3. **Restart the backend service** to pick up any new resolvers or type changes:
+```bash
+dev restart registries
+```
+
+**Summary for GraphQL changes:**
+```bash
+cd services/registries && npm run generate
+cd apps/registries-frontend && npm run generate
+dev restart registries
+```
+
+#### Changed `.proto` files (gRPC schema)
+
+1. Regenerate proto types in the affected service:
+```bash
+cd services/registries && npm run generate-proto
+```
+2. Regenerate proto types in any consuming service.
+3. Restart affected services:
+```bash
+dev restart registries
+```
+
+#### Changed `prisma/schema.prisma` in a backend service
+
+Prisma commands connect to PostgreSQL from the host, so you must override `POSTGRES_URL` with the correct port.
+
+1. Create a migration:
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npm run migrate-create
+```
+
+This creates a migration file in `prisma/migrations/`. Review the generated SQL.
+
+2. Apply the migration:
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npm run migrate
+```
+
+3. Regenerate Prisma client:
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npm run generate
+```
+
+4. Restart the service:
+```bash
+dev restart registries
+```
+
+**Important:** Always use the package.json scripts for migrations. Never run `npx prisma migrate dev` or `npx prisma generate` directly.
+
+#### Changed `package.json` (added/removed/updated dependencies)
+
+1. Install dependencies in the workspace that changed:
+```bash
+cd services/registries && npm install
+```
+
+2. **Rebuild** the Docker container (not just restart, since `node_modules` is baked into the image):
+```bash
+dev up --build <service> -d
+```
+
+For example: `dev up --build registries -d`
+
+> A plain `dev restart` will NOT pick up new dependencies because the container's `node_modules` comes from the image build, not a host volume mount.
+
+#### Changed frontend files (`apps/main-frontend/src/`)
+
+No commands needed. Vite HMR handles live reloading inside the Docker container (the `src/` directory is volume-mounted).
+
+#### Changed frontend `.graphql` operation files (queries/mutations in `apps/main-frontend/src/`)
+
+The frontend dev server runs `generate-watch` which watches for `.graphql` file changes and auto-regenerates types. No manual action needed.
+
+> If types seem stale: `cd apps/main-frontend && npm run generate`
+
+### What `npm run generate` produces
+
+| Workspace | Command | Generates |
+|-----------|---------|-----------|
+| `services/registries` | `npm run generate` | GraphQL resolver types, Prisma client, gRPC/proto TS types |
+| `services/codelist` | `npm run generate` | Prisma client, gRPC/proto TS types (no GraphQL) |
+| `apps/registries-frontend` | `npm run generate` | Typed GraphQL hooks and types from all service schemas |
+
+**When to run it:**
+- After changing any `.graphql` schema file → run in the owning service AND in `apps/registries-frontend`
+- After changing `prisma/schema.prisma` → run in the owning service
+- After changing `.proto` files → run in the owning service and any consuming services
+
+
+### Frontend Commands
+
+```bash
+npm run build           # Production build
+npm run generate        # Generate GraphQL types
+npm run lint:fix        # Fix linting issues
+```
+
+#### Frontend Unit Tests (Vitest)
+
+Run all unit tests:
+```bash
+cd apps/main-frontend && npm test
+```
+
+Playwright interprets file arguments as regex, so bracket directories like `[lang]` must be replaced with `.*`. Vitest accepts literal paths (including brackets) or just the filename.
+
+Run tests for a specific file:
+```bash
+cd apps/main-frontend && npm test -- "src/app/[lang]/registries/[registryId]/patients/ImportPatientsDialog/import-patients-dialog.test.tsx"
+```
+
+Run tests for a specific directory:
+```bash
+cd apps/main-frontend && npm test -- "src/app/[lang]/registries/[registryId]/patients/[patientId]/DiagnosisList"
+```
+
+#### Frontend E2E Tests (Playwright)
+
+Run all E2E tests:
+```bash
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" npx playwright test "src/app/.*/registries/.*\.spec\.tsx"
+```
+
+Run E2E tests for a specific file:
+```bash
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" npx playwright test "src/app/.*/registries/.*/patients/.*/medications/create/create-medication\.spec\.tsx"
+```
+
+Run E2E tests for a directory:
+```bash
+cd apps/main-frontend && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" npx playwright test "src/app/.*/registries/.*/registry-design/.*\.spec\.tsx"
+```
+
+Verification: `cd apps/main-frontend && npm run lint:fix && npm run build && FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" npx playwright test`
+
+### Backend Service Commands
+
+Each service follows the same pattern:
+
+```bash
+npm run lint:fix        # Fix linting issues
+npm run build           # Full build (generate + tsc)
+npm run build-ts        # TypeScript-only build (faster, no codegen)
+npm run generate        # Generate GraphQL, Prisma, gRPC types
+```
+
+#### Registries Service Tests (Jest)
+
+Run all tests:
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" npm run test
+```
+
+Run tests for a specific file:
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" npm run test -- src/path/to/your.test.ts
+```
+
+Run tests for a specific directory:
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" npm run test -- src/path/to/test-directory
+```
+
+Run tests matching a pattern:
+```bash
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" npm run test -- --testPathPattern="get-registries"
+```
+
+#### Database Migrations
+
+```bash
+# Deploy database migrations
+cd services/registries && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npm run migrate
+```
+
+Verification: `cd services/registries && npm run lint:fix && npm run build-ts && POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" npm run test`
+
+## Architecture
+
+### Backend Layered Architecture
+
+Services follow a 3-layer pattern:
+
+- **Handler layer** (`src/handlers/`) - GraphQL resolvers, gRPC handlers, HTTP endpoints
+- **Application layer** (`src/application/`) - Business logic and authorization
+- **Adapter layer** (`src/adapters/`) - External integrations and persistence
+
+Domain layer types must be self-contained; map between transport types (gRPC, GraphQL) and domain types at the handler boundary. Never import transport-generated types into application code. Generate IDs in the use case/domain layer, not in resolvers or transport handlers. Validate domain invariants in the use case layer, never in transport-layer code alone.
+
+#### Application Layer File Organization
+
+Each use case goes in its own subdirectory within the feature directory. Integration tests are co-located with the use case. Shared utilities, projections, domain files, and event files live at the feature directory level.
+
+```
+src/application/overview/
+├── get-form-completeness/
+│   ├── get-form-completeness.ts
+│   └── get-form-completeness.integration.test.ts
+├── get-patient-stats/
+│   ├── get-patient-stats.ts
+│   └── get-patient-stats.integration.test.ts
+├── overview-projection.ts
+├── overview-shared.ts
+└── overview-shared.unit.test.ts
+```
+
+Do not place use case files flat in the feature directory (e.g., `overview/get-form-completeness.ts`). Always use a subdirectory per use case.
+
+### Handler Architecture
+
+The registries service orchestrates three handler types in `src/handlers/index.ts`:
+
+- **GraphQL Handler** - Fastify + Apollo Server for frontend queries/mutations
+- **gRPC Handler** - Service-to-service communication
+- **Cron Handler** - Scheduled background tasks
+
+Other services may have fewer handlers (e.g., codelist only has a gRPC handler).
+
+All handlers receive `logger`, `environment`, `application`, and `ports` as dependencies.
+
+### Ports & Dependency Injection
+
+Each service defines a `Ports` type in `src/ports/index.ts` containing all external dependencies:
+
+```typescript
+type Ports = {
+  authentication: EndUserAuthenticationProvider;
+  authorizationRepository: AuthorizationRepository;
+  registryProjection: RegistryProjection;
+  eventStore: EventStore;
+  // ... other dependencies
+};
+```
+
+This enables complete dependency injection and test mocking. Use cases and handlers receive ports as constructor arguments, never importing singletons directly.
+
+### Projection Pattern
+
+Services use projection classes for read models that transform event store data into queryable views:
+
+- Located in `src/application/` subdirectories (e.g., `src/application/registry/registry-projection.ts`, `src/application/patient/patient-projection.ts`)
+- Examples: `RegistryProjection`, `FormProjection`, `PatientProjection`
+- Injected as dependencies into use cases
+- Enable efficient queries without re-processing events
+- Use cases must depend on projection classes (e.g. `patientProjection: PatientProjection`), never on `PrismaClient`, for reading domain data. If a use case needs a query that doesn't exist on a projection, add a new method to the appropriate projection class rather than passing in `PrismaClient`.
+- Static reference tables that are not event-sourced (e.g. `icd10Code`, `atcCode`) may be queried via `PrismaClient` directly.
+
+### Event Sourcing
+
+- Never use direct Prisma mutations for domain entities — always emit domain events
+- All create/update/delete operations must emit domain events; projections handle persistence
+- Route all reads of domain data through the projection layer — use case dependencies should be projection classes, not `PrismaClient`. Direct Prisma reads are only acceptable for static reference data (e.g. `icd10Code`, `atcCode`).
+- When deprecating an event field, add a projection fallback for existing events
+- When a single action triggers multiple state-changing events, wrap in a transaction
+- Check event metadata schemas before duplicating fields in event payloads
+
+### Authorization
+
+- Every new backend handler must include an `authorize()` call before any data access
+- Always supply every available scope identifier (site, registry, org) to authorization checks
+- Operations that read from one entity and write to another must enforce permissions on both
+- Use separate context types for authenticated vs. unauthenticated flows
+
+### GraphQL Federation
+
+Apollo Router federates subgraph schemas from each service. Each service has its schema in `api/*.graphql`.
+
+### Service Communication
+
+- Service-to-service: gRPC with ts-proto
+- Frontend-to-backend: GraphQL (registries-frontend connects directly to registries service)
+- Authentication: JWT tokens (JWKS-verified), separate JWT for service-to-service
+- Authorization: Custom RBAC stored in PostgreSQL (subject-object-relation permission tuples)
+
+## Backend
+
+- **Registries Service**: Fastify + Apollo Server
+- **Codelist Service**: Express + gRPC only (no GraphQL)
+- **Use Cases**: Follow `buildXxxUseCase` builder pattern
+
+### Error Handling
+
+Each service defines typed errors in `src/application/errors.ts`:
+
+```typescript
+throw new NotFoundError("Registry not found");
+```
+
+All errors extend `ApplicationError` and use `ErrorSubcode` string union types for granular error handling. **Never throw plain `Error`.** Always use the appropriate typed error class (e.g., `NotFoundError`, `ValidationError`, `NotAuthorizedError`).
+
+- Use `captureException` with entity ID and attempted action context, not `console.error`
+- Distinguish expected errors (user feedback) from unexpected (report to monitoring)
+- Always include a throwing `default` branch in switch statements on persisted data
+- Either log and handle locally, or throw for a higher-level handler — never both
+
+### GraphQL Resolvers
+
+- Keep resolvers thin: orchestration only, business logic in use cases
+- Extract response-shaping into dedicated mapper functions
+- Extract input transformations into named mappers co-located with the resolver
+- After adding schema fields, verify the full chain: resolver → use case → database → response mapper
+- Align schema types directly with domain models (1:1 mapping)
+- Validate mutation inputs with Zod at the resolver layer before passing to application logic
+
+### Prisma & Database
+
+- Use `findFirstOrThrow` / `findUniqueOrThrow` when the record is expected to exist
+- Guard queries with early return when input array is empty
+- Wrap multi-table writes in a single transaction
+- Upsert: write-once fields (creator, createdAt) only in create clause, not update
+- Migration discipline: descriptive names, one per PR, squash before merge, never edit applied migrations
+
+## Frontend
+
+- **Styling**: Tailwind CSS v4 with the `cn` function from shadcn for className composition
+- **UI Components**: shadcn/ui pattern in `src/components/ui/`
+- **Forms**: React Hook Form + Zod 4 for validation
+- **State**: Apollo Client for server state, React Context for local state
+- **Routing**: React Router v7
+
+- Use existing design system components (shadcn/ui) before creating custom ones
+- Keep reusable components free of layout opinions (no margins, gaps); parent controls positioning
+- Use stable data IDs as React `key`, not array indices
+- Use translation keys for ALL UI text including toasts and error messages — never hardcode strings
+
+### Component and File Structure
+
+Each frontend component file follows a consistent internal structure:
+
+**Exported component owns data-fetching and top-level orchestration.** The top-level exported function is the main entry point that fetches data, handles loading/error states, and composes private sub-components.
+
+**Sub-components resolve their own translations.** Private sub-components call `useLanguage()` themselves and read `DICTIONARY[lang]` internally. Do not pass translated strings as props — translations are an implementation detail of rendering, not a meaningful input. Since the sub-component and DICTIONARY are in the same file, the dependency is visible. Props should represent data and behavior, not pre-resolved UI text.
+
+**Exception:** Passing translated strings as props is allowed for generic, presentational sub-components that act as reusable form primitives within the file (e.g., a `DatePickerField` that accepts `label` and `error`). These components don't know *which* field they represent — the parent decides that by passing the appropriate label. Hardcoding dictionary keys inside them would couple a generic component to a specific use case. The test: if the sub-component is used multiple times with different labels in the same file, it's a presentational primitive and string props are the right interface.
+
+**No shared abstractions for one-off variations.** When similar-looking components differ in any meaningful way (different footer content, different data shape), give each its own named function rather than creating a generic wrapper with conditional props. Duplication of structure is preferable to an abstraction that obscures differences.
+
+**File layout order:**
+1. Imports
+2. Local type aliases (e.g. extracting a nested query type)
+3. Exported component
+4. Private sub-components (in the order they appear in the exported component's JSX)
+5. Pure helper functions (formatting, data transformation)
+6. Zod schemas and inferred types (if any)
+7. `DICTIONARY`
+
+**Variable declaration placement:**
+Declare variables as late as possible — just before the code that first uses them. Never declare a variable before an early return that doesn't need it. This applies to `chartConfig`, derived data, computed values, and any other non-hook local variables.
+
+Hooks are the only exception: React hooks must always be called unconditionally at the top of the component, before any early returns.
+
+**Examples:**
+- `apps/main-frontend/src/app/[lang]/registries/[registryId]/overview/components/section-cards/section-cards.tsx`
+- `apps/main-frontend/src/app/[lang]/registries/[registryId]/overview/components/form-completeness-chart/form-completeness-chart.tsx`
+
+### Component Directory Organization
+
+Each component gets its own subfolder containing the component, its test, and its `.graphql` operation file. This makes related code easy to find and removable as a unit.
+
+```
+components/
+├── chart-utils.ts              ← shared by multiple components, stays flat
+├── chart-utils.test.ts
+├── form-completeness-chart/
+│   ├── form-completeness-chart.tsx
+│   ├── form-completeness-chart.integration.test.tsx
+│   └── getFormCompleteness.graphql
+├── section-cards/
+│   ├── section-cards.tsx
+│   ├── section-cards.integration.test.tsx
+│   └── getRegistryOverviewStats.graphql
+└── overview-controls/
+    ├── overview-controls.tsx
+    └── overview-controls.integration.test.tsx
+```
+
+Rules:
+- Co-locate each `.graphql` file with the component that _consumes_ it (calls the generated hook) — not in a separate `graphql/` directory
+- Shared utilities used by multiple sibling components stay flat at the parent level
+- Every component gets a subfolder for consistency, even if it has no GraphQL file
+
+### Error Handling
+
+Use error helpers from `src/lib/errors.ts` to check GraphQL error codes:
+
+```typescript
+import { isNotFoundError, isFailedPreconditionError } from "~/lib/errors";
+
+if (isNotFoundError(error)) {
+  // Handle 404 case
+}
+if (isFailedPreconditionError(error)) {
+  // Handle precondition failure
+}
+```
+
+These helpers check `error.graphQLErrors` for matching error codes from the backend.
+
+- Every mutation must have visible error handling (toast, alert, or inline message)
+- In catch blocks, call the error-reporting service rather than `console.error`
+
+## Testing
+
+### Test File Locations
+
+- Frontend unit tests: `src/**/*.test.ts(x)` (Vitest)
+- Frontend E2E tests: `src/app/**/*.spec.tsx` (Playwright)
+- Backend integration tests: `src/**/*.integration.test.ts` (Jest)
+
+### Guidelines
+
+- Extract shared setup into `beforeAll`, assertions in `it` blocks
+- Prefer `toEqual` over `toMatchObject`
+- Use imperative test descriptions:
+```typescript
+// Good
+it("reorders the elements", ...)
+// Avoid
+it("should reorder the elements", ...)
+```
+- Integration tests for backend changes
+- Unit tests for edge cases that integration tests can't cover
+- Use MSW to mock GraphQL requests in frontend tests, not custom Apollo client mocks
+- Use the project's mock builder pattern (`registriesMocks().withX().apply()`)
+- Always add type parameters to `TEST_GRAPHQL_API.query` and `TEST_GRAPHQL_API.mutation` calls using generated types from `test-util/generated/gql-test-sdk`:
+  ```typescript
+  import type { GetPatientsQuery, GetPatientsQueryVariables } from "test-util/generated/gql-test-sdk";
+
+  TEST_GRAPHQL_API.query<GetPatientsQuery, GetPatientsQueryVariables>("GetPatients", () => { ... })
+  ```
+  Also type mock data parameters using indexed access on the query type (e.g., `patients: GetPatientsQuery["getPatients"]["patients"] = [...]`).
+- Do not add `server.listen()`, `server.resetHandlers()`, or `server.close()` calls in individual test files. The global test setup file (`test-util/setup.ts`) already manages the MSW server lifecycle. Test files should only have:
+  ```typescript
+  afterEach(() => {
+    cleanup();
+  });
+  ```
+  Import `server` from `test-util/mswServer` only when the test uses `server.use(...)` to add per-test handlers.
+- Prefer integration tests that call the actual service endpoint over directly invoking use case functions
+- Avoid writing separate tests solely to assert one additional property that could be checked in an existing test — consolidate related assertions into a single test unless the scenario genuinely requires different setup
+- Assert the full response shape — when a test sets up data for a use case, assert all relevant output fields, not just the one the test name focuses on. If a test creates PROM entries, it should check `promStats`; if it creates patients, it should check both `total` and `previousPeriodCount`.
+- Test intermediate computed values — for percentage or ratio calculations, don't only test boundary values (0% and 100%). Include at least one test with a non-trivial intermediate value (e.g., 50%) to verify the computation logic.
+- Inline `server.use(...)` directly in the test body when a handler is used in only one test. Extract a named setup function only when the same handler is called from multiple tests.
+- Order tests consistently: error case first, then empty state, then with-data, then special cases.
+- Do not create shared helper files for simple test values — inline them directly in each test file. Prefer plain variable declarations (e.g., `const currentMonth = new Date(2026, 1, 15, 12)`) over helper functions (e.g., `getCurrentMonthMidday()`) when the logic is trivial.
+- Do not write unit tests for test-only utility functions. If a test helper is simple enough to trust by reading it, it does not need its own test suite.
+
+### Required Test Coverage
+
+- Every new backend operation: integration test for happy path + primary error case
+- Every use case with `authorize()`: test verifying unauthorized rejection
+- Each event-sourced command handler: assert event storage, projection state, and response data
+- Every new/modified data field: at least one test assertion for expected value/format
+- Complex calculation/transformation logic: unit tests (integration tests for wiring + DB)
+- Security-critical utilities (auth, session, permissions): mandatory unit tests
+
+### Backend Test Setup
+
+Use `buildTestApplication()` from `services/registries/src/test/test-application.ts` and `registryTestBuilder` from `services/registries/src/test/test-setup-builder.ts`:
+
+```typescript
+const { application } = await buildTestApplication({
+  overridePorts: {
+    emailService: mockEmailService,
+  },
+});
+
+const context = mockContext({
+  userId: "test-user-id",
+  allowedScopes: ["registry:read", "registry:write"],
+});
+
+// Fluent builder — auto-creates dependencies (e.g., withPatient creates a registry first)
+const result = await registryTestBuilder(application, context)
+  .withRegistry()
+  .withPatient()
+  .withEpisode()
+  .withEvent()
+  .build();
+```
+
+### Frontend E2E Test Setup
+
+Use `e2eRegistryTestBuilder` from `apps/main-frontend/test-util/e2e-registry-test-setup-builder.ts` — same fluent pattern as the backend builder:
+
+```typescript
+const result = await e2eRegistryTestBuilder(client)
+  .withEvent({ repeatable: true })
+  .withTextFormElement({ label: "Test Text Field", variableName: "test_text_field" })
+  .withFormToEvent()
+  .withPatientEventEntry()
+  .withFormDataEntry()
+  .build();
+```
+
+## Code Style
+
+### General
+
+- Prefer descriptive variable names over short/vague ones like `data`, `info`, `item`
+- Use generous newlines between code blocks
+- Avoid unnecessary comments. Only use comments to explain _why_ some code exists, not _what_ it does. If code needs a comment to explain what it does, the code should be rewritten to be self-explanatory.
+- No TypeScript enums - use string types or const maps
+- Never use `as any` or `as unknown`. Use `as SomeType` when TypeScript cannot infer the type but the shape is known — e.g. `event.target as HTMLInputElement`, or third-party callback args typed as `any` where you control the data passed in. Avoid `as` when it widens or fabricates a type; prefer type narrowing, generics, or Zod parsing in those cases.
+- Use Zod for parsing unknown types
+- Use Zod only at trust boundaries (API inputs, env vars, external responses); internal code uses compile-time checks
+- Never use `z.coerce.boolean()` for env vars; use `z.stringbool()` which correctly interprets `"false"`
+- One GraphQL operation per `.graphql` file
+- ALWAYS declare types that depend on other types _after_ the type they depend on:
+```typescript
+// Good — base type declared first
+type Column = {
+  id: string;
+  label: string;
+};
+
+type ColumnConfig = {
+  columns: Column[];
+  defaultSort: Column["id"];
+};
+
+// Bad — ColumnConfig references Column before it's declared
+type ColumnConfig = {
+  columns: Column[];
+  defaultSort: Column["id"];
+};
+
+type Column = {
+  id: string;
+  label: string;
+};
+```
+
+### File Naming
+
+- General files: kebab-case (`user-details.tsx`, `create-study.ts`)
+- React hooks: camelCase starting with `use` (`useFormId.ts`, `useStudyId.ts`)
+- GraphQL operations: camelCase (`getForms.graphql`, `createStudy.graphql`)
+
+### File Structure Ordering
+
+Place the following at the **bottom** of the file, in this order:
+
+1. Zod schemas and inferred types
+2. `DICTIONARY`
+
+```typescript
+// --- rest of the file's logic above ---
+
+const formSchema = z.object({
+  title: z.string(),
+  numberOfTestPatients: z.number().int().min(0),
+});
+type FormData = z.infer<typeof formSchema>;
+
+const DICTIONARY = {
+  en: { title: "Settings", save: "Save" },
+  no: { title: "Innstillinger", save: "Lagre" },
+} as const;
+```
+
+### Backend Style (services/**/*.ts)
+
+- Use lowercase first letter for Prisma relations
+- Do not destructure `input` in use cases — access properties directly (e.g., `input.registryId`) for consistent provenance
+
+### Frontend Style (apps/main-frontend/)
+
+- Minimize useEffect - prefer computed values
+- Don't destructure queries/forms:
+```typescript
+// Good
+const userQuery = useUserQuery();
+// Avoid
+const { data, isLoading } = useUserQuery();
+```
+- Use descriptive function names for what they do, not when invoked:
+```typescript
+// Good
+const submitLoginCredentials = () => { ... }
+// Avoid
+const handleButtonClicked = () => { ... }
+```
+- Name conversion functions as `sourceToTarget` (not `mapSourceToTarget`) — composes cleanly with `.map()`
+- Verb prefixes: `get` (guaranteed return), `find` (optional lookup), `resolve` (transform), `check` (boolean)
+
+### Component Props Types
+
+Inline prop types directly in the function signature by default:
+
+```typescript
+// Good — inline for single-use props
+export function PatientChart({
+  registryId,
+  timeUnit,
+}: {
+  registryId: string;
+  timeUnit: TimeUnit;
+}) {
+```
+
+Use a named type only when at least one of these applies:
+- The type is referenced in more than one place (e.g., a parent component constructs the props)
+- The prop list exceeds roughly 5–6 properties and the signature becomes hard to scan
+- The type carries semantic meaning beyond its structure (e.g., `type PatientFilter = { ... }` used in both a component and a utility)
+
+```typescript
+// Good — named type because it's reused
+type PatientFilter = {
+  registryId: string;
+  siteId: string;
+  status: PatientStatus;
+  dateRange: DateRange;
+  searchQuery: string;
+  sortField: SortField;
+};
+
+export function PatientList({ filter }: { filter: PatientFilter }) { ... }
+export function PatientExport({ filter }: { filter: PatientFilter }) { ... }
+```
+
+Never create a `FooProps` type that is used in exactly one place — inline it instead.
+
+- Prefix boolean props with `is` or `has` (e.g., `isOptional`, `isLoading`)
+- Use Luxon `DateTime.toLocaleString` for date formatting
+- Use `useXXXId` hooks for type-safe route params (e.g., `useRegistryId`, `useFormId`)
+- Use `ROUTE_MAP` for type-safe navigation paths (see `src/features/route-map/`)
+- Deletions require a confirmation dialog
+
+### Dictionaries
+
+- ALWAYS define `DICTIONARY` in the same file where translations are used — NEVER create separate `dictionary.ts` files
+- Place `DICTIONARY` at the bottom of the file (see [File Structure Ordering](#file-structure-ordering))
+- Use function parameters for dynamic values:
+```typescript
+// Good
+fullName: (firstName: string, lastName: string) => `${firstName} ${lastName}`
+// Avoid
+fullName: `{firstName} {lastName}` // with .replace()
+```
+- Use language-keyed objects for static translations:
+```typescript
+const DICTIONARY = {
+  en: { title: "Users", status: "Status" },
+  no: { title: "Brukere", status: "Status" },
+} as const;
+```
