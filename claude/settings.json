@@ -52,6 +52,7 @@
     "typescript-lsp@claude-plugins-official": true
   },
   "effortLevel": "high",
+  "subagentModel": "opus",
   "voiceEnabled": true,
   "skipDangerousModePermissionPrompt": true
 }
