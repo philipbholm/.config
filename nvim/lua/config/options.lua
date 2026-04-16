@@ -42,4 +42,3 @@ vim.opt.softtabstop = 2
 vim.opt.shiftwidth = 2
 vim.opt.breakindent = true
 
-vim.lsp.inlay_hint.enable(false)
