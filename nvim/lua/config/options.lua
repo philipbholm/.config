@@ -35,6 +35,17 @@ end))
 vim.opt.relativenumber = true
 vim.opt.swapfile = false
 
+-- Autosave
+vim.opt.autowriteall = true
+vim.api.nvim_create_autocmd("InsertLeave", {
+  pattern = "*",
+  callback = function()
+    if vim.bo.modified and vim.bo.buftype == "" and vim.fn.expand("%") ~= "" then
+      vim.cmd("silent! write")
+    end
+  end,
+})
+
 -- Preserved from previous config
 vim.opt.scrolloff = 4
 vim.opt.tabstop = 2
