@@ -266,8 +266,8 @@ fi
 #   └──────────┴─────────┘
 _tdl_yolo() {
   case "$1" in
-    cc|claude) echo "claude --model claude-opus-4-5-20251101 --dangerously-skip-permissions" ;;
-    cx|codex)  echo "codex --yolo" ;;
+    cc|claude) echo "claude" ;;
+    cx|codex)  echo "codex" ;;
     *)         echo "$1" ;;
   esac
 }
