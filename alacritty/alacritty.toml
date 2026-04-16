@@ -12,7 +12,7 @@ blinking = "Off"
 shape = "Block"
 
 [env]
-TERM = "xterm-256color"
+TERM = "alacritty"
 
 [font]
 size = 16
@@ -54,10 +54,9 @@ y = 4
 [[keyboard.bindings]]
 key = "Return"
 mods = "Shift"
-chars = "\u001B\r"
+chars = "\u001b[13;2u"
 
 [[keyboard.bindings]]
 key = "ø"
 mods = "Control"
 chars = "\u001b[99;5~"
-
