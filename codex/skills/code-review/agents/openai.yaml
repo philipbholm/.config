@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review"
+  short_description: "Parallel code review for Codex"
+  default_prompt: "Use $code-review to review this diff or PR with Codex-native reviewers."
