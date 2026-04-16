@@ -1,5 +1,26 @@
 # Testing
 
+## Running Tests
+
+Tests must use the worktree-specific port via environment variables:
+
+```bash
+# Backend tests
+POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" \
+npm run test
+
+# Frontend E2E tests
+FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" \
+E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" \
+npx playwright test
+```
+
+**Critical rules:**
+- Always pass the port via environment variable as shown above
+- Never modify hardcoded URLs, `.env` files, or config files to change ports
+- Never try standard ports (5432, 3000, 4000) — each worktree has unique ports
+- If tests fail to connect, the Docker stack needs attention, not the port config
+
 ## File Locations
 
 | Type | Pattern | Framework |

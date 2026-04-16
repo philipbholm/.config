@@ -101,7 +101,7 @@ npm run generate        # Generate GraphQL, Prisma, gRPC types
 
 ### Tests (Jest)
 
-**Always use `{{POSTGRES_PORT}}`, never `5432`.**
+**Always use `{{POSTGRES_PORT}}` via environment variable. Never modify config files to change ports.**
 
 ```bash
 cd services/registries

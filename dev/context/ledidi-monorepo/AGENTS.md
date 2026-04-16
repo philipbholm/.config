@@ -15,7 +15,9 @@ Medical registry platform. Each service/app has its own `package.json`.
 
 **Never touch `apps/main-frontend/`.** Always use `apps/registries-frontend/`.
 
-## Ports
+## Ports (Worktree-Specific)
+
+This is one of many parallel worktrees, each with its own isolated Docker stack and unique ports.
 
 | Service | URL |
 |---------|-----|
@@ -25,7 +27,10 @@ Medical registry platform. Each service/app has its own `package.json`.
 | Codelist (gRPC) | localhost:{{CODELIST_GRPC_PORT}} |
 | PostgreSQL | localhost:{{POSTGRES_PORT}} |
 
-**Always use `{{POSTGRES_PORT}}` for database connections, never `5432`.**
+**Critical:**
+- These ports are assigned to this worktree only. Never try alternative ports (e.g., 5432, 3000, 4000).
+- Never modify hardcoded URLs, environment files, or config files to change ports for running tests or fixing connection issues.
+- If a port doesn't work, the issue is the Docker stack, not the port number.
 
 ## Workflow
 
@@ -52,9 +57,28 @@ npx prisma migrate dev
 npx jest
 ```
 
+### User Instructions
+
+| When user says | What it means |
+|----------------|---------------|
+| "verify in browser" | Open browser and verify yourself |
+| "red/green TDD" | Run both unit tests and relevant E2E tests |
+| "commit" | Pre-commit hook must pass |
+| "push" | Pre-push hook must pass |
+| "save to vault" | Write a markdown file to `/Users/philip/vaults/main/dev` |
+
 ### Error Handling
 
 If there are pre-existing lint or type errors, fix them first and commit the fix before starting new work.
+
+### Troubleshooting Dev Environment
+
+If the dev environment seems broken (connection refused, services not responding):
+
+1. Run `docker ps` to list running containers
+2. Look for containers with the current worktree name (e.g., `worktree-name-registries-1`)
+3. Only containers containing the worktree name belong to this environment — you can restart/modify these
+4. Do NOT try different ports or modify configs. The assigned ports are correct; the issue is the container state.
 
 ## Critical Rules
 
