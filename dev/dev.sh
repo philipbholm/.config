@@ -7,7 +7,7 @@ set -euo pipefail
 ### Auto-detects main vs worktree, wraps docker compose with correct override files.
 ###
 ### Usage:
-###   dev up [--build] [services...]     Start stack (full init flow)
+###   dev up [--slot N] [--build] [services...]  Start stack (full init flow)
 ###   dev down                           Stop and remove containers
 ###   dev nuke                           Full teardown (volumes, images, slot)
 ###   dev status                         Show all running stacks
@@ -293,6 +293,16 @@ resolve_slot() {
         return
     fi
 
+    # Honor explicit --slot override
+    if [ -n "$slot_override" ]; then
+        if is_slot_in_use "$slot_override"; then
+            echo "Error: Slot $slot_override is already in use by another stack." >&2
+            exit 1
+        fi
+        echo "$slot_override"
+        return
+    fi
+
     local detected
     local saved
 
@@ -311,13 +321,9 @@ resolve_slot() {
             echo "$saved"
             return
         else
-            if [ "$subcommand" = "up" ]; then
-                clear_saved_slot
-            else
-                echo "Error: Saved slot $saved is already in use by another stack." >&2
-                echo "Run 'dev up' to allocate a new slot." >&2
-                exit 1
-            fi
+            echo "Error: Saved slot $saved is already in use by another stack." >&2
+            echo "Use 'dev up --slot N' to specify a different slot." >&2
+            exit 1
         fi
     fi
 
@@ -607,7 +613,7 @@ if [ "$#" -lt 1 ]; then
     echo "Usage: dev <command> [args...]"
     echo ""
     echo "Commands:"
-    echo "  up [--build] [services...]  Start stack (full init flow)"
+    echo "  up [--slot N] [--build] [services...]  Start stack (full init flow)"
     echo "  down                        Stop and remove containers"
     echo "  nuke                        Full teardown (volumes, images, slot)"
     echo "  status                      Show all running stacks"
@@ -618,6 +624,30 @@ fi
 
 subcommand="$1"
 shift
+
+# Parse --slot N for up command
+slot_override=""
+if [ "$subcommand" = "up" ]; then
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --slot)
+                if [ -z "${2:-}" ]; then
+                    echo "Error: --slot requires a value (1-9)" >&2
+                    exit 1
+                fi
+                if ! [[ "$2" =~ ^[1-9]$ ]]; then
+                    echo "Error: --slot must be 1-9, got: $2" >&2
+                    exit 1
+                fi
+                slot_override="$2"
+                shift 2
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+fi
 
 # Status doesn't need slot resolution or override generation
 if [ "$subcommand" = "status" ]; then
