@@ -44,33 +44,26 @@ while IFS= read -r git_file; do
     slot="$(tr -d '[:space:]' < "$slot_file")"
     targets+=("$wt:$slot")
   fi
-done < <(find "$WORKTREE_BASE" -type f -name .git 2>/dev/null | sort)
+done < <(find "$WORKTREE_BASE" -type f -name .git 2>/dev/null)
 
+# Sort targets by slot offset
+IFS=$'\n' targets=($(printf '%s\n' "${targets[@]}" | sort -t: -k2 -n))
+unset IFS
+
+# Check for duplicate slots (single pass using sort | uniq -d)
 duplicate_found=false
-reported_slots=" "
-for entry in "${targets[@]}"; do
-  slot="${entry##*:}"
-  case " $reported_slots " in
-    *" $slot "*) continue ;;
-  esac
-
-  matches=()
-  for candidate in "${targets[@]}"; do
-    candidate_slot="${candidate##*:}"
-    if [[ "$candidate_slot" == "$slot" ]]; then
-      matches+=("${candidate%%:*}")
-    fi
-  done
-
-  if (( ${#matches[@]} > 1 )); then
-    duplicate_found=true
-    reported_slots+="$slot "
+duplicates=$(printf '%s\n' "${targets[@]}" | sed 's/.*://' | sort -n | uniq -d)
+if [[ -n "$duplicates" ]]; then
+  duplicate_found=true
+  while IFS= read -r slot; do
     echo "Warning: slot $slot is assigned to multiple worktrees:" >&2
-    for wt in "${matches[@]}"; do
-      echo "  - ${wt##*/}" >&2
+    for entry in "${targets[@]}"; do
+      if [[ "${entry##*:}" == "$slot" ]]; then
+        echo "  - ${entry%%:*}" | sed 's|.*/||' >&2
+      fi
     done
-  fi
-done
+  done <<< "$duplicates"
+fi
 
 if (( ${#targets[@]} == 0 )); then
   echo "No targets found"
