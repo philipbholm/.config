@@ -42,6 +42,12 @@ test: add integration tests for medication list
 
 ## Pull Requests
 
+### Defaults
+
+- Create as **draft**
+- Apply the `risk:standard` label
+- Always include a PR description (see format below)
+
 ### Title Format
 
 ```
