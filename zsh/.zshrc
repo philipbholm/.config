@@ -214,6 +214,27 @@ docker() {
   fi
 }
 
+# no-sleep yes -> prevent Mac from sleeping (even lid-closed, on battery)
+# no-sleep no  -> restore normal pmset settings
+no-sleep() {
+  case "$1" in
+    yes)
+      sudo pmset -a disablesleep 1 sleep 0 || return $?
+      echo "Sleep disabled"
+      ;;
+    no)
+      sudo pmset -a disablesleep 0 || return $?
+      sudo pmset -b sleep 1 displaysleep 2
+      sudo pmset -c sleep 0 displaysleep 10
+      echo "Sleep restored"
+      ;;
+    *)
+      echo "Usage: no-sleep yes|no" >&2
+      return 1
+      ;;
+  esac
+}
+
 
 # ── Terminal workflow ──────────────────────────────
 
