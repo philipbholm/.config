@@ -143,6 +143,15 @@ nvm alias default 24
 - Increase key repeat speed for comfortable Vim navigation (System Settings > Keyboard):
   - Set **Key repeat rate** to **Fast**
   - Set **Delay until repeat** to **Short**
+- Enable SSH while the screen is locked (lid open, on AC):
+  - System Settings > General > Sharing > **Remote Login** = on
+  - Prevent idle sleep on AC so sshd stays reachable (screen can still turn off):
+
+    ```sh
+    sudo pmset -c sleep 0 disksleep 0 tcpkeepalive 1
+    ```
+
+  - Verify with `pmset -g custom`. For lid-closed-on-AC over Wi-Fi you also need `sudo pmset -a disablesleep 1`, but that disables sleep on battery too — only set it if you want clamshell operation.
 - Launch `nvim` once to bootstrap LazyVim plugins (takes ~30-60 seconds, requires internet)
 - Start background services:
 
