@@ -65,7 +65,7 @@ npx jest
 | "red/green TDD" | Run both unit tests and relevant E2E tests |
 | "commit" | Pre-commit hook must pass |
 | "push" | Pre-push hook must pass |
-| "create pr" | Create as draft, apply `risk:standard` label, gitmoji prefix in title, include PR description |
+| "create pr" | Create as draft, apply `risk:standard` label, gitmoji prefix in title, include PR description with `## Why` and `## What` sections |
 | "save to vault" | Write a markdown file to `/Users/philip/vaults/main/dev` |
 
 ### Error Handling

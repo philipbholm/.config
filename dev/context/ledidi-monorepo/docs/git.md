@@ -83,15 +83,14 @@ test: add integration tests for medication list
 
 ### Description
 
+Two required sections:
+
 ```markdown
-## Summary
-Brief description of what changed and why.
+## Why
+The motivation — problem being solved, context, or reason for the change.
 
-## Changes
-- Bullet points of specific changes
-
-## Testing
-How to verify the changes work.
+## What
+What the PR does — the concrete changes made.
 ```
 
 ## Hooks
