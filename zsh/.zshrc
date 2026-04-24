@@ -66,6 +66,10 @@ export DISABLE_ERROR_REPORTING=1
 export NODE_NO_WARNINGS=1
 export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
 
+# Telegram (PhilTheBoyBot) — used by Claude Code Stop hook
+
+
+
 # Secrets
 [ -f "$HOME/.config/zsh/.zsh_secrets" ] && source "$HOME/.config/zsh/.zsh_secrets"
 
