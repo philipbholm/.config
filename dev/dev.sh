@@ -383,6 +383,7 @@ services:
       - VITE_APP_URL=http://localhost:$(( FRONTEND_BASE_PORT + offset ))
       - VITE_GRAPHQL_URI=http://localhost:$(( 4006 + offset ))/graphql
       - VITE_GRAPHQL_PROM_URI=http://localhost:$(( 4006 + offset ))/graphql-prom
+      - VITE_REGISTRIES_API_URL=http://localhost:$(( 4006 + offset ))
       - VITE_SURVEY_URL=http://localhost:$(( FRONTEND_BASE_PORT + offset ))/surveys
       - VITE_AGENT_SERVICE_URL=http://localhost:$(( 4007 + offset ))
     volumes: !override
