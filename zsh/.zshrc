@@ -221,7 +221,7 @@ docker() {
 alias gcad='git commit -a --amend'
 alias gap='git add -N . && git add -p'
 alias t='tmux new-session -A -s main'
-alias claude='claude --model claude-opus-4-5-20251101 --dangerously-skip-permissions'
+alias claude='claude --dangerously-skip-permissions'
 alias codex='codex --yolo'
 
 # Modern ls (eza)
