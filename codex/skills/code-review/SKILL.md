@@ -207,7 +207,7 @@ Create a unique output path.
 1. Get the branch name with `git branch --show-current`.
 2. Sanitize it for filenames by replacing `/` with `-`.
 3. Generate a timestamp with `date +%Y%m%d-%H%M%S`.
-4. Prefer `/Users/philip/main/dev/reviews/<safe-branch>-codex-<timestamp>.md`.
+4. Prefer `/Users/philip/vaults/main/dev/reviews/<safe-branch>-codex-<timestamp>.md`.
 5. If that directory cannot be created or used, fall back to `/tmp/<safe-branch>-codex-<timestamp>.md`.
 6. Never overwrite an existing review file.
 
