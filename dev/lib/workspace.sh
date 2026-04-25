@@ -62,7 +62,7 @@ dev_worktree_raw_key_for_repo() {
 
     branch=$(git -C "$repo_root" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
     if [ -n "$branch" ]; then
-        printf '%s\n' "$branch"
+        printf '%s\n' "${branch##*/}"
         return
     fi
 
@@ -108,7 +108,7 @@ dev_list_slot_files() {
     find "$stacks_dir" -mindepth 2 -maxdepth 2 -type f -name worktree-slot -print 2>/dev/null | sort
 }
 
-dev_slot_reserved_by_other_repo() {
+dev_clear_stale_slot_files() {
     local repo_root=$1
     local slot=$2
     local own_slot_file
@@ -121,13 +121,11 @@ dev_slot_reserved_by_other_repo() {
         [ -n "$candidate" ] || continue
         [ "$candidate" = "$own_slot_file" ] && continue
 
-        candidate_slot=$(tr -d '[:space:]' < "$candidate")
+        candidate_slot=$(tr -d '[:space:]' < "$candidate" 2>/dev/null || true)
         if [ "$candidate_slot" = "$slot" ]; then
-            return 0
+            rm -f "$candidate"
         fi
     done < <(dev_list_slot_files)
-
-    return 1
 }
 
 dev_existing_slot_file_for_repo() {

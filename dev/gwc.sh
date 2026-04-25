@@ -62,7 +62,7 @@ if [[ -z "${1:-}" ]]; then
 fi
 
 branch="$1"
-worktree_path="$WORKTREE_BASE/$branch"
+worktree_path="$WORKTREE_BASE/${branch##*/}"
 
 # Must be in a git repo
 git rev-parse --show-toplevel >/dev/null 2>&1 || { echo "Error: Not inside a git repository"; exit 1; }

@@ -217,7 +217,10 @@ is_slot_in_use() {
         return 0
     fi
 
-    dev_slot_reserved_by_other_repo "$repo_root" "$s"
+    # Docker has nothing on this slot — any slot file claiming it is stale
+    # (containers were removed manually instead of via `dev nuke`).
+    dev_clear_stale_slot_files "$repo_root" "$s"
+    return 1
 }
 
 slot_from_existing_stack() {
@@ -317,6 +320,14 @@ resolve_slot() {
         return
     fi
 
+    # No containers exist for this workspace. For `up`, re-allocate the lowest free
+    # slot rather than honoring the saved slot — the saved value is stale state, not
+    # a reservation, and shouldn't keep a lower-numbered free slot from being claimed.
+    if [ "$subcommand" = "up" ]; then
+        next_available_slot
+        return
+    fi
+
     saved=$(read_saved_slot)
     if [ -n "$saved" ]; then
         if ! is_slot_in_use "$saved"; then
@@ -329,13 +340,8 @@ resolve_slot() {
         fi
     fi
 
-    # Auto-assign for "up" command, error for others
-    if [ "$subcommand" = "up" ]; then
-        next_available_slot
-    else
-        echo "Error: No slot assigned yet. Run 'dev up' first." >&2
-        exit 1
-    fi
+    echo "Error: No slot assigned yet. Run 'dev up' first." >&2
+    exit 1
 }
 
 # --- Override generation ---

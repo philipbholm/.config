@@ -21,7 +21,7 @@ if [[ -z "${1:-}" ]]; then
 fi
 
 branch="$1"
-worktree_path="$WORKTREE_BASE/$branch"
+worktree_path="$WORKTREE_BASE/${branch##*/}"
 
 [[ ! -d "$worktree_path" ]] && { echo "Worktree not found: $worktree_path"; exit 1; }
 
