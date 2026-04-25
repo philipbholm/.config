@@ -24,6 +24,7 @@ set -euo pipefail
 
 ADMIN_MOCK_NET="admin-mock-net"
 DEV_SLOT_LABEL="com.ledidi.dev-slot"
+DEV_WORKSPACE_LABEL="com.ledidi.dev-workspace"
 FRONTEND_BASE_PORT=3003
 
 # --- Shared utility functions ---
@@ -193,7 +194,8 @@ if ! git rev-parse --show-toplevel &>/dev/null; then
     exit 1
 fi
 repo_root="$(git rev-parse --show-toplevel)"
-project_name="$(dev_workspace_id_for_repo "$repo_root")"
+base_project_name="$(dev_workspace_id_for_repo "$repo_root")"
+project_name="$base_project_name"  # Reassigned to wt{slot}-${base} after slot resolution.
 
 if [ -f "$repo_root/.git" ]; then
     mode="worktree"   # .git is a file in worktrees, containing gitdir pointer
@@ -222,7 +224,7 @@ slot_from_existing_stack() {
     local container
 
     container=$(docker ps -aq \
-        --filter "label=com.docker.compose.project=${project_name}" \
+        --filter "label=${DEV_WORKSPACE_LABEL}=${base_project_name}" \
         --filter "label=${DEV_SLOT_LABEL}" 2>/dev/null | head -1)
     if [ -z "$container" ]; then
         return 1
@@ -350,6 +352,7 @@ services:
   registries-frontend:
     labels:
       ${DEV_SLOT_LABEL}: "0"
+      ${DEV_WORKSPACE_LABEL}: "${base_project_name}"
   admin:
     profiles: ["disabled"]
   mysql:
@@ -379,6 +382,7 @@ services:
   registries-frontend:
     labels:
       ${DEV_SLOT_LABEL}: "${s}"
+      ${DEV_WORKSPACE_LABEL}: "${base_project_name}"
     environment:
       - VITE_APP_URL=http://localhost:$(( FRONTEND_BASE_PORT + offset ))
       - VITE_GRAPHQL_URI=http://localhost:$(( 4006 + offset ))/graphql
@@ -401,6 +405,7 @@ services:
   postgres:
     labels:
       ${DEV_SLOT_LABEL}: "${s}"
+      ${DEV_WORKSPACE_LABEL}: "${base_project_name}"
     ports: !override
       - "$(( 5432 + offset )):5432"
     volumes: !override
@@ -409,6 +414,7 @@ services:
   codelist:
     labels:
       ${DEV_SLOT_LABEL}: "${s}"
+      ${DEV_WORKSPACE_LABEL}: "${base_project_name}"
     volumes: !override
       - $repo_root/services/codelist/src:/app/services/codelist/src
       - $repo_root/services/codelist/api:/app/services/codelist/api
@@ -421,6 +427,7 @@ services:
   registries:
     labels:
       ${DEV_SLOT_LABEL}: "${s}"
+      ${DEV_WORKSPACE_LABEL}: "${base_project_name}"
     networks:
       - default
       - admin-bridge
@@ -446,6 +453,7 @@ YAML
   agent:
     labels:
       ${DEV_SLOT_LABEL}: "${s}"
+      ${DEV_WORKSPACE_LABEL}: "${base_project_name}"
     ports: !override
       - "$(( 4007 + offset )):4000"
 AGENT_YAML
@@ -662,6 +670,8 @@ resolved_slot=$(resolve_slot)
 offset=$(( resolved_slot * 100 ))
 
 if [ "$mode" = "worktree" ]; then
+    # Prefix surfaces the slot in Docker Desktop. Lowercase per compose naming rules.
+    project_name="wt${resolved_slot}-${base_project_name}"
     echo "Mode: worktree (slot $resolved_slot, offset +$offset)"
 else
     echo "Mode: main (default ports)"
