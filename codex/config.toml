@@ -1,19 +1,27 @@
-model = "gpt-5.4"
-model_reasoning_effort = "high"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
 personality = "pragmatic"
+notify = ["/Users/philip/.config/dev/codex-notify.sh"]
+
 [projects."/Users/philip/work/ledidi-monorepo"]
 trust_level = "trusted"
 
 [projects."/Users/philip/.config"]
 trust_level = "trusted"
 
-[notice.model_migrations]
-"gpt-5.1-codex-max" = "gpt-5.2-codex"
-"gpt-5.3-codex" = "gpt-5.4"
+[projects."/Users/philip/work/.dev-stacks"]
+trust_level = "trusted"
 
 [mcp_servers.chrome-devtools]
 command = "npx"
 args = ["chrome-devtools-mcp@latest", "--isolated"]
 
+[notice]
+hide_rate_limit_model_nudge = true
+fast_default_opt_out = true
+
 [tui]
 status_line = ["current-dir", "model-with-reasoning", "context-usage", "five-hour-limit", "weekly-limit"]
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4

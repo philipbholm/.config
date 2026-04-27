@@ -55,6 +55,8 @@ mkdir -p \
   ~/.nvm \
   ~/.cursor \
   ~/.claude \
+  ~/.codex/rules \
+  ~/.codex/skills \
   ~/.ssh \
   ~/.zsh
 
@@ -73,6 +75,12 @@ fi
 # Cursor editor config
 ln -sf "$DOTFILES/cursor/settings.json" ~/.cursor/settings.json
 ln -sf "$DOTFILES/cursor/keybindings.json" ~/.cursor/keybindings.json
+
+# Codex config (symlink config + rules; skills are copied because Codex's
+# loader doesn't follow symlinked skill dirs reliably)
+ln -sfn "$DOTFILES/codex/config.toml" ~/.codex/config.toml
+ln -sfn "$DOTFILES/codex/rules/default.rules" ~/.codex/rules/default.rules
+rsync -a --delete "$DOTFILES/codex/skills/code-review/" ~/.codex/skills/code-review/
 
 # Dev scripts in ~/bin
 ln -sf "$DOTFILES/dev/dev.sh" ~/bin/dev

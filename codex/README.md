@@ -10,17 +10,14 @@ This directory contains Codex configuration files that are version-controlled.
 
 ## Setup
 
-Codex expects config at `~/.codex`. To use this setup, symlink these files:
+Handled by `install.sh`. Re-run after pulling skill changes to push them into `~/.codex`:
 
 ```bash
-mkdir -p ~/.codex/rules ~/.codex/skills
-
-ln -sfn ~/.config/codex/config.toml ~/.codex/config.toml
-ln -sfn ~/.config/codex/rules/default.rules ~/.codex/rules/default.rules
-rm -rf ~/.codex/skills/code-review
-cp -R ~/.config/codex/skills/code-review ~/.codex/skills/code-review
+rsync -a --delete ~/.config/codex/skills/code-review/ ~/.codex/skills/code-review/
 ```
 
-System-managed skills remain in `~/.codex/skills/.system` and are intentionally not version-controlled here.
+`config.toml` and `rules/default.rules` are symlinked, so they sync automatically. Skills are copied because Codex's skill loader doesn't follow symlinked skill dirs reliably.
+
+System-managed skills live in `~/.codex/skills/.system` and are intentionally not version-controlled here.
 
 Runtime files (history, logs, state DBs, sessions, auth, cache, etc.) stay in `~/.codex` and are not version-controlled.
