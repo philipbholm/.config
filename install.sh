@@ -92,6 +92,10 @@ ln -sf "$DOTFILES/dev/gwd.sh" ~/bin/gwd
 ln -sf "$DOTFILES/dev/sync-context.sh" ~/bin/sync-context
 ln -sf "$DOTFILES/dev/fix.sh" ~/bin/fix
 
+# python/pip → python3/pip3 (real commands, not just shell aliases)
+ln -sf /opt/homebrew/bin/python3 ~/bin/python
+ln -sf /opt/homebrew/bin/pip3 ~/bin/pip
+
 # ─── Launch Agents ───────────────────────────────────────────
 
 echo "Installing launch agents..."
