@@ -200,18 +200,22 @@ General:
 - remove dead compatibility code instead of keeping it around
 - avoid weak typing, `any`, and gratuitous type assertions
 
-### 7. Write the review file
+### 7. Write the review file (MANDATORY)
 
-Create a unique output path.
+**You MUST save the review to `/Users/philip/vaults/main/dev/reviews/`. This is not optional. Do not write the review to the current working directory, the worktree, `/tmp/`, or anywhere else. Do not print the review to the chat instead of saving it.**
+
+Compute the output path:
 
 1. Get the branch name with `git branch --show-current`.
 2. Sanitize it for filenames by replacing `/` with `-`.
 3. Generate a timestamp with `date +%Y%m%d-%H%M%S`.
-4. Prefer `/Users/philip/vaults/main/dev/reviews/<safe-branch>-codex-<timestamp>.md`.
-5. If that directory cannot be created or used, fall back to `/tmp/<safe-branch>-codex-<timestamp>.md`.
-6. Never overwrite an existing review file.
+4. Ensure the directory exists: `mkdir -p /Users/philip/vaults/main/dev/reviews/`.
+5. Build the absolute path: `/Users/philip/vaults/main/dev/reviews/<safe-branch>-codex-<timestamp>.md`.
+6. Never overwrite an existing review file — if the path already exists, regenerate the timestamp.
 
-Write a single unified markdown review. Skip empty sections.
+If `mkdir -p` fails, stop and report the failure to the user. Do not invent an alternate location.
+
+Write a single unified markdown review to that absolute path. Skip empty sections.
 
 ```markdown
 # Code Review
@@ -242,4 +246,9 @@ Write a single unified markdown review. Skip empty sections.
 
 ### 8. Final output
 
-Return the full absolute path to the written review file.
+Output the **full absolute path** to the saved review, starting from `/`, so the user can click it to open it.
+
+- Correct: `/Users/philip/vaults/main/dev/reviews/<safe-branch>-codex-<timestamp>.md`
+- Wrong: `<safe-branch>-codex-<timestamp>.md` or `reviews/<safe-branch>-codex-<timestamp>.md`
+
+Do not summarize the review contents in the chat — the saved file is the deliverable.
