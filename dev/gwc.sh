@@ -67,6 +67,8 @@ worktree_path="$WORKTREE_BASE/${branch##*/}"
 # Must be in a git repo
 git rev-parse --show-toplevel >/dev/null 2>&1 || { echo "Error: Not inside a git repository"; exit 1; }
 
+dev_prune_stale_slot_files
+
 git fetch origin
 base_ref=$(default_base_ref)
 

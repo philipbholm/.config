@@ -36,3 +36,6 @@ fi
 git -C "$worktree_path" checkout -- . && \
   git -C "$worktree_path" clean -fd && \
   git -C "$worktree_path" worktree remove "$worktree_path"
+
+dev_prune_stale_slot_files
+"$HOME/.config/dev/sync-context.sh"

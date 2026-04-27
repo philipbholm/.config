@@ -1,5 +1,8 @@
 #!/bin/bash
 
+DEV_SLOT_LABEL="com.ledidi.dev-slot"
+DEV_WORKSPACE_LABEL="com.ledidi.dev-workspace"
+
 dev_worktree_base() {
     printf '%s\n' "${WORKTREE_BASE:-$HOME/work/worktrees}"
 }
@@ -106,6 +109,37 @@ dev_list_slot_files() {
     [ -d "$stacks_dir" ] || return 0
 
     find "$stacks_dir" -mindepth 2 -maxdepth 2 -type f -name worktree-slot -print 2>/dev/null | sort
+}
+
+dev_prune_stale_slot_files() {
+    # Removes slot files whose workspace has no matching containers in Docker.
+    # No-op if the Docker daemon is unreachable, to avoid wiping valid state.
+    if ! docker info >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local slot_file workspace slot containers
+
+    while IFS= read -r slot_file; do
+        [ -n "$slot_file" ] || continue
+        [ -f "$slot_file" ] || continue
+
+        workspace=$(basename "$(dirname "$slot_file")")
+        slot=$(tr -d '[:space:]' < "$slot_file" 2>/dev/null || true)
+
+        if [ -z "$slot" ]; then
+            rm -f "$slot_file"
+            continue
+        fi
+
+        containers=$(docker ps -aq \
+            --filter "label=${DEV_WORKSPACE_LABEL}=${workspace}" \
+            --filter "label=${DEV_SLOT_LABEL}=${slot}" 2>/dev/null)
+
+        if [ -z "$containers" ]; then
+            rm -f "$slot_file"
+        fi
+    done < <(dev_list_slot_files)
 }
 
 dev_clear_stale_slot_files() {

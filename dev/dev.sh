@@ -23,8 +23,6 @@ set -euo pipefail
 ###   dev ps                             List containers
 
 ADMIN_MOCK_NET="admin-mock-net"
-DEV_SLOT_LABEL="com.ledidi.dev-slot"
-DEV_WORKSPACE_LABEL="com.ledidi.dev-workspace"
 FRONTEND_BASE_PORT=3003
 
 # --- Shared utility functions ---
