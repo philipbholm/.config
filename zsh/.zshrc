@@ -45,6 +45,7 @@ export PATH="/opt/homebrew/opt/gradle@8/bin:$PATH"
 export PATH=/Users/philip/.opencode/bin:$PATH
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="/Users/philip/.browser-use/bin:$PATH"
+export PATH="$HOME/.config/claude/bin:$PATH"
 
 # Bun
 export BUN_INSTALL="$HOME/.bun"
