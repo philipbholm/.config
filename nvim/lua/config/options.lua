@@ -35,6 +35,9 @@ end))
 vim.opt.relativenumber = true
 vim.opt.swapfile = false
 
+-- Lock LazyVim's project root to cwd (avoid root jumping into nested .git/LSP roots)
+vim.g.root_spec = { "cwd" }
+
 -- Autosave
 vim.opt.autowriteall = true
 vim.api.nvim_create_autocmd("InsertLeave", {
