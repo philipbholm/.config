@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# jira — Jira Cloud REST API wrapper
+# Authenticates with HTTP Basic ($JIRA_EMAIL:$JIRA_TOKEN, classic API token).
+# Path is appended to https://ledidi.atlassian.net
+#
+# Usage: jira <METHOD> <PATH> [curl-args...]
+#
+# Examples:
+#   jira GET  /rest/api/3/myself
+#   jira GET  '/rest/api/3/search?jql=assignee=currentUser()&fields=summary,status'
+#   jira GET  /rest/api/3/issue/PROJ-123
+#   jira POST /rest/api/3/issue -d @issue.json
+#   jira POST /rest/api/3/issue/PROJ-123/comment -d '{"body":{"type":"doc","version":1,"content":[{"type":"paragraph","content":[{"type":"text","text":"hi"}]}]}}'
+
+set -euo pipefail
+
+usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+
+[[ $# -lt 1 || "${1:-}" == "-h" || "${1:-}" == "--help" ]] && usage 0
+[[ $# -lt 2 ]] && usage 1
+
+if [[ -z "${JIRA_TOKEN:-}" ]]; then
+  echo "jira: JIRA_TOKEN is not set" >&2
+  exit 1
+fi
+
+if [[ -z "${JIRA_EMAIL:-}" ]]; then
+  echo "jira: JIRA_EMAIL is not set" >&2
+  exit 1
+fi
+
+method="$1"
+path="$2"
+shift 2
+
+if [[ "$path" != /* ]]; then
+  echo "jira: path must start with / (got: $path)" >&2
+  exit 1
+fi
+
+body=$(mktemp)
+trap 'rm -f "$body"' EXIT
+
+http_code=$(curl -sS \
+  -o "$body" \
+  -w "%{http_code}" \
+  -X "$method" \
+  -u "${JIRA_EMAIL}:${JIRA_TOKEN}" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  "https://ledidi.atlassian.net${path}" \
+  "$@")
+
+cat "$body"
+echo
+echo "HTTP $http_code" >&2
+[[ "$http_code" =~ ^2 ]]
