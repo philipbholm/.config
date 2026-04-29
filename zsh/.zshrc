@@ -55,6 +55,7 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+command -v nvm >/dev/null && nvm use default --silent >/dev/null
 (( $+commands[npm] )) && export PATH="$PATH:$(npm config get prefix)/bin"
 
 # OpenJDK
