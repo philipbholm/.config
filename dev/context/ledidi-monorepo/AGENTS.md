@@ -93,6 +93,7 @@ If the dev environment seems broken (connection refused, services not responding
 
 ### Code Style
 
+- Default to no comments. Only add a comment when strictly necessary to explain _why_ code exists (hidden constraint, subtle invariant, workaround for a specific bug, surprising behavior). Never add comments explaining _what_ the code does — names and types should carry that. No comments referencing the current task, fix, or callers (e.g. "added for X flow", "used by Y").
 - No TypeScript enums — use string types or const maps
 - Never use `as any` or `as unknown`
 - One GraphQL operation per `.graphql` file
