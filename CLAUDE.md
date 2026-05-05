@@ -47,3 +47,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 - Claude skills go in `claude/skills/`, agents in `claude/agents/`. Settings in `claude/settings.json`.
 - Dev scripts use Bash (except `check.sh` and `test.sh` which use Zsh). Scripts must be executable.
 - The `.gitignore` excludes: cagent, configstore, kanata, neofetch, rstudio, raycast, tmp, .zsh_secrets, .zcompdump.
+
+## Shorthand Phrases
+
+- **"update the context"** — Update `CLAUDE.local.md` and `AGENTS.md` under `dev/context/ledidi-monorepo/` (relative to this repo root), plus any files they reference.
