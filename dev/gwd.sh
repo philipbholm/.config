@@ -27,7 +27,8 @@ worktree_path="$WORKTREE_BASE/${branch##*/}"
 
 project_name="$(dev_workspace_id_for_repo "$worktree_path")"
 slot_file="$(dev_slot_file_for_repo "$worktree_path")"
-if [ -f "$slot_file" ]; then
+existing_containers=$(docker ps -aq --filter "label=${DEV_WORKSPACE_LABEL}=${project_name}" 2>/dev/null)
+if [ -f "$slot_file" ] || [ -n "$existing_containers" ]; then
   (cd "$worktree_path" && "$DEV_CMD" nuke)
   containers=$(docker ps -q --filter "label=com.docker.compose.project=$project_name" 2>/dev/null)
   [ -n "$containers" ] && docker wait "$containers" >/dev/null 2>&1
