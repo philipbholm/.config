@@ -5,3 +5,102 @@ disabled = true
 
 [aws]
 disabled = true
+
+[cmd_duration]
+disabled = true
+
+[nodejs]
+disabled = true
+
+[python]
+disabled = true
+
+[ruby]
+disabled = true
+
+[rust]
+disabled = true
+
+[golang]
+disabled = true
+
+[java]
+disabled = true
+
+[kotlin]
+disabled = true
+
+[scala]
+disabled = true
+
+[php]
+disabled = true
+
+[perl]
+disabled = true
+
+[lua]
+disabled = true
+
+[dotnet]
+disabled = true
+
+[swift]
+disabled = true
+
+[dart]
+disabled = true
+
+[elixir]
+disabled = true
+
+[erlang]
+disabled = true
+
+[haskell]
+disabled = true
+
+[ocaml]
+disabled = true
+
+[c]
+disabled = true
+
+[cpp]
+disabled = true
+
+[zig]
+disabled = true
+
+[deno]
+disabled = true
+
+[bun]
+disabled = true
+
+[package]
+disabled = true
+
+[terraform]
+disabled = true
+
+[helm]
+disabled = true
+
+[kubernetes]
+disabled = true
+
+[docker_context]
+disabled = true
+
+[gcloud]
+disabled = true
+
+[azure]
+disabled = true
+
+[conda]
+disabled = true
+
+[nix_shell]
+disabled = true
