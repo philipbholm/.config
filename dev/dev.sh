@@ -17,15 +17,21 @@ fi
 ### Auto-detects main vs worktree, wraps docker compose with correct override files.
 ###
 ### Usage:
-###   dev up [--slot N] [--build] [services...]  Start stack (full init flow)
+###   dev up [--slot N] [--no-patient] [--build] [services...]  Start stack (full init flow)
 ###   dev down                           Stop and remove containers
 ###   dev nuke                           Full teardown (volumes, images, slot)
 ###   dev status                         Show all running stacks
 ###   dev start [services...]            Start stopped containers
 ###   dev <any docker compose command>   Passthrough to docker compose
 ###
+### Flags:
+###   --slot N           Pin to slot 1-9 (worktrees only; default: lowest free)
+###   --no-patient       Skip patient-bff and patient-frontend even if present in
+###                      the worktree (frees the pinned 4010 port for another stack)
+###
 ### Examples:
 ###   dev up                             Start default services
+###   dev up --no-patient                Skip patient services (4010 in use elsewhere)
 ###   dev up --build registries          Rebuild one service
 ###   dev restart registries             Restart a service
 ###   dev logs -f registries             Tail logs
@@ -128,10 +134,12 @@ run_seed() {
 }
 
 worktree_has_patient_bff() {
+    [ "${skip_patient:-false}" = "true" ] && return 1
     [ -f "$repo_root/services/patient-bff/Dockerfile.dev" ]
 }
 
 worktree_has_patient_frontend() {
+    [ "${skip_patient:-false}" = "true" ] && return 1
     [ -f "$repo_root/apps/patient-frontend/Dockerfile.dev" ]
 }
 
@@ -765,7 +773,7 @@ if [ "$#" -lt 1 ]; then
     echo "Usage: dev <command> [args...]"
     echo ""
     echo "Commands:"
-    echo "  up [--slot N] [--build] [services...]  Start stack (full init flow)"
+    echo "  up [--slot N] [--no-patient] [--build] [services...]  Start stack (full init flow)"
     echo "  down                        Stop and remove containers"
     echo "  nuke                        Full teardown (volumes, images, slot)"
     echo "  status                      Show all running stacks"
@@ -777,8 +785,9 @@ fi
 subcommand="$1"
 shift
 
-# Parse --slot N for up command
+# Parse flags for up command
 slot_override=""
+skip_patient="false"
 if [ "$subcommand" = "up" ]; then
     while [ "$#" -gt 0 ]; do
         case "$1" in
@@ -793,6 +802,10 @@ if [ "$subcommand" = "up" ]; then
                 fi
                 slot_override="$2"
                 shift 2
+                ;;
+            --no-patient)
+                skip_patient="true"
+                shift
                 ;;
             *)
                 break
