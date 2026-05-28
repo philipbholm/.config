@@ -79,8 +79,8 @@
         "@winor30/mcp-server-datadog"
       ],
       "env": {
-        "DATADOG_API_KEY": "${DATADOG_API_KEY}",
-        "DATADOG_APP_KEY": "${DATADOG_APP_KEY}",
+        "DATADOG_API_KEY": "${DD_API_KEY}",
+        "DATADOG_APP_KEY": "${DD_APP_KEY}",
         "DATADOG_SITE": "datadoghq.eu"
       }
     }
