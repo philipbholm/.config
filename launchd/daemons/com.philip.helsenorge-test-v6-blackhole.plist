@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.philip.helsenorge-test-v6-blackhole</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/sbin/route</string>
+        <string>-n</string>
+        <string>add</string>
+        <string>-inet6</string>
+        <string>-host</string>
+        <string>2a05:ec0:1017::10</string>
+        <string>-interface</string>
+        <string>lo0</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardErrorPath</key>
+    <string>/tmp/helsenorge-test-v6-blackhole.err</string>
+</dict>
+</plist>

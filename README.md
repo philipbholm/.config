@@ -161,6 +161,16 @@ open -a AeroSpace
 open -a Karabiner-Elements
 open -a Raycast
 ```
+- Install system-level LaunchDaemons from `launchd/daemons/`. These are not handled by `install.sh` (which only loads user-level LaunchAgents from `launchd/*.plist`). Currently:
+  - `com.philip.helsenorge-test-v6-blackhole.plist` — routes the Helsenorge test endpoint's IPv6 address to `lo0` so traffic falls back to IPv4 and goes through the Ledidi AWS Client VPN (which only forwards IPv4). Only needed for engineers working on the Helsenorge/HelseID test integration; see the team's Confluence page for the full VPN setup (`.ovpn` profile, AWS VPN Client configuration).
+
+    ```sh
+    sudo install -m 644 -o root -g wheel \
+      ~/.config/launchd/daemons/com.philip.helsenorge-test-v6-blackhole.plist \
+      /Library/LaunchDaemons/
+    sudo launchctl bootstrap system \
+      /Library/LaunchDaemons/com.philip.helsenorge-test-v6-blackhole.plist
+    ```
 
 ## Notes About Current Shell Config
 
