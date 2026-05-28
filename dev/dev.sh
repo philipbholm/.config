@@ -3,6 +3,16 @@ set -euo pipefail
 
 . "$HOME/.config/dev/lib/workspace.sh"
 
+# Per-developer overrides for docker-compose env interpolation (e.g. each
+# dev's reserved ngrok subdomain for the patient-bff Helsenorge tunnel).
+# `set -a` exports every var assigned in the file so `docker compose` sees
+# them. The file is gitignore-irrelevant since it lives outside the repo.
+if [ -f "$HOME/.config/dev/.env.local" ]; then
+    set -a
+    . "$HOME/.config/dev/.env.local"
+    set +a
+fi
+
 ### dev.sh — Unified dev stack manager
 ### Auto-detects main vs worktree, wraps docker compose with correct override files.
 ###
@@ -115,6 +125,14 @@ run_seed() {
     echo
     echo "Data seeded successfully."
     echo
+}
+
+worktree_has_patient_bff() {
+    [ -f "$repo_root/services/patient-bff/Dockerfile.dev" ]
+}
+
+worktree_has_patient_frontend() {
+    [ -f "$repo_root/apps/patient-frontend/Dockerfile.dev" ]
 }
 
 available_services() {
@@ -463,6 +481,127 @@ YAML
 AGENT_YAML
     fi
 
+    # patient-bff: defined inline (not via -f services/patient-bff/
+    # docker-compose.yml) because compose resolves relative paths from the
+    # FIRST compose file's directory, which would break the bff compose's
+    # ../.. paths.
+    #
+    # Host port and redirect_uri are PINNED to 4010 (no worktree offset):
+    # NHN's Helsenorge OIDC client only has http://localhost:4010/uthopp/
+    # callback on its allow-list, so any other port fails PAR with 204019.
+    # Trade-off: only one worktree can run patient-bff at a time.
+    # PATIENT_BFF_PUBLIC_URL still picks up NGROK_PATIENT_BFF_URL from
+    # ~/.config/dev/.env.local because Helsenorge calls the BFF from the
+    # public internet and needs HTTPS.
+    if worktree_has_patient_bff; then
+        local default_bff_url="http://localhost:4010"
+        local bff_public_url="${NGROK_PATIENT_BFF_URL:-$default_bff_url}"
+        cat >> "$override_file" <<PATIENT_BFF_YAML
+
+  patient-bff:
+    labels:
+      ${DEV_SLOT_LABEL}: "${s}"
+      ${DEV_WORKSPACE_LABEL}: "${base_project_name}"
+    build:
+      context: $repo_root
+      dockerfile: ./services/patient-bff/Dockerfile.dev
+      args:
+        GITHUB_TOKEN: \${GITHUB_TOKEN}
+    ports:
+      - "4010:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - LOG_LEVEL=debug
+      - PRETTY_PRINT=true
+      - INCLUDE_STACK_TRACE=true
+      - ALLOWED_ORIGINS=http://localhost:$(( 3015 + offset ))
+      - PATIENT_BFF_PUBLIC_URL=${bff_public_url}
+      - PATIENT_BFF_LOCAL_URL=http://localhost:4010
+      - PATIENT_FRONTEND_PROXY_URL=http://patient-frontend:3015
+      - PATIENT_BFF_ISSUER=http://patient-bff:4000
+      - HELSENORGE_REDIRECT_URI=http://localhost:4010/uthopp/callback
+      - HELSENORGE_OIDC_DISCOVERY_URL=https://eksternapi.hn2.test.nhn.no/sts/oidcprov/v3/.well-known/openid-configuration
+      - HELSENORGE_CLIENT_ID=3a17b005-b58f-4d3f-8b13-ed0f92aecc0f
+      - HELSENORGE_CLIENT_ASSERTION_KMS_KEY_ID=alias/patient-helsenorge-client-assertion-test
+      - AWS_PROFILE=test
+      - REGISTRIES_GRPC_ADDRESS=registries-service.internal:50052
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=patient_bff
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_APP_USER=postgres
+      - POSTGRES_APP_HOST=postgres
+      - POSTGRES_APP_PASSWORD=postgres
+      - POSTGRES_IAM_AUTH=false
+      - AWS_REGION=eu-central-1
+      - PATIENT_ASSERTION_KMS_KEY_ID=alias/patient-bff-assertion-local
+      - SESSION_ENCRYPTION_KMS_KEY_ID=alias/patient-bff-session-local
+      - USE_STUBBED_KMS=true
+      - SESSION_IDLE_TIMEOUT_MINUTES=15
+      - SESSION_HARD_CAP_MINUTES=60
+      - RATE_LIMIT_API_PER_MINUTE=60
+      - RATE_LIMIT_UTHOPP_PER_MINUTE=10
+    depends_on:
+      patient-bff-db-init:
+        condition: service_completed_successfully
+      registries:
+        condition: service_healthy
+    volumes:
+      - $repo_root/services/patient-bff/src:/app/services/patient-bff/src:cached
+      - $repo_root/services/patient-bff/prisma:/app/services/patient-bff/prisma:cached
+      - $repo_root/services/registries/api:/app/services/registries/api:cached
+      - $repo_root/packages/helseid:/app/packages/helseid:cached
+      - ~/.aws:/root/.aws:ro
+
+  patient-bff-db-init:
+    labels:
+      ${DEV_SLOT_LABEL}: "${s}"
+      ${DEV_WORKSPACE_LABEL}: "${base_project_name}"
+    image: postgres:17
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: postgres
+    entrypoint: /bin/sh
+    command: >-
+      -c "set -e;
+      if ! psql -h postgres -U postgres -tAc \"SELECT 1 FROM pg_database WHERE datname='patient_bff'\" | grep -q 1; then
+      psql -h postgres -U postgres -c 'CREATE DATABASE patient_bff';
+      fi"
+PATIENT_BFF_YAML
+    fi
+
+    # patient-frontend: no compose file lives in-repo (just a Dockerfile.dev),
+    # so the dev script owns the service definition. Mirrors the registries-
+    # frontend block: build context = repo root, bind-mount src for HMR.
+    if worktree_has_patient_frontend; then
+        cat >> "$override_file" <<PATIENT_FRONTEND_YAML
+
+  patient-frontend:
+    labels:
+      ${DEV_SLOT_LABEL}: "${s}"
+      ${DEV_WORKSPACE_LABEL}: "${base_project_name}"
+    build:
+      context: $repo_root
+      dockerfile: ./apps/patient-frontend/Dockerfile.dev
+      args:
+        GITHUB_TOKEN: \${GITHUB_TOKEN}
+    environment:
+      - PORT=3015
+      - PATIENT_BFF_URL=http://patient-bff:4000
+      # MSW defaults to ON in dev (main.tsx) — disable so the app hits the
+      # real bff PROM endpoints instead of canned "Smerteskala uke 3" mocks.
+      - VITE_USE_MSW=false
+    ports:
+      - "$(( 3015 + offset )):3015"
+    volumes:
+      - $repo_root/apps/patient-frontend/src:/apps/patient-frontend/src:cached
+PATIENT_FRONTEND_YAML
+    fi
+
     # Append networks and volumes sections last
     cat >> "$override_file" <<NETWORKS_YAML
 
@@ -690,6 +829,17 @@ default_services=()
 while IFS= read -r service; do
     [ -n "$service" ] && default_services+=("$service")
 done < <(available_services registries-frontend postgres codelist registries agent)
+
+# Optional services that branches opt into by adding files to the worktree.
+# patient-bff comes from services/patient-bff/docker-compose.yml; patient-frontend
+# is generated into the override file. Both ride the slot's +offset like every
+# other service.
+if worktree_has_patient_bff; then
+    default_services+=(patient-bff)
+fi
+if worktree_has_patient_frontend; then
+    default_services+=(patient-frontend)
+fi
 
 case "$subcommand" in
     up)
