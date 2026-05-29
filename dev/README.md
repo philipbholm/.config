@@ -81,7 +81,15 @@ This file is regenerated on every command. The `DEV_STACKS_DIR` env var controls
 
 ## Helsenorge / patient-bff demo setup
 
-The patient-bff stack (introduced with the PROM patient flow) talks to NHN's Helsenorge HN2 test environment via real OIDC + HelseID, so a few things have to line up before `/uthopp` works end-to-end. The defaults in `dev.sh` and `.env.local` are wired for this, but knowing the moving pieces helps when something fails.
+The patient-bff stack (introduced with the PROM patient flow) talks to NHN's Helsenorge HN2 test environment via real OIDC + HelseID, so a few things have to line up before `/uthopp` works end-to-end. The wiring in `dev.sh` and `.env.local` is ready, but knowing the moving pieces helps when something fails.
+
+The patient stack is **opt-in**: pass `--include-patient` to start it.
+
+```bash
+dev up --include-patient
+```
+
+Without the flag, `dev up` skips `patient-bff` and `patient-frontend` even if the worktree has their Dockerfiles, so the pinned port 4010 stays free for whichever stack actually needs it.
 
 ### Why patient-bff is pinned to port 4010
 
