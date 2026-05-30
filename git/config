@@ -28,6 +28,7 @@
     db = branch -D
 [core]
 	  editor = vim
+	pager = cat
 [diff]
 	  tool = cursor
 [difftool "cursor"]
