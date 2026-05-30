@@ -98,8 +98,16 @@ gwc() {
 }
 
 _gwc_completions() {
-  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
-  _describe 'branch' branches
+  case "$words[CURRENT-1]" in
+    -b|--base)
+      local refs=($(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes 2>/dev/null))
+      _describe 'base ref' refs
+      ;;
+    *)
+      local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
+      _describe 'branch' branches
+      ;;
+  esac
 }
 compdef _gwc_completions gwc
 
