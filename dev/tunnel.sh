@@ -20,13 +20,17 @@ cd "$MONOREPO_ROOT"
 PROJECT_NAME="$(dev_workspace_id_for_repo "$MONOREPO_ROOT")"
 FRONTEND_BASE_PORT=3003
 
-# Determine ports from worktree slot
+# Determine ports + compose project name from worktree slot.
+# dev.sh prefixes worktree stacks with wt{slot}- (see dev.sh:831), so the dc()
+# wrapper below must use the same name to target the real containers instead of
+# spinning up a duplicate stack that collides on the already-allocated ports.
 worktree_slot_file="$(dev_slot_file_for_repo "$MONOREPO_ROOT")"
 if [[ -f "$worktree_slot_file" ]]; then
   slot=$(cat "$worktree_slot_file")
   offset=$((slot * 100))
   frontend_port=$((FRONTEND_BASE_PORT + offset))
   api_port=$((4006 + offset))
+  PROJECT_NAME="wt${slot}-${PROJECT_NAME}"
 else
   frontend_port=$FRONTEND_BASE_PORT
   api_port=4006
@@ -112,8 +116,12 @@ cleanup() {
     echo "Cleanup complete."
 }
 
-# Set up trap to run cleanup on exit
-trap cleanup EXIT INT TERM
+# Run cleanup once on exit; INT/TERM trigger an exit (which fires the EXIT trap)
+# rather than running cleanup inline, otherwise the handler returns and the main
+# `while true` loop resumes, leaving the script running after Ctrl+C.
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 #######################################
 # Check prerequisites
