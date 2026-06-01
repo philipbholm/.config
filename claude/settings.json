@@ -36,13 +36,12 @@
   },
   "model": "opus[1m]",
   "hooks": {
-    "Notification": [
+    "Stop": [
       {
-        "matcher": "idle_prompt|permission_prompt",
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '[.cwd // \"unknown\", .message // \"needs your attention\"] | @tsv' | { IFS=$'\\t' read -r cwd msg; curl -s -X POST \"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage\" --data-urlencode \"chat_id=${TELEGRAM_CHAT_ID}\" --data-urlencode \"text=Claude Code — $(basename \"$cwd\"): ${msg}\" >/dev/null; } 2>/dev/null || true",
+            "command": "payload=$(cat); tp=$(printf '%s' \"$payload\" | jq -r '.transcript_path // \"\"'); case \"$tp\" in */subagents/*) printf 'SKIP(subagent) %s\\n' \"$tp\" >> /tmp/claude-stop-debug.log; exit 0;; esac; cwd=$(printf '%s' \"$payload\" | jq -r '.cwd // \"unknown\"'); printf 'NOTIFY %s\\n' \"$tp\" >> /tmp/claude-stop-debug.log; curl -s -X POST \"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage\" --data-urlencode \"chat_id=${TELEGRAM_CHAT_ID}\" --data-urlencode \"text=Claude Code done — $(basename \"$cwd\")\" >/dev/null 2>&1 || true",
             "async": true
           }
         ]
