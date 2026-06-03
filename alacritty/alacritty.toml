@@ -60,3 +60,25 @@ chars = "\u001b[13;2u"
 key = "ø"
 mods = "Control"
 chars = "\u001b[99;5~"
+
+# Ctrl+Shift+hjkl -> private CSI sequences decoded by tmux user-keys to move panes
+[[keyboard.bindings]]
+key = "H"
+mods = "Control|Shift"
+chars = "\u001b[100;6~"
+
+[[keyboard.bindings]]
+key = "J"
+mods = "Control|Shift"
+chars = "\u001b[101;6~"
+
+[[keyboard.bindings]]
+key = "K"
+mods = "Control|Shift"
+chars = "\u001b[102;6~"
+
+[[keyboard.bindings]]
+key = "L"
+mods = "Control|Shift"
+chars = "\u001b[103;6~"
+
