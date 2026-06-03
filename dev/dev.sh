@@ -389,6 +389,10 @@ services:
   mysql:
     profiles: ["disabled"]
   registries:
+    environment:
+      # Raise PROM endpoint rate limit (default 100/min) to the schema cap so
+      # local seeders aren't throttled. See services/registries/src/env.ts.
+      - PROM_RATE_LIMIT_MAX=10000
     networks:
       - default
       - $ADMIN_MOCK_NET
@@ -464,6 +468,9 @@ services:
       - admin-bridge
     environment:
       - ALLOWED_ORIGINS=http://localhost:$(( FRONTEND_BASE_PORT + offset )),http://localhost:3010
+      # Raise PROM endpoint rate limit (default 100/min) to the schema cap so
+      # local seeders aren't throttled. See services/registries/src/env.ts.
+      - PROM_RATE_LIMIT_MAX=10000
     volumes: !override
       - $repo_root/services/registries/src:/app/services/registries/src
       - $repo_root/services/registries/api:/app/services/registries/api
