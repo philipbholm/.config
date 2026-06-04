@@ -63,8 +63,6 @@ export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
 export CPPFLAGS="-I/opt/homebrew/opt/openjdk@17/include"
 
 # Disable telemetry and warnings
-export DISABLE_TELEMETRY=1
-export DISABLE_ERROR_REPORTING=1
 export NODE_NO_WARNINGS=1
 export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
 
