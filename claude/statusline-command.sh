@@ -2,15 +2,18 @@
 input=$(cat)
 
 used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+used_tokens=$(echo "$input" | jq -r '.context_window.total_input_tokens // empty')
 cost_usd=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
 session_id=$(echo "$input" | jq -r '.session_id // empty')
 cwd=$(echo "$input" | jq -r '.cwd // empty')
 model=$(echo "$input" | jq -r '.model.display_name // empty')
 effort=$(jq -r '.effortLevel // empty' ~/.config/claude/settings.json 2>/dev/null)
 
-# Git branch from cwd
+# Current dir (basename) + git branch from cwd
+dir=""
 branch=""
 if [ -n "$cwd" ]; then
+  dir=$(basename "$cwd")
   branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
 fi
 
@@ -22,6 +25,10 @@ if [ -n "$used_pct" ]; then
   empty=$((10 - filled))
   bar=$(printf '█%.0s' $(seq 1 $filled 2>/dev/null))$(printf '░%.0s' $(seq 1 $empty 2>/dev/null))
   bar="$bar ${pct_int}%"
+  if [ -n "$used_tokens" ]; then
+    tokens_fmt=$(echo "$used_tokens" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1 \2/;ta')
+    bar="$bar ($tokens_fmt)"
+  fi
 fi
 
 # Per-turn delta tracking
@@ -55,7 +62,12 @@ fi
 # Build output
 parts=()
 [ -n "$bar" ] && parts+=("$bar")
-[ -n "$branch" ] && parts+=("$branch")
+dir_branch=""
+[ -n "$dir" ] && dir_branch="$dir"
+if [ -n "$branch" ] && [ "$branch" != "$dir" ]; then
+  dir_branch="${dir_branch:+$dir_branch · }$branch"
+fi
+[ -n "$dir_branch" ] && parts+=("$dir_branch")
 [ -n "$model_effort" ] && parts+=("$model_effort")
 [ -n "$nok" ] && parts+=("$nok")
 
