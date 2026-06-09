@@ -425,10 +425,17 @@ services:
       - VITE_REGISTRIES_API_URL=http://localhost:$(( 4006 + offset ))
       - VITE_SURVEY_URL=http://localhost:$(( FRONTEND_BASE_PORT + offset ))/surveys
       - VITE_AGENT_SERVICE_URL=http://localhost:$(( 4007 + offset ))
+    # Mirror the base docker-compose.yml registries-frontend volume list.
+    # !override REPLACES the base list, so every mount the base provides must be
+    # repeated here — in particular services/registries/api, which codegen reads
+    # as its schema. Omitting it makes the container fall back to the stale
+    # baked-in schema and codegen fails on any post-build SDL change.
     volumes: !override
       - $repo_root/apps/registries-frontend/src:/apps/registries-frontend/src:cached
-      - $repo_root/services/studies/api:/services/studies/api:cached
-      - $repo_root/services/admin/api:/services/admin/api:cached
+      - $repo_root/apps/registries-frontend/test-util:/apps/registries-frontend/test-util:cached
+      - $repo_root/services/registries/api:/services/registries/api:cached
+      - $repo_root/packages/components/src:/packages/components/src:cached
+      - /apps/registries-frontend/node_modules/.vite
     ports: !override
       - "$(( FRONTEND_BASE_PORT + offset )):$FRONTEND_BASE_PORT"
 
