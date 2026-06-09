@@ -213,20 +213,67 @@ YAML
 }
 
 #######################################
-# Recreate frontend and registries to pick up the tunnel overlay
+# Poll the registries API until it serves a CORS preflight that echoes the
+# frontend tunnel origin. This proves the Node app has booted AND registered
+# CORS with the new ALLOWED_ORIGINS, so the frontend's first GraphQL request
+# won't race the API and leave the SPA stuck on "An unknown error occurred".
+# Arguments:
+#   $1 - timeout in seconds (default 90)
+#######################################
+wait_for_api() {
+    local timeout=${1:-90}
+    local elapsed=0
+
+    echo "Waiting for registries API + CORS to be ready (origin $FRONTEND_URL)..."
+    while [ $elapsed -lt $timeout ]; do
+        if curl -sS -i -m 3 -X OPTIONS "http://localhost:$api_port/graphql" \
+              -H "Origin: $FRONTEND_URL" \
+              -H "Access-Control-Request-Method: POST" \
+              -H "Access-Control-Request-Headers: content-type" 2>/dev/null \
+              | grep -qi "^access-control-allow-origin: $FRONTEND_URL"; then
+            echo "Registries API ready (CORS verified)."
+            return 0
+        fi
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
+
+    echo "Warning: registries API not ready after ${timeout}s — the site may show" >&2
+    echo "a transient error on first load until the API finishes booting. Reload." >&2
+    return 1
+}
+
+#######################################
+# Recreate registries and frontend to pick up the tunnel overlay.
+#
+# Order matters: recreate registries FIRST and wait until its API + CORS are
+# actually serving, THEN recreate the frontend. Otherwise the frontend can be
+# reachable before the API is ready, and the first GraphQL calls fail CORS —
+# which the SPA surfaces as a sticky "An unknown error occurred" until reload.
 #######################################
 recreate_services() {
+    echo ""
+    echo "Recreating registries service first (to apply ALLOWED_ORIGINS change)..."
+    dc up -d --force-recreate registries
+
+    echo ""
+    wait_for_api 90
+
     echo ""
     echo "Recreating frontend (tunnel env + patched vite.config, no image rebuild)..."
     dc up -d --force-recreate registries-frontend
 
     echo ""
-    echo "Recreating registries service (to apply ALLOWED_ORIGINS change)..."
-    dc up -d --force-recreate registries
-
-    echo ""
-    echo "Waiting for services to be ready..."
-    sleep 5
+    echo "Waiting for the frontend dev server to serve..."
+    local elapsed=0
+    while [ $elapsed -lt 60 ]; do
+        if curl -sS -o /dev/null -m 3 "http://localhost:$frontend_port/" 2>/dev/null; then
+            echo "Frontend dev server ready."
+            break
+        fi
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
 }
 
 #######################################
