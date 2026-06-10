@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "permissions": {
+    "allow": [
+      "Shell(ls)"
+    ],
+    "deny": []
+  },
+  "editor": {
+    "vimMode": false
+  },
+  "notifications": true,
+  "hints": true,
+  "rewind": false,
+  "suggestNextPrompt": false,
+  "statusLine": {
+    "type": "command",
+    "command": "~/.cursor/statusline.sh",
+    "padding": 2
+  },
+  "model": {
+    "modelId": "composer-2.5",
+    "displayModelId": "composer-2.5",
+    "displayName": "Composer 2.5 Fast",
+    "displayNameShort": "Composer 2.5 Fast",
+    "aliases": [],
+    "maxMode": false
+  },
+  "hasChangedDefaultModel": true,
+  "maxMode": false,
+  "modelParameters": {
+    "composer-2.5": [
+      {
+        "id": "fast",
+        "value": "true"
+      }
+    ]
+  },
+  "selectedModel": {
+    "modelId": "composer-2.5",
+    "parameters": [
+      {
+        "id": "fast",
+        "value": "true"
+      }
+    ]
+  },
+  "privacyCache": {
+    "ghostMode": true,
+    "privacyMode": 2
+  },
+  "network": {
+    "useHttp1ForAgent": false
+  },
+  "approvalMode": "unrestricted",
+  "sandbox": {
+    "mode": "disabled",
+    "networkAccess": "user_config_with_defaults"
+  },
+  "attribution": {
+    "attributeCommitsToAgent": true,
+    "attributePRsToAgent": true
+  }
+}
