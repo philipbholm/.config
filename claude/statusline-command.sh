@@ -7,6 +7,8 @@ cost_usd=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
 session_id=$(echo "$input" | jq -r '.session_id // empty')
 cwd=$(echo "$input" | jq -r '.cwd // empty')
 model=$(echo "$input" | jq -r '.model.display_name // empty')
+# Drop trailing context-window suffix, e.g. "Opus 4.8 (1M context)" -> "Opus 4.8"
+model=$(echo "$model" | sed -E 's/ *\([0-9]+[MK]? context\)//')
 effort=$(jq -r '.effortLevel // empty' ~/.config/claude/settings.json 2>/dev/null)
 
 # Current dir (basename) + git branch from cwd
@@ -17,14 +19,11 @@ if [ -n "$cwd" ]; then
   branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
 fi
 
-# Context bar
+# Context usage: percentage + token count (no progress bar)
 bar=""
 if [ -n "$used_pct" ]; then
   pct_int=$(printf '%.0f' "$used_pct")
-  filled=$((pct_int / 10))
-  empty=$((10 - filled))
-  bar=$(printf '█%.0s' $(seq 1 $filled 2>/dev/null))$(printf '░%.0s' $(seq 1 $empty 2>/dev/null))
-  bar="$bar ${pct_int}%"
+  bar="${pct_int}%"
   if [ -n "$used_tokens" ]; then
     tokens_fmt=$(echo "$used_tokens" | sed -e :a -e 's/\(.*[0-9]\)\([0-9]\{3\}\)/\1 \2/;ta')
     bar="$bar ($tokens_fmt)"
