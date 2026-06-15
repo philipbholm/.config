@@ -69,7 +69,7 @@
     "typescript-lsp@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true
   },
-  "effortLevel": "high",
+  "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
   "voiceEnabled": true,
   "mcpServers": {
