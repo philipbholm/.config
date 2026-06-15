@@ -35,30 +35,6 @@
     ]
   },
   "model": "opus[1m]",
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "payload=$(cat); tp=$(printf '%s' \"$payload\" | jq -r '.transcript_path // \"\"'); case \"$tp\" in */subagents/*) printf 'SKIP(subagent) %s\\n' \"$tp\" >> /tmp/claude-stop-debug.log; exit 0;; esac; cwd=$(printf '%s' \"$payload\" | jq -r '.cwd // \"unknown\"'); printf 'NOTIFY %s\\n' \"$tp\" >> /tmp/claude-stop-debug.log; curl -s -X POST \"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage\" --data-urlencode \"chat_id=${TELEGRAM_CHAT_ID}\" --data-urlencode \"text=Claude Code done — $(basename \"$cwd\")\" >/dev/null 2>&1 || true",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "payload=$(cat); ntype=$(printf '%s' \"$payload\" | jq -r '.notification_type // \"?\"'); cwd=$(printf '%s' \"$payload\" | jq -r '.cwd // \"unknown\"'); msg=$(printf '%s' \"$payload\" | jq -r '.message // \"\"'); printf 'NOTIF type=%s cwd=%s msg=%s\\n' \"$ntype\" \"$cwd\" \"$msg\" >> /tmp/claude-notify-debug.log; curl -s -X POST \"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage\" --data-urlencode \"chat_id=${TELEGRAM_CHAT_ID}\" --data-urlencode \"text=Claude Code [$ntype] — $(basename \"$cwd\")\" >/dev/null 2>&1 || true",
-            "async": true
-          }
-        ]
-      }
-    ]
-  },
   "statusLine": {
     "type": "command",
     "command": "/Users/philip/.claude/statusline-command.sh"
@@ -72,6 +48,9 @@
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
   "voiceEnabled": true,
+  "preferredNotifChannel": "notifications_disabled",
+  "inputNeededNotifEnabled": false,
+  "agentPushNotifEnabled": false,
   "mcpServers": {
     "chrome-devtools": {
       "command": "npx",
