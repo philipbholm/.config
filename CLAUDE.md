@@ -30,7 +30,8 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 - `karabiner/` — Caps Lock → Esc (tap) / Ctrl (hold); Cmd+Tab → Ctrl+Tab in Cursor
 - `borders/bordersrc` — JankyBorders window highlight (auto light/dark)
 - `nvim/` — LazyVim config (Space leader, Tokyo Night theme, vim-tmux-navigator). Custom options in `lua/config/options.lua`, plugins in `lua/plugins/`
-- `install.sh` — Idempotent bootstrap script (brew, dirs, symlinks, cleanup, verification)
+- `install.sh` / `install-common.sh` / `install-work.sh` / `install-personal.sh` — Profile-based bootstrap. `./install.sh work|personal` dispatches to the matching entry script; both source `install-common.sh` (brew, core dirs, symlinks, launch agents, theme, cleanup, verification) then layer profile-specific packages and links. Idempotent.
+- `Brewfile` / `Brewfile.work` / `Brewfile.personal` — Core packages plus per-profile package sets. Work adds Ledidi/dev tooling (cloudflared, watchman, lefthook, opentofu, aws-vpn-client, Chrome, ngrok, Slack); personal adds Brave + Tailscale.
 - `switch-theme.sh` — Toggle alacritty theme + borders based on macOS appearance
 - `GUIDE.md` — Quick-reference for tools, tmux/nvim shortcuts, shell aliases, layout functions
 
@@ -45,6 +46,8 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 **Script access**: Dev scripts are invoked via symlinks in `~/bin/` (e.g., `dev`, `check`, `tests`) and have zsh tab completions defined in `.zshrc`.
 
 **Multi-agent parity**: Claude Code, Codex, and Cursor agent CLI are kept roughly in sync. All three share the `chrome-devtools` + `datadog` MCP servers (datadog via `dev/mcp-datadog.sh`) and the superpowers skill set. Plugins/superpowers are installed through each tool's own plugin manager (Claude: `enabledPlugins` in `settings.json`; Codex: `codex plugin add` → `[plugins.*]` in `config.toml`; Cursor: `/add-plugin` in-chat). The plugin payloads live in each tool's cache and are NOT version-controlled — only the enablement/config is. Codex/Cursor cannot replicate Claude's full custom skill set (create-issue/plan/implement/learn/fix-feedback); those remain Claude-only.
+
+**Work agent config**: The base `claude/settings.json`, `codex/config.toml`, and `cursor-agent/mcp.json` hold only shared content. Work-only bits (Datadog MCP, Codex `~/work` project-trusts) live in `*.work.*` overlay files and are merged into real (non-symlink) live files on work machines by `dev/sync-agent-configs.sh` (run by `install-work.sh`; re-run after editing a base/overlay on a work machine). On personal machines the base files stay symlinked. Work shell functions (`gwc`/`gwd`/`dev`/`check`/`fix`/`prisma`/`sync-context`) live in `zsh/.zshrc.work`, sourced by `.zshrc` only when `~/work` exists.
 
 ## When Editing These Configs
 
