@@ -1,0 +1,9 @@
+# Work-only packages. Installed by install-work.sh on top of the core Brewfile.
+brew "cloudflared"
+brew "watchman"
+brew "lefthook"
+brew "opentofu"
+cask "aws-vpn-client"
+cask "google-chrome"
+cask "ngrok"
+cask "slack"
