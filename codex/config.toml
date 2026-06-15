@@ -5,24 +5,12 @@ personality = "pragmatic"
 # notify = ["/Users/philip/.config/dev/codex-notify.sh"]
 notify = []
 
-[projects."/Users/philip/work/ledidi-monorepo"]
-trust_level = "trusted"
-
 [projects."/Users/philip/.config"]
-trust_level = "trusted"
-
-[projects."/Users/philip/work/.dev-stacks"]
-trust_level = "trusted"
-
-[projects."/Users/philip/work/scripts"]
 trust_level = "trusted"
 
 [mcp_servers.chrome-devtools]
 command = "npx"
 args = ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:9222", "--isolated"]
-
-[mcp_servers.datadog]
-command = "/Users/philip/.config/dev/mcp-datadog.sh"
 
 [notice]
 hide_rate_limit_model_nudge = true

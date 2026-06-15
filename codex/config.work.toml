@@ -1,0 +1,11 @@
+[projects."/Users/philip/work/ledidi-monorepo"]
+trust_level = "trusted"
+
+[projects."/Users/philip/work/.dev-stacks"]
+trust_level = "trusted"
+
+[projects."/Users/philip/work/scripts"]
+trust_level = "trusted"
+
+[mcp_servers.datadog]
+command = "/Users/philip/.config/dev/mcp-datadog.sh"

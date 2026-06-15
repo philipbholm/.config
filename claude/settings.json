@@ -61,9 +61,6 @@
         "http://127.0.0.1:9222",
         "--isolated"
       ]
-    },
-    "datadog": {
-      "command": "/Users/philip/.config/dev/mcp-datadog.sh"
     }
   },
   "subagentModel": "opus"

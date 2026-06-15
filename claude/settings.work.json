@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "datadog": {
+      "command": "/Users/philip/.config/dev/mcp-datadog.sh"
+    }
+  }
+}
