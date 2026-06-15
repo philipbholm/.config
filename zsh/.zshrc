@@ -91,39 +91,6 @@ autoload -Uz compinit && compinit
 
 # Git & worktrees
 
-gwc() {
-  /Users/philip/.config/dev/gwc.sh "$@"
-}
-
-_gwc_completions() {
-  case "$words[CURRENT-1]" in
-    -b|--base)
-      local refs=($(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes 2>/dev/null))
-      _describe 'base ref' refs
-      ;;
-    *)
-      local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
-      _describe 'branch' branches
-      ;;
-  esac
-}
-compdef _gwc_completions gwc
-
-gwd() {
-  /Users/philip/.config/dev/gwd.sh "$@"
-}
-
-_gwd_completions() {
-  local dir="/Users/philip/work/worktrees"
-  local worktrees=(${(@f)"$(ls "$dir" 2>/dev/null)"})
-  _describe 'worktree' worktrees
-}
-compdef _gwd_completions gwd
-
-sync-context() {
-  /Users/philip/.config/dev/sync-context.sh "$@"
-}
-
 # Git alias completions
 _git_local_branches() {
   local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
@@ -138,64 +105,6 @@ compdef _git ga=git-add
 compdef _git gapa=git-add
 compdef _git gb=git-branch
 compdef _git glo=git-log
-
-# Dev tools
-
-dev() {
-  /Users/philip/.config/dev/dev.sh "$@"
-}
-
-_dev_completions() {
-  local commands=("up" "down" "stop" "start" "restart" "nuke" "status" "exec" "logs" "ps" "build")
-  _describe 'command' commands
-}
-compdef _dev_completions dev
-
-check() {
-  /Users/philip/.config/dev/check.sh "$@"
-}
-
-_check_completions() {
-  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
-  _describe 'branch' branches
-}
-compdef _check_completions check
-
-_tests_completions() {
-  local suites=("frontend:Frontend unit tests (Vitest)" "registries:Registries service tests (Jest)" "e2e:Frontend E2E tests (Playwright)")
-  _describe 'suite' suites
-}
-compdef _tests_completions tests
-
-fix() {
-  /Users/philip/.config/dev/fix.sh "$@"
-}
-
-_fix_completions() {
-  local cmds=("build:Rebuild Docker images" "full:npm install + rebuild")
-  _describe 'command' cmds
-}
-compdef _fix_completions fix
-
-prisma() {
-  local monorepo_root
-  monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
-    echo "Error: Not inside a git repository"
-    return 1
-  }
-  local project_name slot worktree_slot_file
-  project_name="$(basename "$monorepo_root")"
-  worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name/worktree-slot"
-  if [[ -f "$worktree_slot_file" ]]; then
-    slot=$(cat "$worktree_slot_file")
-  else
-    slot=0
-  fi
-  local port=$((5432 + slot * 100))
-  (cd "$monorepo_root/services/registries" &&
-    POSTGRES_URL="postgresql://postgres:postgres@localhost:$port/registries" \
-      npx prisma studio "$@")
-}
 
 # Utilities
 
@@ -420,3 +329,7 @@ bindkey -M emacs '^[[Z' autosuggest-accept
 
 # bun completions
 [ -s "/Users/philip/.bun/_bun" ] && source "/Users/philip/.bun/_bun"
+
+# ── Work profile (only present/sourced on work machines) ────
+[ -d "$HOME/work" ] && [ -f "$HOME/.config/zsh/.zshrc.work" ] && \
+  source "$HOME/.config/zsh/.zshrc.work"
