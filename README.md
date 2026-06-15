@@ -8,15 +8,15 @@ An agent setting up a new Mac should use this file as the bootstrap checklist.
 
 This repo currently manages:
 
-- Homebrew packages and VS Code/Cursor extensions via [Brewfile](/Users/philip/.config/Brewfile)
+- Homebrew packages and VS Code/Cursor extensions via a core [Brewfile](/Users/philip/.config/Brewfile) plus per-profile [Brewfile.work](/Users/philip/.config/Brewfile.work) and [Brewfile.personal](/Users/philip/.config/Brewfile.personal)
 - Shell config in [zsh/.zshrc](/Users/philip/.config/zsh/.zshrc) — git aliases, dev tool wrappers, Omarchy-style aliases (`n`, `g`, `d`, `t`), tmux layout functions (`tdl`, `tdlm`, `tsl`), and tool inits (eza, zoxide, fzf, starship, mise)
 - Terminal config in [alacritty/alacritty.toml](/Users/philip/.config/alacritty/alacritty.toml) — JetBrainsMono Nerd Font, light/dark themes, Option-as-Alt for tmux
 - Tmux config in [tmux/tmux.conf](/Users/philip/.config/tmux/tmux.conf) — Omarchy-style bindings (Ctrl+Space prefix, vim pane nav, Alt window/session nav, vi copy mode, vim-tmux-navigator, blue status bar)
 - Neovim config in [nvim/](/Users/philip/.config/nvim/) — LazyVim with Tokyo Night theme and vim-tmux-navigator
 - Cursor config in [cursor/settings.json](/Users/philip/.config/cursor/settings.json) and [cursor/keybindings.json](/Users/philip/.config/cursor/keybindings.json)
-- Claude/Codex config under `claude/`, `codex/`, and `.claude/`
+- Claude/Codex config under `claude/`, `codex/`, and `.claude/`. The base files hold only shared content; work-only bits (Datadog MCP, Codex `~/work` project-trusts) live in `*.work.*` overlays and are merged into the live files on work machines by [dev/sync-agent-configs.sh](/Users/philip/.config/dev/sync-agent-configs.sh)
 - Utility scripts under [dev](/Users/philip/.config/dev)
-- Bootstrap script in [install.sh](/Users/philip/.config/install.sh)
+- Profile-based bootstrap: [install.sh](/Users/philip/.config/install.sh) `work|personal` dispatches to `install-work.sh` / `install-personal.sh`, both sourcing the shared `install-common.sh`
 
 This repo does not fully manage:
 
@@ -112,13 +112,15 @@ xcode-select --install
 git clone <repo-url> ~/.config
 ```
 
-4. Run the install script:
+4. Run the install script with a profile:
 
 ```sh
-~/.config/install.sh
+~/.config/install.sh personal   # personal machine, no work tooling
+# or
+~/.config/install.sh work       # full Ledidi dev environment
 ```
 
-This handles everything: Homebrew packages, directory creation, symlinks, stale symlink cleanup, neovim cache prep, and zsh-autosuggestions. See [install.sh](/Users/philip/.config/install.sh) for details.
+Both profiles share a common core via `install-common.sh`: Homebrew packages, directory creation, symlinks, stale symlink cleanup, neovim cache prep, and zsh-autosuggestions. The `work` profile additionally installs the Ledidi/dev tooling ([Brewfile.work](/Users/philip/.config/Brewfile.work)), links the `dev`/`gwc`/`gwd`/etc. scripts into `~/bin`, creates `~/work`, and runs `dev/sync-agent-configs.sh` to merge the Datadog MCP + Codex `~/work` project-trusts into the live agent configs; `personal` adds only [Brewfile.personal](/Users/philip/.config/Brewfile.personal). See [install.sh](/Users/philip/.config/install.sh) for details.
 
 Note: tmux reads its config directly from `~/.config/tmux/tmux.conf` (XDG support since tmux 3.1). No `~/.tmux.conf` symlink is needed.
 
@@ -191,35 +193,47 @@ If any of these are missing, the shell will still mostly work, but some PATH ent
 Run these checks after setup:
 
 ```sh
+# Core (both profiles)
 brew bundle check --file ~/.config/Brewfile
-zsh -lc 'command -v nvm uv brew tmux nvim watchman lefthook gh'
+zsh -lc 'command -v nvm uv brew tmux nvim gh'
 zsh -lc 'command -v lazygit fzf bat eza zoxide starship rg fd'
-zsh -lc 'command -v dev check tests tunnel gwc gwd sync-context fix'
 cursor --list-extensions
 tmux -V
 nvim --version | head -n 1
 nvm --version
 uv --version
+
+# Work profile only
+brew bundle check --file ~/.config/Brewfile.work
+zsh -lc 'command -v watchman lefthook'
+zsh -lc 'command -v dev check tests tunnel gwc gwd sync-context fix'
+
+# Personal profile only
+brew bundle check --file ~/.config/Brewfile.personal
 ```
 
 ## Repo-Specific Tooling Installed Via Brewfile
 
-The Brewfile is intended to cover the stable baseline:
+The Brewfiles are split into a stable core baseline plus profile-specific sets.
 
-- CLI/runtime tools like `gh`, `tmux`, `neovim`, `nvm`, `uv`, `watchman`, `lefthook`
+The core [Brewfile](/Users/philip/.config/Brewfile) covers:
+
+- CLI/runtime tools like `gh`, `tmux`, `neovim`, `nvm`, `uv`
 - Modern CLI replacements: `bat`, `eza`, `fd`, `fzf`, `ripgrep`, `zoxide`, `starship`
 - Development TUIs: `lazygit`, `lazydocker`, `btop`
 - Runtime management: `mise`, `node`
 - Window manager and app casks like `aerospace`, `alacritty`, and `chai`
 - Cursor/VS Code extensions needed for the current repo mix
 
-If a new machine is missing something that should always be present, add it to [Brewfile](/Users/philip/.config/Brewfile) rather than documenting it only here.
+[Brewfile.work](/Users/philip/.config/Brewfile.work) adds the Ledidi/dev tooling (`cloudflared`, `watchman`, `lefthook`, `opentofu`, `aws-vpn-client`, Chrome, `ngrok`, Slack); [Brewfile.personal](/Users/philip/.config/Brewfile.personal) adds Brave + Tailscale.
+
+If a new machine is missing something that should always be present, add it to the appropriate Brewfile — core, work, or personal — rather than documenting it only here.
 
 ## Agent Rules
 
 When using this repo to provision a new Mac:
 
-- Prefer updating [Brewfile](/Users/philip/.config/Brewfile) over ad hoc installs
+- Prefer updating the appropriate Brewfile (core/work/personal) over ad hoc installs
 - Prefer symlinks into `~/.config` rather than copying files
 - Do not overwrite secrets, SSH keys, or auth state
 - Keep the repo path at `~/.config` unless there is a strong reason not to
