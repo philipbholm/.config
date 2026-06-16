@@ -4,7 +4,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { findByUserName, findByEmail, findByIds, } from "./users.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROTO_PATH = path.resolve(__dirname, "../api/admin.proto");
+const PROTO_DIR = path.resolve(__dirname, "../api");
+const WORKSPACES = [
+    { id: "stubbed-workspace-1", name: "Ledidi", customer_id: "stubbed-customer-id" },
+    { id: "stubbed-workspace-2", name: "Demo Workspace", customer_id: "stubbed-customer-id" },
+];
 function userToProto(u) {
     return {
         id: u.id,
@@ -44,17 +48,30 @@ const serviceImpl = {
         callback(null, { success: true });
     },
 };
+const workspaceServiceImpl = {
+    GetWorkspacesForUser(_call, callback) {
+        callback(null, { workspaces: WORKSPACES });
+    },
+    ListWorkspaces(_call, callback) {
+        callback(null, { items: WORKSPACES });
+    },
+};
 export async function startGrpcServer(port) {
-    const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+    const packageDefinition = protoLoader.loadSync([
+        path.join(PROTO_DIR, "admin.proto"),
+        path.join(PROTO_DIR, "admin/v1/admin_workspace.proto"),
+    ], {
         keepCase: true,
         longs: String,
         enums: String,
         defaults: true,
         oneofs: true,
+        includeDirs: [PROTO_DIR],
     });
     const proto = grpc.loadPackageDefinition(packageDefinition);
     const server = new grpc.Server();
     server.addService(proto.admin.AdminService.service, serviceImpl);
+    server.addService(proto.admin.v1.AdminWorkspaceService.service, workspaceServiceImpl);
     return new Promise((resolve, reject) => {
         server.bindAsync(`0.0.0.0:${port}`, grpc.ServerCredentials.createInsecure(), (err) => {
             if (err) {

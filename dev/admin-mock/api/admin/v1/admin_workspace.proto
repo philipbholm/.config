@@ -1,0 +1,31 @@
+syntax = "proto3";
+package admin.v1;
+
+message ListWorkspacesRequest {
+    optional bool include_members = 1;
+    optional bool include_external = 2;
+    optional bool include_admin = 3;
+}
+
+message ListWorkspacesResponse {
+    repeated WorkspacesListItem items = 1;
+}
+
+message WorkspacesListItem {
+    string id = 1;
+    string name = 2;
+    string customer_id = 3;
+}
+
+message GetWorkspacesForUserRequest {
+    string user_id = 1;
+}
+
+message GetWorkspacesForUserResponse {
+    repeated WorkspacesListItem workspaces = 1;
+}
+
+service AdminWorkspaceService {
+    rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
+    rpc GetWorkspacesForUser(GetWorkspacesForUserRequest) returns (GetWorkspacesForUserResponse);
+}
