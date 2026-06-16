@@ -1,3 +1,5 @@
 # Personal-only packages. Installed by install-personal.sh on top of the core Brewfile.
+brew "ansible"
+brew "helm"
 cask "brave-browser"
 cask "tailscale-app"
