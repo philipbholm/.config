@@ -63,5 +63,6 @@
       ]
     }
   },
-  "subagentModel": "opus"
+  "subagentModel": "opus",
+  "teammateMode": "in-process"
 }
