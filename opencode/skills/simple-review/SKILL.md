@@ -58,7 +58,7 @@ git diff --cached
 
 Write the review file to:
 
-`~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/REVIEW-{seq}.md`
+`~/vaults/work/dev/{repo}/issues/{NNN}-{branch}/REVIEW-{seq}.md`
 
 Where:
 

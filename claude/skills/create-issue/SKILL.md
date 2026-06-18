@@ -13,18 +13,18 @@ Create clear, actionable feature descriptions through conversation.
 
 ## Output Directory
 
-All issues are stored in `~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/ISSUE.md`.
+All issues are stored in `~/vaults/work/dev/{repo}/issues/{NNN}-{branch}/ISSUE.md`.
 
 **To determine the path:**
 
 1. **Get repo name**: Run `git remote get-url origin` and extract the repo name (e.g., `git@github.com:org/ledidi-monorepo.git` → `ledidi-monorepo`)
 2. **Get branch**: Run `git branch --show-current` (e.g., `update-registry-cards`)
 3. **Determine issue number**:
-   - Check if a directory already exists for this branch: `ls ~/vaults/main/dev/{repo}/issues/ | grep -E "^[0-9]{3}-{branch}$"`
+   - Check if a directory already exists for this branch: `ls ~/vaults/work/dev/{repo}/issues/ | grep -E "^[0-9]{3}-{branch}$"`
    - If found, use that existing directory
-   - If not found, scan existing directories with `ls ~/vaults/main/dev/{repo}/issues/` and find the highest number, then add 1 (e.g., if `002-*` exists, use `003`)
+   - If not found, scan existing directories with `ls ~/vaults/work/dev/{repo}/issues/` and find the highest number, then add 1 (e.g., if `002-*` exists, use `003`)
    - Format with zero-padding: `001`, `002`, etc.
-4. **Create directory**: `mkdir -p ~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/`
+4. **Create directory**: `mkdir -p ~/vaults/work/dev/{repo}/issues/{NNN}-{branch}/`
 5. **Write file**: `ISSUE.md` in that directory
 
 ---
@@ -140,4 +140,4 @@ You can ask up to 4 questions at once. Each question can have 2-4 options.
 
 Output the full absolute path to the issue file so the user can open it immediately. Always print the complete path, never a relative or abbreviated one.
 
-Example: `/Users/philip/vaults/main/dev/ledidi-monorepo/issues/003-update-registry-cards/ISSUE.md`
+Example: `/Users/philip/vaults/work/dev/ledidi-monorepo/issues/003-update-registry-cards/ISSUE.md`

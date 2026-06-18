@@ -3,7 +3,7 @@ name: code-review
 description: CTO-style code review - rigorous, opinionated feedback on code and files
 disable-model-invocation: true
 argument-hint: "[diff | branch | pr <number>]"
-allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(gh:*), Read, Write(/Users/philip/vaults/main/dev/reviews/*), Glob, Grep, Agent
+allowed-tools: Bash(git:*), Bash(mkdir *), Bash(ls *), Bash(gh:*), Read, Write(/Users/philip/vaults/work/dev/reviews/*), Glob, Grep, Agent
 ---
 
 **CRITICAL: This is a READ-ONLY review. You MUST NOT modify any source code files. When spawning reviewer agents, explicitly instruct each one: "This is a read-only review. Do NOT use Edit, Write, or NotebookEdit tools on source code files."**
@@ -136,8 +136,8 @@ Determine what's affected: frontend, which services, shared packages.
 
 1. **Get branch**: `git branch --show-current`
 2. **Generate a unique filename**: Use `{branch}-claude-{timestamp}.md` where timestamp is `$(date +%Y%m%d%H%M%S)`
-3. **Create directory**: `mkdir -p /Users/philip/vaults/main/dev/reviews/`
-4. **Store the full output path** — you'll pass this to the synthesizer (e.g., `/Users/philip/vaults/main/dev/reviews/update-registry-cards-claude-20260415142530.md`)
+3. **Create directory**: `mkdir -p /Users/philip/vaults/work/dev/reviews/`
+4. **Store the full output path** — you'll pass this to the synthesizer (e.g., `/Users/philip/vaults/work/dev/reviews/update-registry-cards-claude-20260415142530.md`)
 
 ### Step 4: Prepare workspace
 
@@ -268,7 +268,7 @@ You are a test coverage reviewer for the Ledidi medical platform.
 
 **You MUST use the `Write` tool to save the synthesized review to `{full-output-path}` computed in Step 3.** This is not optional. Do not print the review to the conversation instead of saving it. Do not skip this step.
 
-The path must be under `/Users/philip/vaults/main/dev/reviews/` — this is the only location allowed by the skill's `allowed-tools`.
+The path must be under `/Users/philip/vaults/work/dev/reviews/` — this is the only location allowed by the skill's `allowed-tools`.
 
 If the `Write` call fails, stop and report the failure. Do not proceed to Step 8 without a saved file.
 
@@ -306,7 +306,7 @@ If the `Write` call fails, stop and report the failure. Do not proceed to Step 8
 
 After writing the file, **output the FULL ABSOLUTE PATH** to the saved review starting from root `/` so the user can click it to open it.
 
-**Correct:** `/Users/philip/vaults/main/dev/reviews/update-registry-cards-claude-20260415142530.md`
+**Correct:** `/Users/philip/vaults/work/dev/reviews/update-registry-cards-claude-20260415142530.md`
 **Wrong:** `update-registry-cards-claude-20260415142530.md` or `reviews/update-registry-cards-claude-20260415142530.md`
 
 Do not summarize the review contents in the conversation — the saved file is the deliverable.

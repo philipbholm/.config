@@ -66,7 +66,7 @@ npx jest
 | "commit" | Pre-commit hook must pass |
 | "push" | Pre-push hook must pass |
 | "create pr" | Create as draft, apply `risk:standard` label, gitmoji prefix in title, include PR description with `## Why` and `## What` sections |
-| "save to vault" | Write a markdown file to `/Users/philip/vaults/main/dev` |
+| "save to vault" | Write a markdown file to `/Users/philip/vaults/work/dev` |
 
 ### Error Handling
 

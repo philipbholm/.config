@@ -39,7 +39,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 
 **Worktree workflow**: Features are developed in git worktrees at `~/work/worktrees/{branch}`. Each gets an isolated Docker stack with port offsets. `gwc` creates everything (worktree + tmux + Cursor + setup), `gwd` tears it down.
 
-**Claude Code skill lifecycle**: `/create-issue` → `/plan` → `/implement` → `/review`. Issues and plans are stored in `~/vaults/main/dev/{repo}/issues/{NNN}-{branch}/`. The plan skill is read-only (exploration only), implement executes plans with quality gates and atomic commits.
+**Claude Code skill lifecycle**: `/create-issue` → `/plan` → `/implement` → `/review`. Issues and plans are stored in `~/vaults/work/dev/{repo}/issues/{NNN}-{branch}/`. The plan skill is read-only (exploration only), implement executes plans with quality gates and atomic commits.
 
 **Notification hook**: `claude/hooks/notification-desktop.sh` sends macOS desktop notifications (via alerter) when Claude needs attention. Includes aerospace workspace + tmux window index in title for context.
 
