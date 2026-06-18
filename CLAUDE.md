@@ -19,6 +19,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
   - `db.sh` / `shell.sh` — Interactive database/container shells
   - `setup-worktree.sh` — Prepare worktree for IDE (npm ci, type generation)
   - `mcp-datadog.sh` — Datadog MCP launcher shared by all three agents; maps `DD_API_KEY`/`DD_APP_KEY` → `DATADOG_*` so no secret lands in a tracked config
+  - `claude-notify.sh` — Telegram notify hook for Claude Code (Stop + Notification events) plus an on/off switch. Wired via the `hooks` block in `claude/settings.json`. Toggle with `claude-notify on|off|toggle|status`; state in machine-local `~/.claude/telegram-notify.state` (missing = enabled). Filters subagent stops; no-ops when `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` are absent. `codex-notify.sh` is the Codex equivalent (currently disabled via `notify = []` in `config.toml`).
 - `dev/claude/` — Per-repo and per-service CLAUDE.local.md files copied into worktrees
 - `dev/feedback/` — PR review learnings extracted by `/learn` skill (mine/ and other/)
 - `aerospace/aerospace.toml` — AeroSpace tiling WM (alt-based keybinds, vim-style navigation)

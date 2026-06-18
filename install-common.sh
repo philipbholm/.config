@@ -86,6 +86,9 @@ link_core() {
   ln -sf "$DOTFILES/claude/settings.json" ~/.claude/settings.json
   ln -sfn "$DOTFILES/claude/agents" ~/.claude/agents
 
+  # claude-notify: Telegram on/off switch + Stop/Notification hook handler.
+  ln -sf "$DOTFILES/dev/claude-notify.sh" ~/bin/claude-notify
+
   # Codex: config + rules symlinked; skills copied (Codex's loader doesn't
   # follow symlinked skill dirs reliably). On work, sync-agent-configs.sh
   # replaces config.toml with a generated file.
