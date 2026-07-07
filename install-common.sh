@@ -94,7 +94,9 @@ link_core() {
   # replaces config.toml with a generated file.
   ln -sfn "$DOTFILES/codex/config.toml" ~/.codex/config.toml
   ln -sfn "$DOTFILES/codex/rules/default.rules" ~/.codex/rules/default.rules
-  rsync -a --delete "$DOTFILES/codex/skills/code-review/" ~/.codex/skills/code-review/
+  for skill_dir in "$DOTFILES"/codex/skills/*/; do
+    rsync -a --delete "$skill_dir" ~/.codex/skills/"$(basename "$skill_dir")"/
+  done
 
   # python/pip → python3/pip3 (real commands, not just shell aliases)
   ln -sf /opt/homebrew/bin/python3 ~/bin/python
