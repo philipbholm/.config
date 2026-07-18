@@ -32,7 +32,6 @@ alias gwl='git worktree list'
 # ── Environment ─────────────────────────────────────
 
 # Homebrew (must be early — tools come from here)
-export PATH="/usr/local/bin:$PATH"
 export PATH="/opt/homebrew/bin:$PATH"
 
 # System and tool PATHs
