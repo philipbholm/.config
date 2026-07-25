@@ -1,6 +1,8 @@
 # Personal-only packages. Installed by install-personal.sh on top of the core Brewfile.
 brew "ansible"
+brew "hcloud"
 brew "helm"
+brew "k3d"
 brew "opentofu"
 cask "brave-browser"
 cask "tailscale-app"
