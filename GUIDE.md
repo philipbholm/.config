@@ -7,7 +7,7 @@ Quick-reference for the terminal workflow tools, keybindings, and shell helpers.
 | Tool | Replaces | What it does | Usage |
 |------|----------|-------------|-------|
 | `bat` | `cat` | Syntax-highlighted file viewer | `bat file.ts`, `bat --diff file.ts` |
-| `eza` | `ls` | Modern file listing with icons | `ls` (aliased), `lsa` (all), `lt` (tree) |
+| `eza` | `ls` | Modern file listing with icons | `ll` (long, all), `lt` (tree) |
 | `fd` | `find` | Fast file finder | `fd pattern`, `fd -e ts`, `fd -t d` (dirs) |
 | `fzf` | — | Fuzzy finder for anything | `ff` (files+preview), `eff` (open in editor), `Ctrl+R` (history) |
 | `ripgrep` | `grep` | Fast content search | `rg pattern`, `rg -t ts pattern`, `rg -l pattern` (files only) |
@@ -31,8 +31,7 @@ Quick-reference for the terminal workflow tools, keybindings, and shell helpers.
 | `oc` | `opencode` |
 | `ff` | `fzf` with bat preview |
 | `eff` | Open fzf result in `$EDITOR` |
-| `ls` | `eza -lh --group-directories-first --icons=auto` |
-| `lsa` | `eza -lha ...` (includes hidden) |
+| `ll` | `eza -lha --group-directories-first --icons=auto` (includes hidden) |
 | `lt` | `eza --tree --level=2` |
 
 ## Tmux
