@@ -32,7 +32,8 @@
       "Bash(aws sso login --profile production:*)",
       "Bash(aws sso login --profile=production:*)",
       "Bash(AWS_PROFILE=production aws sso login:*)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "model": "opus[1m]",
   "hooks": {
@@ -69,12 +70,13 @@
     "typescript-lsp@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true
   },
-  "effortLevel": "xhigh",
-  "skipDangerousModePermissionPrompt": true,
-  "voiceEnabled": true,
+  "effortLevel": "medium",
   "preferredNotifChannel": "notifications_disabled",
+  "teammateMode": "in-process",
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": false,
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": true,
   "mcpServers": {
     "chrome-devtools": {
       "command": "npx",
@@ -88,5 +90,5 @@
     }
   },
   "subagentModel": "opus",
-  "teammateMode": "in-process"
+  "skipDangerousModePermissionPrompt": true
 }

@@ -177,7 +177,6 @@ no-sleep() {
 alias gcad='git commit -a --amend'
 alias gap='git add -N . && git add -p'
 alias t='tmux new-session -A -s main'
-alias claude='claude --dangerously-skip-permissions'
 alias codex='codex --yolo'
 
 # Modern ls (eza)
