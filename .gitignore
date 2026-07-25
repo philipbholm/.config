@@ -14,3 +14,4 @@ browseruse
 alacritty/active_theme.toml
 uv
 Brewfile*.lock.json
+gh/hosts.yml

@@ -26,6 +26,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 - `alacritty/` — Terminal config (JetBrainsMono Nerd Font, light/dark themes via symlink, Left Option as Alt for tmux)
 - `tmux/tmux.conf` — Omarchy-style config. Prefix: Ctrl-Space (+ Ctrl-B secondary). Pane nav: prefix+hjkl and Ctrl+Alt+Arrows. Resize: prefix+HJKL and Ctrl+Alt+Shift+Arrows. Window nav: Alt+1-9, Alt+Left/Right. Session nav: Alt+Up/Down. Splits: prefix+s/v. Vi copy mode. Seamless Ctrl+hjkl navigation between nvim splits and tmux panes via vim-tmux-navigator. Blue status bar with PREFIX/ZOOM indicators.
 - `git/config` — SSH commit signing, separate work identity via includeIf for `~/work/`
+- `gh/config.yml` — GitHub CLI settings (`co` alias for `pr checkout`). `gh/hosts.yml` is machine-local auth state and gitignored.
 - `cursor/` — Cursor **editor** (GUI) settings (`settings.json`, `keybindings.json`), symlinked from `~/Library/Application Support/Cursor/User/`
 - `cursor-agent/` — Cursor **agent CLI** config (distinct from the GUI): `mcp.json` and `statusline.sh` symlinked into `~/.cursor/`; `cli-config.json` is a sanitized copy (auth stripped, not symlinked — Cursor rewrites secrets into the live file). See `cursor-agent/README.md` for restore steps. superpowers installs via `/add-plugin superpowers` in a Cursor chat (no CLI equivalent).
 - `karabiner/` — Caps Lock → Esc (tap) / Ctrl (hold); Cmd+Tab → Ctrl+Tab in Cursor
