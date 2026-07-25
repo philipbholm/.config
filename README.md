@@ -135,11 +135,11 @@ These steps are intentionally not automated by this repo and should be handled m
 - Reinstall or restore Cursor and sign in
 - Reinstall or restore Claude Desktop / related apps if needed
 - Create a sync code for Brave before wiping (Settings > Sync > Start a new Sync Chain)
-- Install the required Node version and set it as the default:
+- Install the latest LTS Node version and set it as the default:
 
 ```sh
-nvm install 24
-nvm alias default 24
+nvm install --lts --latest-npm
+nvm alias default 'lts/*'
 ```
 - Restore Bun if still needed
 - Increase key repeat speed for comfortable Vim navigation (System Settings > Keyboard):
