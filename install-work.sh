@@ -10,12 +10,18 @@ echo "── Installing WORK profile ──────────────�
 
 run_core
 brew_bundle "$DOTFILES/Brewfile.work"
+setup_macos_defaults
 
 # Work directories (also the marker that gates zsh/.zshrc.work)
 echo "Creating work directory structure..."
 mkdir -p \
   ~/work/worktrees \
   ~/work/.dev-stacks
+
+# Work SSH config (github_work key + bitbucket), replacing the personal base
+if [[ -d ~/.ssh ]]; then
+  ln -sf "$DOTFILES/ssh/config.work" ~/.ssh/config
+fi
 
 # Dev script symlinks in ~/bin
 echo "Linking dev scripts..."
@@ -38,17 +44,15 @@ cat <<'EOF'
 
 Work setup complete. Manual follow-up:
 
-  1. Restore ~/.ssh keys
-  2. Create ~/.config/zsh/.zsh_secrets (incl. DD_API_KEY / DD_APP_KEY)
-  3. Sign in to GitHub: gh auth login
-  4. Install and sign in to Docker Desktop
-  5. Sign in to Cursor, Claude, Slack, AWS VPN, etc.
-  6. Install Node: nvm install 24 && nvm alias default 24
-  7. Start background services:
+  1. Set up Karabiner-Elements, AeroSpace, and Raycast
+  2. Restore ~/.ssh keys (github_work, bitbucket)
+  3. Create ~/.config/zsh/.zsh_secrets (incl. DD_API_KEY / DD_APP_KEY)
+  4. Sign in to GitHub: gh auth login
+  5. Install and sign in to Docker Desktop
+  6. Sign in to Cursor, Claude, Slack, AWS VPN, etc.
+  7. Install Node: nvm install 24 && nvm alias default 24
+  8. Start background services:
        brew services start felixkratz/formulae/borders
-       open -a AeroSpace
-       open -a Karabiner-Elements
-       open -a Raycast
-  8. Launch nvim once to bootstrap LazyVim plugins
-  9. Reload shell: exec zsh -l
+  9. Launch nvim once to bootstrap LazyVim plugins
+  10. Reload shell: exec zsh -l
 EOF

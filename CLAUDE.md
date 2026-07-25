@@ -31,7 +31,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 - `karabiner/` — Caps Lock → Esc (tap) / Ctrl (hold); Cmd+Tab → Ctrl+Tab in Cursor
 - `borders/bordersrc` — JankyBorders window highlight (auto light/dark)
 - `nvim/` — LazyVim config (Space leader, Tokyo Night theme, vim-tmux-navigator). Custom options in `lua/config/options.lua`, plugins in `lua/plugins/`
-- `install.sh` / `install-common.sh` / `install-work.sh` / `install-personal.sh` — Profile-based bootstrap. `./install.sh work|personal` dispatches to the matching entry script; both source `install-common.sh` (brew, core dirs, symlinks, launch agents, theme, cleanup, verification) then layer profile-specific packages and links. Idempotent.
+- `install.sh` / `install-common.sh` / `install-work.sh` / `install-personal.sh` — Profile-based bootstrap. `./install.sh work|personal` dispatches to the matching entry script; both source `install-common.sh` (brew, core dirs, symlinks, launch agents, theme, cleanup, verification) then layer profile-specific packages and links, calling `setup_macos_defaults` (Dock autohide + pinned apps, battery percentage, fast key repeat, Finder hidden files/extensions) after their own Brewfile bundle. Idempotent.
 - `Brewfile` / `Brewfile.work` / `Brewfile.personal` — Core packages plus per-profile package sets. Work adds Ledidi/dev tooling (cloudflared, watchman, lefthook, opentofu, aws-vpn-client, Chrome, ngrok, Slack); personal adds Brave + Tailscale.
 - `switch-theme.sh` — Toggle alacritty theme + borders based on macOS appearance
 - `GUIDE.md` — Quick-reference for tools, tmux/nvim shortcuts, shell aliases, layout functions

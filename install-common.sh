@@ -3,6 +3,7 @@
 # Sourced by install-work.sh / install-personal.sh — not run directly.
 
 set -euo pipefail
+trap 'echo "Error: command failed (line $LINENO): $BASH_COMMAND" >&2' ERR
 
 DOTFILES="${DOTFILES:-$HOME/.config}"
 
@@ -21,6 +22,14 @@ preflight() {
     exit 1
   fi
   echo "Setting up from $DOTFILES"
+}
+
+keep_sudo_alive() {
+  echo "Caching sudo credentials for the rest of this run..."
+  sudo -v
+  ( while true; do sudo -n true; sleep 60; kill -0 "$$" 2>/dev/null || exit; done ) &
+  SUDO_KEEPALIVE_PID=$!
+  trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null' EXIT
 }
 
 install_xcode_clt() {
@@ -42,8 +51,16 @@ install_homebrew() {
 
 brew_bundle() {
   # $1 = path to a Brewfile
+  local taps tap
+  taps=$(grep -oE '^tap "[^"]+"' "$1" | cut -d'"' -f2 || true)
+  if [[ -n "$taps" ]]; then
+    echo "Trusting third-party taps in $(basename "$1")..."
+    while IFS= read -r tap; do
+      brew trust --tap "$tap"
+    done <<< "$taps"
+  fi
   echo "Installing Homebrew packages from $(basename "$1")..."
-  brew bundle --file "$1" --no-lock
+  brew bundle install --file "$1"
 }
 
 make_core_dirs() {
@@ -67,7 +84,8 @@ link_core() {
   # Shell config
   ln -sf "$DOTFILES/zsh/.zshrc" ~/.zshrc
 
-  # SSH config
+  # SSH config (base = personal: github only).
+  # install-work.sh relinks this to ssh/config.work.
   if [[ -d ~/.ssh ]]; then
     ln -sf "$DOTFILES/ssh/config" ~/.ssh/config
   fi
@@ -119,7 +137,56 @@ setup_launch_agents() {
 
 setup_theme() {
   echo "Setting initial theme..."
-  "$DOTFILES/switch-theme.sh"
+  if ! "$DOTFILES/switch-theme.sh"; then
+    echo "Warning: switch-theme.sh failed — likely needs Automation permission for" >&2
+    echo "System Events (System Settings > Privacy & Security > Automation > Terminal)." >&2
+    echo "Grant it and re-run switch-theme.sh manually later. Continuing setup..." >&2
+  fi
+}
+
+setup_macos_defaults() {
+  echo "Configuring macOS defaults (Dock, battery, keyboard, Finder)..."
+
+  # Dock: autohide + pinned app list, in order. Apps not yet installed are
+  # skipped rather than added as broken icons; re-run after installing them.
+  defaults write com.apple.dock autohide -bool true
+  defaults write com.apple.dock show-recents -bool false
+  defaults write com.apple.dock persistent-apps -array
+  local dock_apps=(
+    "/Applications/Alacritty.app"
+    "/Applications/Docker.app"
+    "/Applications/Spotify.app"
+    "/Applications/TickTick.app"
+    "/Applications/Obsidian.app"
+    "/Applications/Brave Browser.app"
+  )
+  local app
+  for app in "${dock_apps[@]}"; do
+    if [[ -d "$app" ]]; then
+      defaults write com.apple.dock persistent-apps -array-add \
+        "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>$app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"
+    else
+      echo "  Skipping Dock entry for $app (not installed)"
+    fi
+  done
+
+  # Menu bar: show battery percentage (legacy key + Ventura+ Control Center key)
+  defaults write com.apple.menuextra.battery ShowPercent -string "YES"
+  defaults write com.apple.controlcenter BatteryShowPercentage -bool true
+
+  # Keyboard: fast key repeat
+  defaults write NSGlobalDomain KeyRepeat -int 2
+  defaults write NSGlobalDomain InitialKeyRepeat -int 15
+
+  # Finder: show hidden files and all filename extensions
+  defaults write com.apple.finder AppleShowAllFiles -bool true
+  defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+
+  killall cfprefsd &>/dev/null || true
+  killall Dock &>/dev/null || true
+  killall Finder &>/dev/null || true
+  killall SystemUIServer &>/dev/null || true
+  killall ControlCenter &>/dev/null || true
 }
 
 cleanup_stale() {
@@ -165,6 +232,7 @@ verify() {
 # Shared core sequence run by both profiles before their profile-specific layer.
 run_core() {
   preflight
+  keep_sudo_alive
   install_xcode_clt
   install_homebrew
   brew_bundle "$DOTFILES/Brewfile"

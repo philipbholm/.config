@@ -13,3 +13,4 @@ browseruse
 .DS_Store
 alacritty/active_theme.toml
 uv
+Brewfile*.lock.json
