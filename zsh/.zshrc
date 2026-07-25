@@ -130,13 +130,26 @@ compdef _git glo=git-log
 
 # Utilities
 
+# Desktop notification. alerter is no longer in Homebrew, so terminal-notifier
+# (which is, and is in the Brewfile) is the default, with osascript as a floor.
+_notify_send() {
+  local message="$1" title="$2" sound="$3"
+  if command -v alerter &>/dev/null; then
+    alerter -message "$message" -title "$title" -sound "$sound" -timeout 5 >/dev/null 2>&1 &
+  elif command -v terminal-notifier &>/dev/null; then
+    terminal-notifier -message "$message" -title "$title" -sound "$sound" >/dev/null 2>&1 &
+  else
+    osascript -e "display notification \"$message\" with title \"$title\"" >/dev/null 2>&1 &
+  fi
+}
+
 notify() {
   eval "$@"
   local exit_code=$?
   if [ $exit_code -eq 0 ]; then
-    alerter -message "Command succeeded" -title "Done" -sound "Hero" -timeout 5 > /dev/null 2>&1 &
+    _notify_send "Command succeeded" "Done" "Hero"
   else
-    alerter -message "Command failed (exit $exit_code)" -title "Done" -sound "Sosumi" -timeout 5 > /dev/null 2>&1 &
+    _notify_send "Command failed (exit $exit_code)" "Done" "Sosumi"
   fi
   return $exit_code
 }
