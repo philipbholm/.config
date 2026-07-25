@@ -9,7 +9,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 ## Repository Structure
 
 - `zsh/.zshrc` — Zsh config (symlinked to `~/.zshrc`). Key custom functions: `gwc` (create worktree + tmux + Cursor), `gwd` (delete worktree + nuke), `notify` (run command with macOS notification on finish), `tdl`/`tdlm`/`tsl` (tmux IDE layouts), `eff` (fuzzy open file). Aliases: `n` (nvim), `g` (git), `d` (docker), `t` (tmux attach/create), `ff` (fuzzy find with preview). Tool inits for eza, zoxide, fzf, starship, mise.
-- `claude/` — Claude Code config: hooks (desktop notifications via alerter), settings (model, permissions, plugins), custom agents (auth-reviewer, security-reviewer), custom skills (create-issue, plan, implement, review, learn)
+- `claude/` — Claude Code config: settings (model, permissions, plugins, hook declarations), custom agents (auth-reviewer, security-reviewer), custom skills (create-issue, plan, implement, review, learn), `statusline-command.sh`, and `bin/` helpers. Hook *scripts* live in `dev/` (see `dev/claude-notify.sh`).
 - `codex/` — Codex CLI config: `config.toml` (model, trusted projects, MCP servers, enabled plugins) symlinked to `~/.codex/config.toml`, `rules/default.rules` and `skills/code-review` symlinked into `~/.codex/`
 - `dev/` — Development helper scripts symlinked to `~/bin/`. Core scripts:
   - `dev.sh` — Dev stack manager (auto-detects main vs worktree, wraps docker compose with correct override files)
@@ -32,7 +32,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 - `karabiner/` — Caps Lock → Esc (tap) / Ctrl (hold); Cmd+Tab → Ctrl+Tab in Cursor
 - `borders/bordersrc` — JankyBorders window highlight (auto light/dark)
 - `nvim/` — LazyVim config (Space leader, Tokyo Night theme, vim-tmux-navigator). Custom options in `lua/config/options.lua`, plugins in `lua/plugins/`
-- `install.sh` / `install-common.sh` / `install-work.sh` / `install-personal.sh` — Profile-based bootstrap. `./install.sh work|personal` dispatches to the matching entry script; both source `install-common.sh` (brew, core dirs, symlinks, launch agents, theme, cleanup, verification) then layer profile-specific packages and links, calling `setup_macos_defaults` (Dock autohide + pinned apps, battery percentage, fast key repeat, Finder hidden files/extensions) after their own Brewfile bundle. Idempotent.
+- `install.sh` / `install-common.sh` / `install-work.sh` / `install-personal.sh` — Profile-based bootstrap. `./install.sh work|personal` dispatches to the matching entry script; both source `install-common.sh` (brew, core dirs, Node LTS via nvm, symlinks, launch agents, theme, cleanup, LazyVim bootstrap, verification) then layer profile-specific packages and links, calling `setup_macos_defaults` (Dock autohide + pinned apps, battery percentage, fast key repeat, Finder hidden files/extensions) after their own Brewfile bundle. Idempotent.
 - `Brewfile` / `Brewfile.work` / `Brewfile.personal` — Core packages plus per-profile package sets. Work adds Ledidi/dev tooling (cloudflared, watchman, lefthook, opentofu, aws-vpn-client, Chrome, ngrok, Slack); personal adds Brave + Tailscale.
 - `switch-theme.sh` — Toggle alacritty theme + borders based on macOS appearance
 - `GUIDE.md` — Quick-reference for tools, tmux/nvim shortcuts, shell aliases, layout functions
@@ -43,7 +43,7 @@ Personal dotfiles/config directory for a macOS development environment. Version-
 
 **Claude Code skill lifecycle**: `/create-issue` → `/plan` → `/implement` → `/review`. Issues and plans are stored in `~/vaults/work/dev/{repo}/issues/{NNN}-{branch}/`. The plan skill is read-only (exploration only), implement executes plans with quality gates and atomic commits.
 
-**Notification hook**: `claude/hooks/notification-desktop.sh` sends macOS desktop notifications (via alerter) when Claude needs attention. Includes aerospace workspace + tmux window index in title for context.
+**Notification hook**: `dev/claude-notify.sh` handles Claude Code's Stop + Notification events (Telegram), wired via the `hooks` block in `claude/settings.json`. The zsh `notify()` helper sends macOS desktop notifications and prefers `alerter`, falling back to `terminal-notifier` (in the Brewfile — `alerter` is no longer distributed via Homebrew) and then `osascript`.
 
 **Script access**: Dev scripts are invoked via symlinks in `~/bin/` (e.g., `dev`, `check`, `tests`) and have zsh tab completions defined in `.zshrc`.
 

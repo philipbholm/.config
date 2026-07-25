@@ -5,21 +5,19 @@ This directory contains Claude Code configuration files that are version-control
 ## Structure
 
 - `agents/` - Custom agent definitions
-- `hooks/` - Hook scripts that run on Claude events
 - `skills/` - Custom skill definitions
-- `settings.json` - Claude Code settings
+- `bin/` - Helper executables on PATH (`bb`, `jira`)
+- `settings.json` - Claude Code settings (hooks are declared here; the scripts
+  themselves live in `dev/`, e.g. `dev/claude-notify.sh`)
+- `statusline-command.sh` - Statusline renderer referenced by `settings.json`
 
 ## Setup
 
-Claude Code expects its config at `~/.claude`. To use this setup, create symlinks from `~/.claude` to these files:
+`install-common.sh` (`link_core`) creates these symlinks; there is nothing to do
+by hand. For reference, the links it makes are:
 
 ```bash
-# Create ~/.claude if it doesn't exist
-mkdir -p ~/.claude
-
-# Symlink config files
 ln -s ~/.config/claude/agents ~/.claude/agents
-ln -s ~/.config/claude/hooks ~/.claude/hooks
 ln -s ~/.config/claude/skills ~/.claude/skills
 ln -s ~/.config/claude/settings.json ~/.claude/settings.json
 ln -s ~/.config/claude/statusline-command.sh ~/.claude/statusline-command.sh
