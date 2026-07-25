@@ -1,0 +1,5 @@
+# SSH keys trusted to sign my own commits (git verify-commit / log --show-signature).
+# Format: <principal> [options] <keytype> <key>
+# Add a line per identity; the work key only exists on work machines.
+philipbaltzersen@gmail.com namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ309irwc5gp1bzegL2ICuYksJDoHMJn6NV4zBPiVH5E
+# philip.holm@ledidi.no namespaces="git" ssh-ed25519 <contents of ~/.ssh/github_work.pub>
