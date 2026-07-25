@@ -155,10 +155,9 @@ nvm alias default 'lts/*'
 
   - Verify with `pmset -g custom`. For lid-closed-on-AC over Wi-Fi you also need `sudo pmset -a disablesleep 1`, but that disables sleep on battery too — only set it if you want clamshell operation.
 - Launch `nvim` once to bootstrap LazyVim plugins (takes ~30-60 seconds, requires internet)
-- Start background services:
+- Start background apps (JankyBorders is already running via the `com.philip.borders` launch agent):
 
 ```sh
-brew services start felixkratz/formulae/borders
 open -a AeroSpace
 open -a Karabiner-Elements
 open -a Raycast
