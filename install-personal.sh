@@ -23,7 +23,5 @@ Personal setup complete. Manual follow-up:
   3. Create ~/.config/zsh/.zsh_secrets
   4. Sign in to GitHub: gh auth login
   5. Install and sign in to Docker Desktop
-  6. Install Node: nvm install --lts --latest-npm && nvm alias default 'lts/*'
-  7. Launch nvim once to bootstrap LazyVim plugins
-  8. Reload shell: exec zsh -l
+  6. Reload shell: exec zsh -l
 EOF

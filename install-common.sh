@@ -63,6 +63,30 @@ brew_bundle() {
   brew bundle install --file "$1"
 }
 
+install_node() {
+  local nvm_sh
+  nvm_sh="$(brew --prefix nvm 2>/dev/null)/nvm.sh"
+  if [[ ! -s "$nvm_sh" ]]; then
+    echo "Warning: nvm not found at $nvm_sh — skipping Node install." >&2
+    return 0
+  fi
+
+  # nvm.sh is not written for `set -euo pipefail`; relax while it is loaded.
+  export NVM_DIR="$HOME/.nvm"
+  set +eu
+  # shellcheck disable=SC1090
+  . "$nvm_sh"
+  if [[ "$(nvm version default)" == v* ]]; then
+    echo "Node already installed (default: $(nvm version default))"
+  else
+    echo "Installing Node LTS via nvm..."
+    nvm install --lts --latest-npm
+    nvm alias default 'lts/*'
+  fi
+  nvm use default >/dev/null
+  set -eu
+}
+
 make_core_dirs() {
   echo "Creating core directory structure..."
   mkdir -p \
@@ -99,10 +123,12 @@ link_core() {
   ln -sfn "$DOTFILES/cursor-agent/mcp.json" ~/.cursor/mcp.json
   ln -sf "$DOTFILES/cursor-agent/statusline.sh" ~/.cursor/statusline.sh
 
-  # Claude Code: base settings + agents.
+  # Claude Code: base settings + agents + skills + statusline.
   # On work, sync-agent-configs.sh replaces settings.json with a generated file.
   ln -sf "$DOTFILES/claude/settings.json" ~/.claude/settings.json
   ln -sfn "$DOTFILES/claude/agents" ~/.claude/agents
+  ln -sfn "$DOTFILES/claude/skills" ~/.claude/skills
+  ln -sf "$DOTFILES/claude/statusline-command.sh" ~/.claude/statusline-command.sh
 
   # claude-notify: Telegram on/off switch + Stop/Notification hook handler.
   ln -sf "$DOTFILES/dev/claude-notify.sh" ~/bin/claude-notify
@@ -211,18 +237,40 @@ install_zsh_autosuggestions() {
   fi
 }
 
+bootstrap_nvim() {
+  if ! command -v nvim &>/dev/null; then
+    echo "Warning: nvim not installed — skipping LazyVim bootstrap." >&2
+    return 0
+  fi
+  echo "Bootstrapping LazyVim plugins (this can take a minute)..."
+  if ! nvim --headless "+Lazy! sync" +qa 2>/dev/null; then
+    echo "Warning: LazyVim bootstrap failed — launch nvim manually to retry." >&2
+  fi
+}
+
 verify() {
   echo ""
   echo "Verifying installation..."
   echo ""
   local missing=() cmd
-  for cmd in nvim tmux lazygit fzf bat eza zoxide starship rg fd gh; do
+  for cmd in nvim tmux lazygit fzf bat eza zoxide starship rg fd gh node npm npx python3 terminal-notifier; do
     if command -v "$cmd" &>/dev/null; then
-      printf "  %-12s %s\n" "$cmd" "$(command -v "$cmd")"
+      printf "  %-16s %s\n" "$cmd" "$(command -v "$cmd")"
     else
       missing+=("$cmd")
     fi
   done
+
+  # Symlinks that must resolve for the shell/agent configs to work at all
+  local link
+  for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents ~/.claude/skills \
+              ~/.claude/statusline-command.sh ~/.codex/config.toml ~/.cursor/mcp.json \
+              ~/bin/python ~/bin/pip; do
+    if [[ ! -e "$link" ]]; then
+      missing+=("$link")
+    fi
+  done
+
   if [[ ${#missing[@]} -gt 0 ]]; then
     echo ""
     echo "  Missing: ${missing[*]}"
@@ -237,9 +285,11 @@ run_core() {
   install_homebrew
   brew_bundle "$DOTFILES/Brewfile"
   make_core_dirs
+  install_node
   link_core
   setup_launch_agents
   setup_theme
   cleanup_stale
   install_zsh_autosuggestions
+  bootstrap_nvim
 }

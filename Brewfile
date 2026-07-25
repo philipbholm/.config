@@ -5,6 +5,10 @@ brew "gh"
 brew "mas"
 brew "neovim"
 brew "nvm"
+# Declared explicitly: ~/bin/python and ~/bin/pip link to it, so it must not be
+# left as an undeclared transitive dep that `brew autoremove` can take away.
+brew "python"
+brew "terminal-notifier"
 brew "tmux"
 brew "uv"
 brew "cormacrelf/tap/dark-notify"

@@ -50,7 +50,5 @@ Work setup complete. Manual follow-up:
   4. Sign in to GitHub: gh auth login
   5. Install and sign in to Docker Desktop
   6. Sign in to Cursor, Claude, Slack, AWS VPN, etc.
-  7. Install Node: nvm install --lts --latest-npm && nvm alias default 'lts/*'
-  8. Launch nvim once to bootstrap LazyVim plugins
-  9. Reload shell: exec zsh -l
+  7. Reload shell: exec zsh -l
 EOF
