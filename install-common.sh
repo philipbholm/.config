@@ -102,6 +102,42 @@ make_core_dirs() {
     ~/.zsh
 }
 
+# Populate a ~/.claude subdirectory with one symlink per entry of the given
+# source dirs:  link_claude_dir <dest> <src_dir>...
+# Per-entry rather than one symlink for the whole directory, so the work-only
+# sets (claude/skills.work, claude/agents.work) can be layered on by
+# install-work.sh and stay off personal machines. Each run is a full reset of
+# the links this function manages.
+link_claude_dir() {
+  local dest="$1"
+  shift
+
+  # Older installs symlinked the whole directory — replace it with a real dir.
+  if [[ -L "$dest" ]]; then
+    rm "$dest"
+  fi
+  mkdir -p "$dest"
+
+  # Drop links made by a previous run (a work skill/agent left behind after a
+  # personal reinstall would otherwise linger). Anything else is machine-local
+  # and is left alone.
+  local link
+  for link in "$dest"/*; do
+    if [[ -L "$link" && "$(readlink "$link")" == "$DOTFILES/claude/"* ]]; then
+      rm "$link"
+    fi
+  done
+
+  # Entries are skill directories or agent .md files depending on the caller.
+  local src_dir entry
+  for src_dir in "$@"; do
+    for entry in "$src_dir"/*; do
+      [[ -e "$entry" ]] || continue
+      ln -sfn "$entry" "$dest/$(basename "$entry")"
+    done
+  done
+}
+
 link_core() {
   echo "Creating core symlinks..."
 
@@ -126,9 +162,12 @@ link_core() {
   # Claude Code: base settings + agents + skills + statusline.
   # On work, sync-agent-configs.sh replaces settings.json with a generated file.
   ln -sf "$DOTFILES/claude/settings.json" ~/.claude/settings.json
-  ln -sfn "$DOTFILES/claude/agents" ~/.claude/agents
-  ln -sfn "$DOTFILES/claude/skills" ~/.claude/skills
   ln -sf "$DOTFILES/claude/statusline-command.sh" ~/.claude/statusline-command.sh
+
+  # Shared skills/agents only. install-work.sh re-links with the .work sets
+  # added; claude/agents is currently empty (every agent is Ledidi-specific).
+  link_claude_dir ~/.claude/skills "$DOTFILES/claude/skills"
+  link_claude_dir ~/.claude/agents "$DOTFILES/claude/agents"
 
   # claude-notify: Telegram on/off switch + Stop/Notification hook handler.
   ln -sf "$DOTFILES/dev/claude-notify.sh" ~/bin/claude-notify
@@ -261,9 +300,11 @@ verify() {
     fi
   done
 
-  # Symlinks that must resolve for the shell/agent configs to work at all
+  # Paths that must resolve for the shell/agent configs to work at all
+  # (~/.claude/agents is a real dir; it is empty on the personal profile)
   local link
-  for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents ~/.claude/skills \
+  for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents \
+              ~/.claude/skills/explain-diff-html \
               ~/.claude/statusline-command.sh ~/.codex/config.toml ~/.cursor/mcp.json \
               ~/bin/python ~/bin/pip; do
     if [[ ! -e "$link" ]]; then

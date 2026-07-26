@@ -4,8 +4,11 @@ This directory contains Claude Code configuration files that are version-control
 
 ## Structure
 
-- `agents/` - Custom agent definitions
-- `skills/` - Custom skill definitions
+- `agents/` - Custom agent definitions installed on every profile (currently empty —
+  every agent we have is Ledidi-specific)
+- `agents.work/` - Custom agent definitions installed only by `install-work.sh`
+- `skills/` - Custom skill definitions installed on every profile
+- `skills.work/` - Custom skill definitions installed only by `install-work.sh`
 - `bin/` - Helper executables on PATH (`bb`, `jira`)
 - `settings.json` - Claude Code settings (hooks are declared here; the scripts
   themselves live in `dev/`, e.g. `dev/claude-notify.sh`)
@@ -17,10 +20,16 @@ This directory contains Claude Code configuration files that are version-control
 by hand. For reference, the links it makes are:
 
 ```bash
-ln -s ~/.config/claude/agents ~/.claude/agents
-ln -s ~/.config/claude/skills ~/.claude/skills
 ln -s ~/.config/claude/settings.json ~/.claude/settings.json
 ln -s ~/.config/claude/statusline-command.sh ~/.claude/statusline-command.sh
 ```
+
+`~/.claude/skills` and `~/.claude/agents` are real directories rather than links, each
+holding one symlink per skill/agent — that's what keeps the `.work` sets off personal
+machines. `link_claude_dir` links `skills/*` and `agents/*` on both profiles, and
+`install-work.sh` calls it again to add `skills.work/*` and `agents.work/*`. It clears
+its own previous links on each run, so switching a machine from work to personal
+removes the work skills and agents; anything you drop into those directories by hand is
+left untouched.
 
 Runtime files (history, cache, projects, etc.) live directly in `~/.claude` and are not version-controlled.

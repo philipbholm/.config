@@ -23,6 +23,13 @@ if [[ -d ~/.ssh ]]; then
   ln -sf "$DOTFILES/ssh/config.work" ~/.ssh/config
 fi
 
+# Claude Code skills and agents: shared sets plus the Ledidi-specific ones
+# (skills: create-issue/plan/implement/code-review/fix-feedback/learn;
+#  agents: ledidi-code-reviewer/-security-auth-reviewer/-test-reviewer)
+echo "Linking work Claude skills and agents..."
+link_claude_dir ~/.claude/skills "$DOTFILES/claude/skills" "$DOTFILES/claude/skills.work"
+link_claude_dir ~/.claude/agents "$DOTFILES/claude/agents" "$DOTFILES/claude/agents.work"
+
 # Dev script symlinks in ~/bin
 echo "Linking dev scripts..."
 ln -sf "$DOTFILES/dev/dev.sh" ~/bin/dev
