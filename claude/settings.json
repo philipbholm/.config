@@ -70,7 +70,8 @@
     "typescript-lsp@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true
   },
-  "effortLevel": "medium",
+  "effortLevel": "xhigh",
+  "skipDangerousModePermissionPrompt": true,
   "preferredNotifChannel": "notifications_disabled",
   "teammateMode": "in-process",
   "inputNeededNotifEnabled": false,
@@ -89,6 +90,5 @@
       ]
     }
   },
-  "subagentModel": "opus",
-  "skipDangerousModePermissionPrompt": true
+  "subagentModel": "opus"
 }
