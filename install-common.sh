@@ -191,6 +191,14 @@ setup_launch_agents() {
   local LAUNCH_AGENTS="$HOME/Library/LaunchAgents"
   mkdir -p "$LAUNCH_AGENTS"
   local plist name label
+  # Prune agents whose repo plist was removed (now-broken symlinks into launchd/)
+  for plist in "$LAUNCH_AGENTS"/com.philip.*.plist; do
+    if [ -L "$plist" ] && [ ! -e "$plist" ]; then
+      label="$(basename "${plist%.plist}")"
+      launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+      rm -f "$plist"
+    fi
+  done
   for plist in "$DOTFILES"/launchd/*.plist; do
     name="$(basename "$plist")"
     label="${name%.plist}"
