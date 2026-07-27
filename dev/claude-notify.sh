@@ -77,13 +77,27 @@ case "${1:-status}" in
     payload=$(cat)
     tp=$(printf '%s' "$payload" | jq -r '.transcript_path // ""' 2>/dev/null)
     case "$tp" in */subagents/*) exit 0 ;; esac
+    # Don't announce "done" while background subagents/teammates/shells are
+    # still in flight — the session isn't finished, it wakes again when they
+    # complete (and fires Stop with an empty list then). background_tasks lists
+    # in-flight (running/pending) work; absent/empty => genuinely at rest.
+    bg=$(printf '%s' "$payload" | jq -r '(.background_tasks // []) | length' 2>/dev/null)
+    case "$bg" in ''|*[!0-9]*) bg=0 ;; esac
+    [ "$bg" -gt 0 ] && { log "skip stop: $bg background task(s) in flight"; exit 0; }
     cwd=$(printf '%s' "$payload" | jq -r '.cwd // "unknown"' 2>/dev/null)
     send "Claude Code done — $(basename "$cwd")"
     ;;
   notification)
     is_enabled || exit 0
     payload=$(cat)
+    tp=$(printf '%s' "$payload" | jq -r '.transcript_path // ""' 2>/dev/null)
+    case "$tp" in */subagents/*) exit 0 ;; esac
     ntype=$(printf '%s' "$payload" | jq -r '.notification_type // "?"' 2>/dev/null)
+    # idle_prompt fires ~60s after the turn ends, with no awareness of running
+    # background subagents/teammates — so it false-alarms "idle" while Claude is
+    # actually waiting on them. It's also redundant with the Stop "done"
+    # notification, so drop it. permission_prompt/elicitation/etc. still notify.
+    [ "$ntype" = "idle_prompt" ] && { log "skip notification: idle_prompt"; exit 0; }
     cwd=$(printf '%s' "$payload" | jq -r '.cwd // "unknown"' 2>/dev/null)
     send "Claude Code [$ntype] — $(basename "$cwd")"
     ;;
