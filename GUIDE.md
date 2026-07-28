@@ -60,6 +60,8 @@ Branch-name completion is wired up for `gco`, `gcb`, `grb`, `gm`, `gbd`, `grh`, 
 
 ## Tmux
 
+This section is the single place the tmux bindings are written down. `tmux/tmux.conf` is the ground truth; keep the tables below in step with it, and don't start a third copy elsewhere — CLAUDE.md used to carry a summary and every one of its claims had drifted by the time anyone checked.
+
 Prefix key: `Ctrl+Space` (secondary: `Ctrl+B`)
 
 Two rebinds bite if you expect tmux defaults: `prefix + z` kills the pane (it is not zoom) and `prefix + Z` kills the whole window, both without a confirmation prompt.
