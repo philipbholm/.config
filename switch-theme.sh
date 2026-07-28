@@ -20,5 +20,13 @@ else
     ln -sf "$THEME_DIR/light.toml" "$ACTIVE_THEME"
 fi
 
-# Update borders colors by re-executing bordersrc (supports live reconfiguration)
-~/.config/borders/bordersrc
+# Reload borders with the current bordersrc config.
+#
+# Do NOT call bordersrc directly: `borders` is a long-running daemon that runs
+# in the foreground (which is what com.philip.borders expects of it), so
+# invoking it here never returns — it hangs the caller and leaks a second
+# daemon. Restarting the launch agent applies the config and returns at once.
+if ! launchctl kickstart -k "gui/$(id -u)/com.philip.borders" 2>/dev/null; then
+    # Agent not loaded (e.g. first install before launch agents are set up).
+    ~/.config/borders/bordersrc &
+fi
