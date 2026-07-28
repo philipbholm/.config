@@ -3,35 +3,13 @@
 # rely on compinit having already run in .zshrc before this file is sourced.
 
 # Git & worktrees
+#
+# Worktrees are created natively by Claude Code (EnterWorktree) under
+# <repo>/.claude/worktrees/. wt-down tears the current one down.
 
-gwc() {
-  /Users/philip/.config/dev/gwc.sh "$@"
+wt-down() {
+  /Users/philip/.config/dev/wt-down.sh "$@"
 }
-
-_gwc_completions() {
-  case "$words[CURRENT-1]" in
-    -b|--base)
-      local refs=($(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes 2>/dev/null))
-      _describe 'base ref' refs
-      ;;
-    *)
-      local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
-      _describe 'branch' branches
-      ;;
-  esac
-}
-compdef _gwc_completions gwc
-
-gwd() {
-  /Users/philip/.config/dev/gwd.sh "$@"
-}
-
-_gwd_completions() {
-  local dir="/Users/philip/work/worktrees"
-  local worktrees=(${(@f)"$(ls "$dir" 2>/dev/null)"})
-  _describe 'worktree' worktrees
-}
-compdef _gwd_completions gwd
 
 sync-context() {
   /Users/philip/.config/dev/sync-context.sh "$@"
@@ -49,45 +27,23 @@ _dev_completions() {
 }
 compdef _dev_completions dev
 
-check() {
-  /Users/philip/.config/dev/check.sh "$@"
-}
-
-_check_completions() {
-  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
-  _describe 'branch' branches
-}
-compdef _check_completions check
-
-_tests_completions() {
-  local suites=("frontend:Frontend unit tests (Vitest)" "registries:Registries service tests (Jest)" "e2e:Frontend E2E tests (Playwright)")
-  _describe 'suite' suites
-}
-compdef _tests_completions tests
-
-fix() {
-  /Users/philip/.config/dev/fix.sh "$@"
-}
-
-_fix_completions() {
-  local cmds=("build:Rebuild Docker images" "full:npm install + rebuild")
-  _describe 'command' cmds
-}
-compdef _fix_completions fix
-
 prisma() {
   local monorepo_root
   monorepo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
     echo "Error: Not inside a git repository"
     return 1
   }
-  local project_name slot worktree_slot_file
-  project_name="$(basename "$monorepo_root")"
-  worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name/worktree-slot"
-  if [[ -f "$worktree_slot_file" ]]; then
-    slot=$(cat "$worktree_slot_file")
-  else
-    slot=0
+  . /Users/philip/.config/dev/lib/workspace.sh || return 1
+  # dev.sh hands worktrees slots 1-9 and only writes the slot file once a stack
+  # is up; the main checkout is slot 0. So an unresolved worktree slot must
+  # refuse rather than fall back to port 5432 — that is the main database.
+  local slot=0
+  if dev_is_worktree_repo "$monorepo_root"; then
+    slot=$(dev_slot_for_repo "$monorepo_root")
+    if [[ ! "$slot" =~ ^[1-9]$ ]]; then
+      echo "Error: no dev stack for this worktree — run \`dev up postgres -d\` first" >&2
+      return 1
+    fi
   fi
   local port=$((5432 + slot * 100))
   (cd "$monorepo_root/services/registries" &&

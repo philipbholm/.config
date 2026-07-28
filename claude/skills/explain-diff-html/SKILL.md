@@ -16,14 +16,11 @@ It should have these sections:
 
 Format:
 
-- Output a single self-contained HTML file which includes CSS and JavaScript. Make the whole thing one long page with section headers and a table of contents. Don't use tabs for the top-level structure. Basic responsive styling so you can view it on a phone is nice too. Put the file in a global place on my computer outside of the code repo, and make sure the filename always starts with today's date in `YYYY-MM-DD-` format, because it helps keep the files time-sorted and out of version control. For example: /tmp/2026-01-12-explanation-<slug>.html
+- Output a single self-contained HTML file which includes CSS and JavaScript. Make the whole thing one long page with section headers and a table of contents. Don't use tabs for the top-level structure. Basic responsive styling so you can view it on a phone is nice too. Put the file in a global place on my computer outside of the code repo, and make sure the filename always starts with today's date in `YYYY-MM-DD-` format, because it helps keep the files time-sorted and out of version control. For example: 2026-01-12-explanation-<slug>.html. Save under `~/explanations/` (create it if missing) — not /tmp, which macOS deletes after 3 days.
 - Please write with the clarity and flow of Martin Kleppmann, making it engaging and written in classic style. Transitions between sections should be smooth.
 - Some tips on diagrams. Ideally, you should pick a small number of diagram families that can be reused throughout the explanation to explain various cases. Some useful kinds of diagrams:
   - A very simplified version of the UI that the user sees in the app, to explain UI changes.
   - A system diagram showing data flow or communication between components. Make sure to include example data here!
 - Don't use ASCII diagrams. Always use simple HTML designs for your diagrams, HTML lists for lists of things, etc.
-  - For code blocks, always use `<pre>` tags. If you use a custom styled div instead, it **must** have
-    `white-space: pre-wrap` in its CSS, or the browser will collapse all newlines into a single line.
-    Before saving the file, scan each code block in the HTML source and confirm its CSS includes
-    `white-space: pre` or `pre-wrap`.
+  - Code blocks always use `<pre>` tags (a styled div collapses newlines unless it sets `white-space: pre-wrap`).
 - Use callouts for key concepts or definitions, important edge cases, etc.

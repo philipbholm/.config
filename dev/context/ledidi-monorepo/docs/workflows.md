@@ -2,21 +2,32 @@
 
 Follow the workflow matching what you changed. Multiple may apply.
 
+Every `dev` step below assumes the stack is up. In a worktree running no
+containers the reload and restart steps are moot — skip them, and run the
+codegen steps, which need no Docker.
+
 ## Changed `.ts` files in a backend service
 
-No action needed. Docker mounts `src/` and nodemon auto-reloads.
+No action needed with the stack up: Docker mounts `src/` and nodemon
+auto-reloads.
 
 > Not picking up changes? `dev restart registries`
 
 ## Changed `.graphql` schema files {#graphql}
 
-Schema changes ripple through codegen and Registries frontend:
+Schema changes ripple through codegen, the federated supergraph, and the
+Registries frontend. Order matters — the frontend generates against the composed
+supergraph, so composing before the backend regenerates gives you stale types:
 
 ```bash
 cd services/registries && npm run generate
+cd services/apollo-router && ./compose-supergraph.sh
 cd apps/registries-frontend && npm run generate
-dev restart registries
+dev restart registries registries-frontend router
 ```
+
+The router serves the composed `supergraph.graphql` from startup, so it needs the
+restart even when nothing else changed.
 
 ## Changed `.proto` files {#proto}
 
@@ -52,10 +63,10 @@ dev restart registries
 Safe to run without confirmation:
 
 ```bash
-POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npx prisma migrate reset --force
+POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npm run migrate-reset -- --force
 ```
 
-**Always use npm scripts for migrations.** Never run `npx prisma migrate dev` or `npx prisma generate` directly (except reset).
+**Always use npm scripts for migrations.** Never run `npx prisma migrate dev` or `npx prisma generate` directly.
 
 ## Changed `package.json` {#dependencies}
 
@@ -75,6 +86,51 @@ No action needed. Vite HMR handles it.
 No action needed. `generate-watch` auto-regenerates types.
 
 > Types stale? `cd apps/registries-frontend && npm run generate`
+
+## Upgrading Dockerfiles for a CVE
+
+Check whether the migrator image needs the same bump. It is easy to patch the
+service image and leave the migrator on the vulnerable base.
+
+## Verifying a legacy-frontend PR through the shell
+
+`apps/legacy-frontend` is the old "Core" app (projects/datasets/entries), served
+into the shell as an iframe. It uses **yarn**, not npm.
+
+To check a legacy PR against **systest**:
+
+```bash
+# 1. Legacy dev server, serves PR code on :3000
+cd apps/legacy-frontend && yarn start_systest
+
+# 2. Shell with systest Cognito, serves on :3010
+cd apps/shell && npm run dev:systest
+```
+
+Then open `http://localhost:3010` and log in with a systest account. Legacy
+routes render the `:3000` iframe.
+
+**Use `start_systest`, not `yarn start`.** `yarn start` runs `ENV=development`,
+which points at a different `/test` backend (`8460znp882/test`) with a different
+Cognito client (`2hh28…`) than the shell. Auth still succeeds — project_service
+returns 200 — but your account's projects live in the `/prod` systest env, so the
+list renders **empty with no error**. `start_systest` targets `vzw57kuda0/prod`
+with client `71r4…`, matching the shell and `app-systest.ledidi.no`.
+
+Step 2 requires `apps/shell/.envs/.env.systest.local` (gitignored) containing
+`VITE_LEGACY_APP_URL=http://localhost:3000`, so the iframe loads local PR code.
+
+Both ports are pinned by systest CORS: shell on `3010`, legacy on `3000`.
+
+## SpiceDB images without ECR auth
+
+The spicedb images in `services/auth/docker-compose.auth-only.yml` reference ECR
+digests that need AWS auth. Without it, swap them for the local tags:
+
+- `ledidi-spicedb:local`
+- `ledidi-spicedb-migrator:local`
+
+This is a local-only change — revert it before committing.
 
 ---
 

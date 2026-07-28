@@ -65,7 +65,7 @@ brew_bundle() {
 
 install_node() {
   local nvm_sh
-  nvm_sh="$(brew --prefix nvm 2>/dev/null)/nvm.sh"
+  nvm_sh="$(brew --prefix nvm 2>/dev/null || true)/nvm.sh"
   if [[ ! -s "$nvm_sh" ]]; then
     echo "Warning: nvm not found at $nvm_sh — skipping Node install." >&2
     return 0
@@ -107,7 +107,7 @@ make_core_dirs() {
 # Per-entry rather than one symlink for the whole directory, so the work-only
 # sets (claude/skills.work, claude/agents.work) can be layered on by
 # install-work.sh and stay off personal machines. Each run is a full reset of
-# the links this function manages.
+# the links this function manages; machine-local entries are left as they are.
 link_claude_dir() {
   local dest="$1"
   shift
@@ -129,11 +129,19 @@ link_claude_dir() {
   done
 
   # Entries are skill directories or agent .md files depending on the caller.
-  local src_dir entry
+  local src_dir entry target
   for src_dir in "$@"; do
     for entry in "$src_dir"/*; do
       [[ -e "$entry" ]] || continue
-      ln -sfn "$entry" "$dest/$(basename "$entry")"
+      target="$dest/$(basename "$entry")"
+      # A real file or directory here is machine-local. `ln` would follow it and
+      # bury the link inside it without failing, so leave it and say so.
+      if [[ -e "$target" && ! -L "$target" ]]; then
+        echo "Warning: $target is not a symlink — leaving it in place." >&2
+        echo "         Move it aside to pick up $entry." >&2
+        continue
+      fi
+      ln -sfn "$entry" "$target"
     done
   done
 }
@@ -184,6 +192,29 @@ link_core() {
   # python/pip → python3/pip3 (real commands, not just shell aliases)
   ln -sf /opt/homebrew/bin/python3 ~/bin/python
   ln -sf /opt/homebrew/bin/pip3 ~/bin/pip
+}
+
+# git verifies signatures against a single allowedSignersFile (see git/config).
+# The tracked git/allowed_signers is the base; the generated copy in ~/.ssh is
+# what git reads, so a work machine can trust its work key without committing
+# it. Rebuilt from the base on every run, so add_allowed_signer calls that come
+# after cannot pile up duplicates.
+setup_allowed_signers() {
+  echo "Writing ~/.ssh/allowed_signers..."
+  install -m 600 "$DOTFILES/git/allowed_signers" ~/.ssh/allowed_signers
+}
+
+# Trust one more signing key that only exists on this machine:
+#   add_allowed_signer <principal> <public key path>
+add_allowed_signer() {
+  local principal="$1" pubkey="$2"
+  if [[ ! -f "$pubkey" ]]; then
+    echo "Warning: $pubkey not found — commits signed with it will not verify" >&2
+    echo "         locally. Restore the key and re-run this installer." >&2
+    return 0
+  fi
+  printf '%s namespaces="git" %s\n' "$principal" "$(cut -d' ' -f1,2 "$pubkey")" \
+    >> ~/.ssh/allowed_signers
 }
 
 setup_launch_agents() {
@@ -268,6 +299,14 @@ cleanup_stale() {
     echo "Removing stale ~/.tmux.conf symlink..."
     rm ~/.tmux.conf
   fi
+  # gwc/gwd were retired in favour of native worktrees + wt-down
+  local retired
+  for retired in ~/bin/gwc ~/bin/gwd; do
+    if [[ -L "$retired" ]]; then
+      echo "Removing stale $retired symlink..."
+      rm "$retired"
+    fi
+  done
   # If nvim data exists but isn't a LazyVim setup, clean for fresh bootstrap
   if [[ -d "$HOME/.local/share/nvim" ]] && [[ ! -d "$HOME/.local/share/nvim/lazy/LazyVim" ]]; then
     echo "Cleaning nvim state for LazyVim migration..."
@@ -308,14 +347,27 @@ verify() {
     fi
   done
 
-  # Paths that must resolve for the shell/agent configs to work at all
-  # (~/.claude/agents is a real dir; it is empty on the personal profile)
+  # Paths that must resolve for the shell, git and agent configs to work at all
+  # (~/.claude/agents is a real dir; it is empty on the personal profile.
+  # settings.json / config.toml / mcp.json are real files on work machines.)
   local link
   for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents \
-              ~/.claude/skills/explain-diff-html \
-              ~/.claude/statusline-command.sh ~/.codex/config.toml ~/.cursor/mcp.json \
-              ~/bin/python ~/bin/pip; do
+              ~/.codex/config.toml ~/.cursor/mcp.json ~/.ssh/allowed_signers; do
     if [[ ! -e "$link" ]]; then
+      missing+=("$link")
+    fi
+  done
+
+  # These must be links, not just present: a real file or directory in their
+  # place resolves fine while shadowing the copy the installer meant to link
+  # (link_claude_dir leaves such an entry alone), and a link left by an older
+  # install can dangle.
+  local unlinked=()
+  for link in ~/.claude/skills/explain-diff-html ~/.claude/statusline-command.sh \
+              ~/bin/python ~/bin/pip; do
+    if [[ ! -L "$link" ]]; then
+      unlinked+=("$link")
+    elif [[ ! -e "$link" ]]; then
       missing+=("$link")
     fi
   done
@@ -323,6 +375,10 @@ verify() {
   if [[ ${#missing[@]} -gt 0 ]]; then
     echo ""
     echo "  Missing: ${missing[*]}"
+  fi
+  if [[ ${#unlinked[@]} -gt 0 ]]; then
+    echo ""
+    echo "  Should be a symlink but is not: ${unlinked[*]}"
   fi
 }
 
@@ -336,6 +392,7 @@ run_core() {
   make_core_dirs
   install_node
   link_core
+  setup_allowed_signers
   setup_launch_agents
   setup_theme
   cleanup_stale

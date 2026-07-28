@@ -1,4 +1,7 @@
 {
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
   "mcpServers": {
     "datadog": {
       "command": "/Users/philip/.config/dev/mcp-datadog.sh"

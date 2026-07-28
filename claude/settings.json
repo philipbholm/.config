@@ -23,8 +23,12 @@
       "Read(./.npmrc)",
       "Read(./.netrc)",
       "Read(./**/.aws/**)",
+      "Read(~/.aws/**)",
       "Read(./**/.ssh/**)",
+      "Read(~/.ssh/**)",
       "Read(./**/.zsh_secrets/**)",
+      "Read(./**/.zsh_secrets)",
+      "Read(~/.config/zsh/.zsh_secrets)",
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git reset --hard:*)",
@@ -33,9 +37,15 @@
       "Bash(aws sso login --profile=production:*)",
       "Bash(AWS_PROFILE=production aws sso login:*)"
     ],
+    "ask": [
+      "Bash(dev nuke:*)"
+    ],
     "defaultMode": "auto"
   },
   "model": "opus[1m]",
+  "worktree": {
+    "baseRef": "fresh"
+  },
   "hooks": {
     "Stop": [
       {
@@ -66,28 +76,15 @@
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": false
   },
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
   "preferredNotifChannel": "notifications_disabled",
   "teammateMode": "in-process",
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": false,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true,
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "chrome-devtools-mcp@latest",
-        "--browserUrl",
-        "http://127.0.0.1:9222",
-        "--isolated"
-      ]
-    }
-  },
-  "subagentModel": "opus"
+  "voiceEnabled": true
 }

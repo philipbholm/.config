@@ -68,9 +68,9 @@ Co-locate `.graphql` with consuming component. Shared utilities stay flat.
 ## Error Handling
 
 ```typescript
-import { isNotFoundError, isFailedPreconditionError } from "~/lib/errors";
+import { isFailedPreconditionError, isValidationError } from "~/lib/errors";
 
-if (isNotFoundError(error)) { /* 404 */ }
+if (isFailedPreconditionError(error)) { /* FAILED_PRECONDITION */ }
 ```
 
 - Every mutation: visible error handling (toast, alert, inline)

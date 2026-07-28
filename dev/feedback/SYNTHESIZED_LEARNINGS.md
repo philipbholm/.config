@@ -380,7 +380,7 @@ Consolidated guidelines from ~138 PR reviews. Duplicates merged, organized by ca
 - Cross-reference existing standards (FHIR, competitor products) when introducing domain terminology.
 
 ### Files
-- Always use kebab-case for file names; rename pre-existing files when substantially modifying them.
+- Always use kebab-case for new file names; a pre-existing file with the wrong casing is only worth renaming when the change already rewrites it substantially.
 - Encode file naming conventions in lint rules so they're enforced automatically.
 - Place new scripts in the established scripts directory, not at the project root.
 

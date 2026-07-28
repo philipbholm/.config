@@ -26,10 +26,9 @@ src/application/overview/
 ├── get-form-completeness/
 │   ├── get-form-completeness.ts
 │   └── get-form-completeness.integration.test.ts
-├── get-patient-stats/
-│   ├── get-patient-stats.ts
-│   └── get-patient-stats.integration.test.ts
-├── overview-projection.ts
+├── get-patient-inclusion/
+│   ├── get-patient-inclusion.ts
+│   └── get-patient-inclusion.integration.test.ts
 └── overview-shared.ts
 ```
 

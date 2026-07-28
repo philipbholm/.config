@@ -3,8 +3,11 @@
 DEV_SLOT_LABEL="com.ledidi.dev-slot"
 DEV_WORKSPACE_LABEL="com.ledidi.dev-workspace"
 
-dev_worktree_base() {
-    printf '%s\n' "${WORKTREE_BASE:-$HOME/work/worktrees}"
+# Worktrees live inside the repo at <repo>/.claude/worktrees, which is where
+# Claude Code's native EnterWorktree creates them. WORKTREE_BASE overrides it
+# for tests.
+dev_worktree_base_for_repo() {
+    printf '%s\n' "${WORKTREE_BASE:-${1%/}/.claude/worktrees}"
 }
 
 dev_stacks_dir() {
@@ -58,22 +61,13 @@ dev_repo_family_name() {
     basename "$(dirname "$common_dir")"
 }
 
+# Stack identity for a worktree. Keyed on the directory name, not the branch:
+# switching branches inside a worktree must not change which Docker stack,
+# slot file, and ports it owns.
 dev_worktree_raw_key_for_repo() {
     local repo_root=$1
-    local branch
-    local worktree_base
 
-    branch=$(git -C "$repo_root" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
-    if [ -n "$branch" ]; then
-        printf '%s\n' "${branch##*/}"
-        return
-    fi
-
-    worktree_base=$(dev_worktree_base)
-    case "$repo_root" in
-        "$worktree_base"/*) printf '%s\n' "${repo_root#"$worktree_base"/}" ;;
-        *) basename "$repo_root" ;;
-    esac
+    basename "$repo_root"
 }
 
 dev_workspace_id_for_repo() {
@@ -81,9 +75,6 @@ dev_workspace_id_for_repo() {
 
     if dev_is_worktree_repo "$repo_root"; then
         local raw_key
-        local repo_family
-        local slug
-        local hash
 
         raw_key=$(dev_worktree_raw_key_for_repo "$repo_root")
         dev_slugify "$raw_key"
@@ -205,5 +196,58 @@ dev_slot_for_repo() {
         cat "$slot_file"
     else
         printf '0\n'
+    fi
+}
+
+# Host ports the main checkout (slot 0) publishes. A worktree on slot N publishes
+# each of them at +N*100. Shared so the compose overrides and the context
+# templates cannot drift apart.
+DEV_FRONTEND_BASE_PORT=3003
+DEV_ROUTER_BASE_PORT=4000
+DEV_CODELIST_BASE_PORT=4005
+DEV_CODELIST_GRPC_BASE_PORT=50005
+DEV_REGISTRIES_BASE_PORT=4006
+DEV_REGISTRIES_GRPC_BASE_PORT=50006
+DEV_AGENT_BASE_PORT=4007
+DEV_POSTGRES_BASE_PORT=5432
+
+# Fill the {{...PORT}} placeholders in a copied context file with the ports a
+# slot publishes. dev.sh calls this for the single worktree it just started;
+# sync-context.sh calls it for every workspace it rewrites.
+#
+#   dev_apply_context_ports <file> <slot>
+#
+# Edits <file> in place. Returns 1 and leaves the file untouched if it does not
+# exist or the slot is not 0-9.
+dev_apply_context_ports() {
+    local file=$1
+    local slot=$2
+    local offset
+
+    if [ ! -f "$file" ]; then
+        echo "Error: context file not found: $file" >&2
+        return 1
+    fi
+    if ! [[ "$slot" =~ ^[0-9]$ ]]; then
+        echo "Error: unusable slot '$slot' for $file (expected 0-9)" >&2
+        return 1
+    fi
+    offset=$(( slot * 100 ))
+
+    local replacements=(
+        -e "s|{{FRONTEND_PORT}}|$(( DEV_FRONTEND_BASE_PORT + offset ))|g"
+        -e "s|{{ROUTER_PORT}}|$(( DEV_ROUTER_BASE_PORT + offset ))|g"
+        -e "s|{{POSTGRES_PORT}}|$(( DEV_POSTGRES_BASE_PORT + offset ))|g"
+        -e "s|{{CODELIST_PORT}}|$(( DEV_CODELIST_BASE_PORT + offset ))|g"
+        -e "s|{{CODELIST_GRPC_PORT}}|$(( DEV_CODELIST_GRPC_BASE_PORT + offset ))|g"
+        -e "s|{{REGISTRIES_PORT}}|$(( DEV_REGISTRIES_BASE_PORT + offset ))|g"
+        -e "s|{{REGISTRIES_GRPC_PORT}}|$(( DEV_REGISTRIES_GRPC_BASE_PORT + offset ))|g"
+        -e "s|{{AGENT_PORT}}|$(( DEV_AGENT_BASE_PORT + offset ))|g"
+    )
+
+    if [[ "$OSTYPE" == darwin* ]]; then
+        sed -i '' "${replacements[@]}" "$file"
+    else
+        sed -i "${replacements[@]}" "$file"
     fi
 }

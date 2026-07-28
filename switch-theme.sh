@@ -28,7 +28,7 @@ case "$MODE" in
 esac
 
 # Fixed schedule: keep macOS's own sunset/sunrise switching off so it can't
-# override us between our 07:00/19:00 runs.
+# override us between our 07:00/18:00 runs.
 defaults write -g AppleInterfaceStyleSwitchesAutomatically -bool false
 osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to $DARK"
 
@@ -40,5 +40,14 @@ rm -f "$ACTIVE_THEME"
 cp "$THEME_DIR/$MODE.toml" "$ACTIVE_THEME"
 touch "$HOME/.config/alacritty/alacritty.toml"
 
-# Re-invoking borders updates the running instance's colors in place.
-"$HOME/.config/borders/bordersrc" "$MODE"
+# Reload borders so it picks up the appearance we just set (bordersrc with no
+# argument reads AppleInterfaceStyle).
+#
+# Do NOT call bordersrc directly: `borders` is a long-running daemon that runs
+# in the foreground (which is what com.philip.borders expects of it), so
+# invoking it here never returns — it hangs the caller and leaks a second
+# daemon. Restarting the launch agent applies the config and returns at once.
+if ! launchctl kickstart -k "gui/$(id -u)/com.philip.borders" 2>/dev/null; then
+  # Agent not loaded (e.g. first install before launch agents are set up).
+  "$HOME/.config/borders/bordersrc" "$MODE" &
+fi

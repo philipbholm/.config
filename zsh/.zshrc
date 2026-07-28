@@ -86,7 +86,6 @@ export CPPFLAGS="-I/opt/homebrew/opt/openjdk@17/include"
 
 # Disable telemetry and warnings
 export NODE_NO_WARNINGS=1
-export POSTGRES_URL=postgres://postgres:postgres@localhost:5432/registries
 
 # Secrets
 [ -f "$HOME/.config/zsh/.zsh_secrets" ] && source "$HOME/.config/zsh/.zsh_secrets"
