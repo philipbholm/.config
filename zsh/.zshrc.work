@@ -27,22 +27,6 @@ _dev_completions() {
 }
 compdef _dev_completions dev
 
-check() {
-  /Users/philip/.config/dev/check.sh "$@"
-}
-
-_check_completions() {
-  local branches=($(git branch --format='%(refname:short)' 2>/dev/null))
-  _describe 'branch' branches
-}
-compdef _check_completions check
-
-_tests_completions() {
-  local suites=("frontend:Frontend unit tests (Vitest)" "registries:Registries service tests (Jest)" "e2e:Frontend E2E tests (Playwright)")
-  _describe 'suite' suites
-}
-compdef _tests_completions tests
-
 fix() {
   /Users/philip/.config/dev/fix.sh "$@"
 }

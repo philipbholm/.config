@@ -84,10 +84,15 @@ a full `dev up` the backend suite runs on a bare `npm run test`; after
 [commands.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/commands.md)
 shows. The port comes from the table, never from an edited config file.
 
-The `tests` wrapper runs what the current containers allow. With no stack up it
-runs the frontend suite and skips registries and e2e, naming the command that
-would enable each. A skipped suite exits non-zero, so a partial run never reads
-as green — check the summary, not just the exit code.
+Run each suite directly — no wrapper decides for you. The container table above
+says which ones the current stack supports: frontend unit tests need nothing, the
+registries suite needs postgres, e2e needs everything. Vitest's
+`--changed origin/master` narrows a run to the tests your change reaches through
+the import graph, and both `services/registries` and `apps/registries-frontend`
+accept it; `services/codelist` is on Jest and has no equivalent.
+
+Nothing flags a suite you never started, so a green frontend run is not a green
+branch. Say which suites ran and which the current stack couldn't support.
 
 ### Tearing down
 

@@ -42,7 +42,7 @@ fi
 
 cd "$monorepo_root" || exit 1
 
-# --- Spinner helper (from check.sh pattern) ---
+# --- Spinner helper ---
 
 failed=()
 

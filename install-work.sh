@@ -33,8 +33,6 @@ link_claude_dir ~/.claude/agents "$DOTFILES/claude/agents" "$DOTFILES/claude/age
 # Dev script symlinks in ~/bin
 echo "Linking dev scripts..."
 ln -sf "$DOTFILES/dev/dev.sh" ~/bin/dev
-ln -sf "$DOTFILES/dev/check.sh" ~/bin/check
-ln -sf "$DOTFILES/dev/tests.sh" ~/bin/tests
 ln -sf "$DOTFILES/dev/tunnel.sh" ~/bin/tunnel
 ln -sf "$DOTFILES/dev/setup-stack.sh" ~/bin/setup-stack
 ln -sf "$DOTFILES/dev/wt-down.sh" ~/bin/wt-down

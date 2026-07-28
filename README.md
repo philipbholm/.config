@@ -119,7 +119,7 @@ git clone <repo-url> ~/.config
 ~/.config/install.sh work       # full Ledidi dev environment
 ```
 
-Both profiles share a common core via `install-common.sh`: Homebrew packages, directory creation, symlinks, stale symlink cleanup, neovim cache prep, and zsh-autosuggestions. The `work` profile additionally installs the Ledidi/dev tooling ([Brewfile.work](/Users/philip/.config/Brewfile.work)), links the `dev`/`check`/`wt-down`/etc. scripts into `~/bin`, creates `~/work`, and runs `dev/sync-agent-configs.sh` to merge the Datadog MCP + Codex `~/work` project-trusts into the live agent configs; `personal` adds only [Brewfile.personal](/Users/philip/.config/Brewfile.personal). See [install.sh](/Users/philip/.config/install.sh) for details.
+Both profiles share a common core via `install-common.sh`: Homebrew packages, directory creation, symlinks, stale symlink cleanup, neovim cache prep, and zsh-autosuggestions. The `work` profile additionally installs the Ledidi/dev tooling ([Brewfile.work](/Users/philip/.config/Brewfile.work)), links the `dev`/`wt-down`/`setup-stack`/etc. scripts into `~/bin`, creates `~/work`, and runs `dev/sync-agent-configs.sh` to merge the Datadog MCP + Codex `~/work` project-trusts into the live agent configs; `personal` adds only [Brewfile.personal](/Users/philip/.config/Brewfile.personal). See [install.sh](/Users/philip/.config/install.sh) for details.
 
 Note: tmux reads its config directly from `~/.config/tmux/tmux.conf` (XDG support since tmux 3.1). No `~/.tmux.conf` symlink is needed.
 

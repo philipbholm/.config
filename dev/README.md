@@ -7,9 +7,9 @@ Development utility scripts for the monorepo.
 | Command | Description |
 |---------|-------------|
 | `dev` | Smart docker compose wrapper — auto-detects main vs worktree |
-| `check` | Run linting, formatting, and build on changed files |
-| `tests` | Run tests (unit, integration, e2e) on changed files |
 | `tunnel` | Start cloudflared tunnels for remote access |
+
+There is no lint/build/test wrapper here. The monorepo's own `lefthook.yml` gates all six workspaces (services/registries, services/patient-bff, apps/registries-frontend, apps/patient-frontend, apps/shell, packages/components) on commit; for ad-hoc runs, call the underlying commands (`npm run build-ts`, `npx vitest run`, `npx biome check`) from the workspace you changed.
 
 ## `dev` — Unified Dev Stack Manager
 
@@ -157,17 +157,24 @@ ln -sf ~/.config/dev/<script>.sh ~/bin/<command>
 
 For example:
 ```bash
-ln -sf ~/.config/dev/check.sh ~/bin/check
+ln -sf ~/.config/dev/tunnel.sh ~/bin/tunnel
 ```
 
 ## Current Symlinks
 
 ```bash
-~/bin/dev     -> ~/.config/dev/dev.sh
-~/bin/check   -> ~/.config/dev/check.sh
-~/bin/tests   -> ~/.config/dev/tests.sh
-~/bin/tunnel  -> ~/.config/dev/tunnel.sh
+~/bin/dev                -> ~/.config/dev/dev.sh
+~/bin/tunnel             -> ~/.config/dev/tunnel.sh
+~/bin/setup-stack        -> ~/.config/dev/setup-stack.sh
+~/bin/wt-down            -> ~/.config/dev/wt-down.sh
+~/bin/sync-context       -> ~/.config/dev/sync-context.sh
+~/bin/fix                -> ~/.config/dev/fix.sh
+~/bin/sync-agent-configs -> ~/.config/dev/sync-agent-configs.sh
+~/bin/claude-notify      -> ~/.config/dev/claude-notify.sh
 ```
+
+The first seven come from `install-work.sh`; `claude-notify` from
+`install-common.sh`.
 
 ## Why Symlinks?
 
