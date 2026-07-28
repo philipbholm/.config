@@ -40,10 +40,10 @@ one doesn't respond, the Docker stack is what needs attention — the standard
 ports (5432, 3000, 4000) belong to other stacks, and editing hardcoded URLs, env
 files, or configs to reach a service breaks the worktree instead of fixing it.
 
-The reference docs linked at the bottom of this file live outside the worktree
-and are never rewritten, so they spell ports as `{{POSTGRES_PORT}}` and friends.
-Those are placeholders for the values in the table above — substitute them, never
-type them.
+The reference docs linked at the bottom of this file live outside the worktree,
+so their ports are never filled in — they appear as double-braced names like the
+Postgres one. Read the real value from the table above; never type the braced
+form into a command.
 
 ## Workflow
 
