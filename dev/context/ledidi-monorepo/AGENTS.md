@@ -116,6 +116,9 @@ stack orphaned.
 - **Use `dev` instead of `docker compose`** — includes correct compose files
 - With the stack up, backend `.ts` changes auto-reload (nodemon) and the
   frontend uses Vite HMR
+- Generated code never reloads. `.graphql`, `.proto` and `prisma/schema.prisma`
+  changes need an explicit codegen pass, and for schema changes the order matters
+  — see [workflows.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/workflows.md)
 - Never run `npm run dev` / `npm start` — services run in Docker
 
 ### Commands
