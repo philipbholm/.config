@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is a macOS dotfiles and workflow repo rooted at `~/.config`. Top-level directories map directly to managed tools: `zsh/`, `tmux/`, `nvim/`, `alacritty/`, `git/`, `cursor/`, `claude/`, and `codex/`. Development automation lives in `dev/`, including worktree helpers (`gwc.sh`, `gwd.sh`), Docker stack tooling (`dev.sh`), and verification scripts (`check.sh`, `tests.sh`). `dev/admin-mock/` is the only standalone TypeScript package in the repo.
+This repository is a macOS dotfiles and workflow repo rooted at `~/.config`. Top-level directories map directly to managed tools: `zsh/`, `tmux/`, `nvim/`, `alacritty/`, `git/`, `cursor/`, `claude/`, and `codex/`. Development automation lives in `dev/`, including the worktree teardown helper (`wt-down.sh`), Docker stack tooling (`dev.sh`), and verification scripts (`check.sh`, `tests.sh`). `dev/admin-mock/` is the only standalone TypeScript package in the repo.
 
 ## Build, Test, and Development Commands
 
@@ -10,7 +10,7 @@ Use the repo from `~/.config`.
 
 - `./install.sh` installs brew dependencies, creates expected directories, and refreshes symlinks.
 - `zsh -lc 'source zsh/.zshrc'` smoke-tests shell config syntax and startup.
-- `bash dev/gwc.sh <branch>` creates a worktree and bootstraps the target monorepo environment.
+- `bash dev/setup-stack.sh` bootstraps a worktree (npm install + codegen); `bash dev/wt-down.sh` tears the current one down. Worktrees themselves are created natively under `<repo>/.claude/worktrees/`.
 - `bash dev/dev.sh status` shows active dev stacks; `bash dev/dev.sh up` starts the current stack when run inside a supported repo.
 - `zsh dev/check.sh --all registries` runs lint/build checks for a target service in the Ledidi monorepo.
 - `zsh dev/tests.sh --all frontend` runs the corresponding test suite in that monorepo.

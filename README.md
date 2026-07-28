@@ -75,7 +75,6 @@ This setup assumes a small number of stable top-level directories under `~`.
 ├── .config
 ├── work
 │   ├── <main repos>
-│   ├── worktrees
 │   └── .dev-stacks
 ├── private
 ├── vaults
@@ -86,7 +85,7 @@ Notes:
 
 - `~/.config` contains this repo and the managed local configuration
 - `~/work` contains main working repositories such as `ledidi-monorepo`, `legacy`, and related work repos
-- `~/work/worktrees` is used for git worktrees and is referenced by shell helpers like `gwd`
+- Git worktrees live inside each repo at `<repo>/.claude/worktrees/<name>`, created natively by Claude Code and torn down with the `wt-down` helper
 - `~/work/.dev-stacks` is used by the local `dev` tooling for generated Docker Compose stack files
 - `~/private` contains private/personal repositories
 - `~/vaults` contains Obsidian or other note vaults
@@ -120,7 +119,7 @@ git clone <repo-url> ~/.config
 ~/.config/install.sh work       # full Ledidi dev environment
 ```
 
-Both profiles share a common core via `install-common.sh`: Homebrew packages, directory creation, symlinks, stale symlink cleanup, neovim cache prep, and zsh-autosuggestions. The `work` profile additionally installs the Ledidi/dev tooling ([Brewfile.work](/Users/philip/.config/Brewfile.work)), links the `dev`/`gwc`/`gwd`/etc. scripts into `~/bin`, creates `~/work`, and runs `dev/sync-agent-configs.sh` to merge the Datadog MCP + Codex `~/work` project-trusts into the live agent configs; `personal` adds only [Brewfile.personal](/Users/philip/.config/Brewfile.personal). See [install.sh](/Users/philip/.config/install.sh) for details.
+Both profiles share a common core via `install-common.sh`: Homebrew packages, directory creation, symlinks, stale symlink cleanup, neovim cache prep, and zsh-autosuggestions. The `work` profile additionally installs the Ledidi/dev tooling ([Brewfile.work](/Users/philip/.config/Brewfile.work)), links the `dev`/`check`/`wt-down`/etc. scripts into `~/bin`, creates `~/work`, and runs `dev/sync-agent-configs.sh` to merge the Datadog MCP + Codex `~/work` project-trusts into the live agent configs; `personal` adds only [Brewfile.personal](/Users/philip/.config/Brewfile.personal). See [install.sh](/Users/philip/.config/install.sh) for details.
 
 Note: tmux reads its config directly from `~/.config/tmux/tmux.conf` (XDG support since tmux 3.1). No `~/.tmux.conf` symlink is needed.
 
@@ -205,7 +204,7 @@ uv --version
 # Work profile only
 brew bundle check --file ~/.config/Brewfile.work
 zsh -lc 'command -v watchman lefthook'
-zsh -lc 'command -v dev check tests tunnel gwc gwd sync-context fix'
+zsh -lc 'command -v dev check tests tunnel setup-stack wt-down sync-context fix'
 
 # Personal profile only
 brew bundle check --file ~/.config/Brewfile.personal
