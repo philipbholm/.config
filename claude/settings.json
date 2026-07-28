@@ -36,6 +36,9 @@
     "defaultMode": "auto"
   },
   "model": "opus[1m]",
+  "worktree": {
+    "baseRef": "fresh"
+  },
   "hooks": {
     "Stop": [
       {
@@ -66,9 +69,7 @@
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": false
   },
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
@@ -78,17 +79,5 @@
   "agentPushNotifEnabled": false,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "chrome-devtools-mcp@latest",
-        "--browserUrl",
-        "http://127.0.0.1:9222",
-        "--isolated"
-      ]
-    }
-  },
   "subagentModel": "opus"
 }
