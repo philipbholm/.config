@@ -57,10 +57,10 @@ dev restart registries
 Safe to run without confirmation:
 
 ```bash
-POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npx prisma migrate reset --force
+POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" npm run migrate-reset -- --force
 ```
 
-**Always use npm scripts for migrations.** Never run `npx prisma migrate dev` or `npx prisma generate` directly (except reset).
+**Always use npm scripts for migrations.** Never run `npx prisma migrate dev` or `npx prisma generate` directly.
 
 ## Changed `package.json` {#dependencies}
 

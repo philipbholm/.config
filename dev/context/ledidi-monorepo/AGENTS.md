@@ -14,7 +14,8 @@ Medical registry platform. Each service/app has its own `package.json`.
 | `packages/` | Shared libraries (@ledidi-as scope) |
 
 Default focus is `services/registries` and `apps/registries-frontend` unless I
-say otherwise. **Never touch `apps/main-frontend/`.**
+say otherwise. The sibling apps — `analysis-room-frontend`, `legacy-frontend`,
+`patient-frontend`, `shell` — are in scope only when I name one.
 
 ### Terminology
 

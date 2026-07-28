@@ -4,9 +4,10 @@ This directory contains Claude Code configuration files that are version-control
 
 ## Structure
 
-- `agents/` - Custom agent definitions installed on every profile (currently empty —
-  every agent we have is Ledidi-specific)
+- `agents/` - Custom agent definitions installed on every profile (currently empty)
 - `agents.work/` - Custom agent definitions installed only by `install-work.sh`
+  (currently empty — the three `ledidi-*` reviewers were removed with the
+  `code-review` skill that drove them)
 - `skills/` - Custom skill definitions installed on every profile
 - `skills.work/` - Custom skill definitions installed only by `install-work.sh`
 - `bin/` - Helper executables on PATH (`bb`, `jira`)

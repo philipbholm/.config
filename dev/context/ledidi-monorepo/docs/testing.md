@@ -16,8 +16,8 @@ npm run test
 
 # Frontend E2E tests
 FRONTEND_BASE_URL="http://localhost:{{FRONTEND_PORT}}" \
-E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" \
-npx playwright test
+E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}/graphql" \
+npm run test:e2e:registries
 ```
 
 A full `dev up` writes `services/registries/.env.test.local` with that same
@@ -78,13 +78,16 @@ edge-case stories.
 
 A test states its intent plainly and can be verified by reading it. Keep setup
 as close to the test as possible — ideally everything needed to understand it is
-on screen. `testApplicationBuilder` and friends are accepted exceptions; new
-abstractions on top of them make tests harder to read, not easier.
+on screen. `buildTestApplication`, `registryTestBuilder` and friends are accepted
+exceptions; new abstractions on top of them make tests harder to read, not
+easier.
 
 ## General Guidelines
 
 - Shared setup in `beforeAll`, assertions in `it` blocks
-- Prefer `toEqual` over `toMatchObject`
+- Never use `toMatchObject`, `expect.arrayContaining`, or
+  `expect.objectContaining` — the pre-commit hook rejects them; use
+  `toEqual`/`toStrictEqual`
 - Imperative descriptions: `it("reorders elements", ...)` not `it("should...")`
 - Integration tests for backend, unit tests for edge cases
 - Prefer integration tests calling service endpoints over invoking use cases directly

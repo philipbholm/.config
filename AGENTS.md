@@ -8,7 +8,7 @@ This repository is a macOS dotfiles and workflow repo rooted at `~/.config`. Top
 
 Use the repo from `~/.config`.
 
-- `./install.sh` installs brew dependencies, creates expected directories, and refreshes symlinks.
+- `./install.sh work|personal` picks a profile and execs `install-<profile>.sh`; both source `install-common.sh`, which installs brew dependencies, creates expected directories, and refreshes symlinks. With no profile the dispatcher only prints usage and exits 1.
 - `zsh -lc 'source zsh/.zshrc'` smoke-tests shell config syntax and startup.
 - `bash dev/setup-stack.sh` bootstraps a worktree (npm install + codegen); `bash dev/wt-down.sh` tears the current one down. Worktrees themselves are created natively under `<repo>/.claude/worktrees/`.
 - `bash dev/dev.sh status` shows active dev stacks; `bash dev/dev.sh up` starts the current stack when run inside a supported repo.
@@ -18,15 +18,15 @@ Use the repo from `~/.config`.
 
 ## Coding Style & Naming Conventions
 
-Shell scripts use `bash` or `zsh` with `set -euo pipefail`. Keep functions small, prefer explicit variable names, and preserve existing 2- or 4-space indentation per file. Name scripts in kebab-case, for example `setup-stack.sh`. Lua config belongs under `nvim/lua/...`; TypeScript in `dev/admin-mock/src/`.
+Shell scripts are Bash; new ones start with `set -euo pipefail`. Keep functions small, prefer explicit variable names, and preserve existing 2- or 4-space indentation per file. Name scripts in kebab-case, for example `setup-stack.sh`. Lua config belongs under `nvim/lua/...`; TypeScript in `dev/admin-mock/src/`.
 
 ## Testing Guidelines
 
-There is no single repo-wide test runner. Validate changes with the narrowest relevant command: shell configs via `zsh -lc`, bootstrap changes via `./install.sh` on a safe machine, `dev/` script changes via `bash -n <script>` plus a targeted run of the affected subcommand, and `dev/admin-mock` changes via `npm run build`. Add small smoke-test steps to documentation when behavior is manual.
+There is no single repo-wide test runner. Validate changes with the narrowest relevant command: shell configs via `zsh -lc`, bootstrap changes via `./install.sh <profile>` on a safe machine, `dev/` script changes via `bash -n <script>` plus a targeted run of the affected subcommand, and `dev/admin-mock` changes via `npm run build`. Add small smoke-test steps to documentation when behavior is manual.
 
 ## Commit & Pull Request Guidelines
 
-Recent history uses short imperative subjects such as `Fix errors` and `Add more git aliases`. Keep commits focused and descriptive. PRs should explain the user-facing effect, list any manual setup or migration steps, and include terminal output or screenshots when changing interactive tooling, themes, or editor behavior.
+Commit subjects follow Conventional Commits: `type(scope): imperative subject`, lower-case and without a trailing period, for example `fix(theme): stop switch-theme.sh hanging on the borders daemon`. The types in use are `feat`, `fix`, `refactor`, `chore` and `docs`; the scope is the tool or directory touched (`zsh`, `claude`, `skills`, `dev`, `context`, `install`, `brew`, `git`). Keep commits focused. PRs should explain the user-facing effect, list any manual setup or migration steps, and include terminal output or screenshots when changing interactive tooling, themes, or editor behavior.
 
 ## Security & Configuration Tips
 

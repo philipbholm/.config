@@ -49,6 +49,19 @@ test: add integration tests for medication list
 - Always include a PR description (see format below)
 - After creating one, open its URL in the browser
 
+Any PR touching product code under `services/registries/src/` or
+`apps/registries-frontend/src/` trips the story-map reminder — tests, stories
+and generated files don't count. Update the data files under
+`services/registries/docs/story-map/src/data/` when the change adds, removes, or
+changes a user-visible story; otherwise tick the **Story map reviewed** checkbox
+the bot appends to the description. Until one of the two happens, that check
+stays red and the bot keeps commenting.
+
+Then run `gh pr checks <n>` and report what it says. `pr-checks` is the only
+required check on master — Chromatic, the Playwright suites, and the story-map
+reminder are informational, so a red one there is worth reporting rather than
+blocking on.
+
 ### Size
 
 | Metric | Ceiling | Target |

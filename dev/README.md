@@ -8,6 +8,12 @@ Development utility scripts for the monorepo.
 |---------|-------------|
 | `dev` | Smart docker compose wrapper — auto-detects main vs worktree |
 | `tunnel` | Start cloudflared tunnels for remote access |
+| `setup-stack` | Prepare a worktree: npm install, backend + frontend type generation, supergraph. Starts no containers |
+| `fix` | Regenerate types and recompose the supergraph, then restart (`fix`) or rebuild (`fix build`, `fix full`) services |
+| `sync-context` | Rewrite `CLAUDE.local.md` + `AGENTS.md` in the main checkout and every worktree with that stack's real ports |
+| `wt-down` | Tear down the worktree you're standing in: nuke its stack, remove the directory, re-sync context. Leaves the branch alone |
+| `sync-agent-configs` | Merge the work-only overlays into the live Claude/Codex/Cursor agent configs (not monorepo-specific) |
+| `claude-notify` | Telegram notify hook for Claude Code plus its `on/off/toggle/status` switch (not monorepo-specific) |
 
 There is no lint/build/test wrapper here. The monorepo's own `lefthook.yml` gates all six workspaces (services/registries, services/patient-bff, apps/registries-frontend, apps/patient-frontend, apps/shell, packages/components) on commit; for ad-hoc runs, call the underlying commands (`npm run build-ts`, `npx vitest run`, `npx biome check`) from the workspace you changed.
 
@@ -25,7 +31,7 @@ docker compose -f docker-compose.yml -f <override> restart registries
 
 | Command | Description |
 |---------|-------------|
-| `dev up` | Full init: generate override, start services, and when `registries` is started also seed DB and sync context files |
+| `dev up` | Full init: generate override, start services, sync context files; when `registries` is among them also seed the DB and write `services/registries/.env.test.local` |
 | `dev up --build <service>` | Rebuild a specific service (replaces old `rebuild` command) |
 | `dev down` | Stop and remove containers |
 | `dev nuke` | Full teardown: containers, volumes, images, slot, tmp dir |
@@ -60,7 +66,6 @@ Each worktree gets a unique slot (1–9). Ports are offset by `slot × 100`:
 | Service | Main (slot 0) | Slot 1 | Slot 2 |
 |---------|--------------|--------|--------|
 | Frontend | 3003 | 3103 | 3203 |
-| Router | 4000 | 4100 | 4200 |
 | Postgres | 5432 | 5532 | 5632 |
 | Codelist | 4005 | 4105 | 4205 |
 | Registries | 4006 | 4106 | 4206 |
@@ -68,6 +73,8 @@ Each worktree gets a unique slot (1–9). Ports are offset by `slot × 100`:
 | **patient-bff** | **4010** | **4010 (pinned)** | **4010 (pinned)** |
 
 `patient-bff` is the one exception to the offset rule — see [Helsenorge / patient-bff demo setup](#helsenorge--patient-bff-demo-setup) below.
+
+The Apollo `router` is not in the set `dev up` starts, and `dev.sh` never rewrites its ports, so it always binds 4000 from the base compose file. Two worktrees can't run their own router, and a worktree frontend's `VITE_ADMIN_GRAPHQL_URI` points at whichever router owns 4000.
 
 ### Override Files
 
@@ -77,11 +84,13 @@ Each worktree gets a unique slot (1–9). Ports are offset by `slot × 100`:
 ~/work/.dev-stacks/<workspace-id>/docker-compose.stack.yml
 ```
 
-This file is regenerated on every command. The `DEV_STACKS_DIR` env var controls the base directory. Worktree IDs are derived from the branch name and include a stable hash so similarly named branches do not collide.
+This file is regenerated on every command except `dev status`. The `DEV_STACKS_DIR` env var controls the base directory. The workspace ID is the slugified *directory* name — the repo directory for the main checkout, the worktree directory (`<repo>/.claude/worktrees/<name>`) for a worktree — so switching branches inside a worktree keeps its stack, ports and slot. The slot itself lives next to the override in `worktree-slot`; `tunnel` and `sync-context` read it, and `dev up` is what writes it.
 
 ## Helsenorge / patient-bff demo setup
 
 The patient-bff stack (introduced with the PROM patient flow) talks to NHN's Helsenorge HN2 test environment via real OIDC + HelseID, so a few things have to line up before `/uthopp` works end-to-end. The wiring in `dev.sh` and `.env.local` is ready, but knowing the moving pieces helps when something fails.
+
+This describes the `demo-ous` demo branch. Master runs `registries` with `USE_STUBBED_HELSENORGE_CLIENTS=true` and renamed the base URL to `HELSENORGE_EKSTERNAPI_BASE_URL`, so nothing there calls NHN and `HELSENORGE_OPPGAVE_BASE_URL` has no reader — `NGROK_PATIENT_BFF_URL` still does, since `dev.sh` stamps it into `PATIENT_BFF_PUBLIC_URL` on both.
 
 The patient stack is **opt-in**: pass `--include-patient` to start it.
 
@@ -126,24 +135,22 @@ ngrok http --url=<your-reserved-subdomain>.ngrok-free.dev 4010
 
 Keep it running in a terminal while you're testing `/uthopp`. The tunnel is what lets Helsenorge call back into the BFF from the public internet — without it, the oppgave creation succeeds but the patient's task link points nowhere.
 
-**One-time NHN registration:** your specific ngrok subdomain has to be added to the Helsenorge OIDC client's allow-list (alongside `localhost:4010`) by whoever owns the NHN test client. Without that, the OIDC discovery happens on `localhost:4010` but stamp-into-oppgave uses the ngrok URL, which is fine as long as the bff bounces the user from ngrok host → localhost before starting OIDC (handled in `services/patient-bff/src/http/routes/uthopp.ts`).
+**One-time NHN registration:** your specific ngrok subdomain has to be added to the Helsenorge OIDC client's allow-list (alongside `localhost:4010`) by whoever owns the NHN test client. Without that, the OIDC discovery happens on `localhost:4010` but stamp-into-oppgave uses the ngrok URL, which is fine as long as the bff bounces the user from ngrok host → localhost before starting OIDC (handled in `services/patient-bff/src/handlers/http/uthopp/uthopp.ts`).
 
 ### MSW disabled
 
-The patient-frontend ships with Mock Service Worker on by default in dev (`apps/patient-frontend/src/main.tsx` — "until the patient-bff PROM endpoints land"). Those endpoints have landed, but the default was never flipped, so the React app intercepts `/api/prom` and shows canned "Smerteskala uke 3 / Symptomer denne uka / Bakgrunnsopplysninger" mock data instead of the real PROM.
-
-`dev.sh` sets `VITE_USE_MSW=false` on the `patient-frontend` container to bypass this. If you ever see "Smerteskala uke 3" forms when you expect your real PROM, your container was started without that env var — recreate with `dev up -d patient-frontend`.
+`dev.sh` sets `VITE_USE_MSW=false` on the `patient-frontend` container, but nothing on master reads it: Mock Service Worker now ships only under `apps/patient-frontend/src/test-util/msw/` for unit tests, and the app entry (`src/index.tsx`) never starts a worker. The var is a leftover from the pre-squash `demo-ous` layout, whose `src/main.tsx` started MSW in dev and served canned "Smerteskala uke 3 / Symptomer denne uka / Bakgrunnsopplysninger" mock data instead of the real PROM. On that branch a container started without the var shows the mock forms — recreate with `dev up -d patient-frontend`.
 
 ### Sanity checklist when `/uthopp` misbehaves
 
 1. **PAR rejected with `204019 - Fant ingen match på RedirectUri`** → patient-bff isn't on port 4010, or NHN doesn't have your ngrok subdomain on the allow-list. Verify `docker inspect <bff> --format='{{range .Config.Env}}{{println .}}{{end}}' | grep HELSENORGE_REDIRECT_URI`.
 2. **`getaddrinfo ENOTFOUND eksternapi.…`** → `HELSENORGE_OPPGAVE_BASE_URL` is wrong. Only `eksternapi.hn.test.nhn.no` (HN1) and `eksternapi.hn2.test.nhn.no` (HN2) exist; `eksternapi.test.nhn.no` is NXDOMAIN. Use HN2.
 3. **ngrok returns 502** → tunnel is forwarding to a stale port. Kill it (`pkill -f 'ngrok http'`) and restart against 4010.
-4. **Mock "Smerteskala uke 3" PROM showing** → MSW is on. Confirm `VITE_USE_MSW=false` in the patient-frontend container and hard-reload (Shift-Cmd-R) so the service worker re-fetches `main.tsx`. May need to manually unregister the SW via DevTools → Application → Service Workers.
+4. **Mock "Smerteskala uke 3" PROM showing** (only on the `demo-ous` layout — master has no runtime MSW) → MSW is on. Confirm `VITE_USE_MSW=false` in the patient-frontend container and hard-reload (Shift-Cmd-R) so the service worker re-fetches the app entry. May need to manually unregister the SW via DevTools → Application → Service Workers.
 5. **Session cookie missing on localhost** → the OIDC callback was processed on the ngrok host (cookie set on that domain) instead of localhost. Check `PATIENT_BFF_LOCAL_URL=http://localhost:4010` in the bff env so the host-bounce in `/uthopp/start` runs.
 6. **HN2 portal at `tjenester.hn2.test.nhn.no` shows "Vi beklager!"** → you're not logged in as the patient. Citizen portals require BankID auth as that specific fnr; can't be inspected unauthenticated.
 7. **`ERR_NGROK_3200 — endpoint <sub>.ngrok-free.dev is offline`** → you opened a **stale oppgave** whose link was frozen with an old ngrok subdomain. The patient link is stamped at send time by **`services/registries`** (not patient-bff): `send-prom-through-helsenorge.ts` builds `${PATIENT_BFF_PUBLIC_URL}/uthopp/start?prom_entry_id=…` into the oppgave's `instantiatesUri`, and that value lives in HN2 forever. The request dies at ngrok's edge and never reaches your stack, so no config change fixes it — **re-send the PROM and open the new task.** When the subdomain looks wrong, confirm all four agree: the **registries** container env (`PATIENT_BFF_PUBLIC_URL`), the patient-bff container env, `.env.local` (`NGROK_PATIENT_BFF_URL`), and the live agent (`curl -s localhost:4040/api/tunnels`). If only the running ngrok agent is on the wrong name, restart it on your reserved subdomain.
-8. **`Blocked request. This host ("patient-frontend") is not allowed`** (Vite) → the patient-bff catch-all proxies non-API routes to the Vite dev server (`@fastify/http-proxy` → `patient-frontend:3015`), and via ngrok the Host arrives as `patient-frontend`. Vite 6 denies hosts not in `server.allowedHosts`. `apps/patient-frontend/vite.config.ts` allow-lists `patient-frontend` and `.ngrok-free.dev` (the dot-prefix matches any rotated subdomain). Direct `localhost:3115` is always allowed, so this only shows through the tunnel/proxy. **Only `src/` is bind-mounted** into the patient-frontend container — `vite.config.ts` lives in the image, so config edits need `dev build patient-frontend` + recreate, not just a restart.
+8. **`Blocked request. This host ("patient-frontend") is not allowed`** (Vite) → the patient-bff catch-all proxies non-API routes to the Vite dev server (`@fastify/http-proxy` → `patient-frontend:3015`), and via ngrok the Host arrives as `patient-frontend`. Vite 6 denies hosts not in `server.allowedHosts`. Master's `apps/patient-frontend/vite.config.ts` sets no allow-list, so add `patient-frontend` and `.ngrok-free.dev` there if you hit this (the dot-prefix matches any rotated subdomain — that is what the `demo-ous` layout carried). Direct `localhost:3115` is always allowed, so this only shows through the tunnel/proxy. **Only `src/` is bind-mounted** into the patient-frontend container — `vite.config.ts` lives in the image, so config edits need `dev build patient-frontend` + recreate, not just a restart.
 
 ## Setup
 

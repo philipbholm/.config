@@ -69,8 +69,6 @@ files that differ from `<base>`. Confirmed in `services/registries` and
 
 ## Registries Frontend
 
-**Never touch `apps/main-frontend/`.** Always use `apps/registries-frontend/`.
-
 ```bash
 cd apps/registries-frontend
 
@@ -199,7 +197,7 @@ npm run migrate
 
 # Reset database (no confirmation needed)
 POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries" \
-npx prisma migrate reset --force
+npm run migrate-reset -- --force
 ```
 
 See [workflows.md](./workflows.md#prisma) for full migration workflow.
