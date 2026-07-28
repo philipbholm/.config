@@ -23,8 +23,12 @@
       "Read(./.npmrc)",
       "Read(./.netrc)",
       "Read(./**/.aws/**)",
+      "Read(~/.aws/**)",
       "Read(./**/.ssh/**)",
+      "Read(~/.ssh/**)",
       "Read(./**/.zsh_secrets/**)",
+      "Read(./**/.zsh_secrets)",
+      "Read(~/.config/zsh/.zsh_secrets)",
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git reset --hard:*)",
@@ -32,6 +36,9 @@
       "Bash(aws sso login --profile production:*)",
       "Bash(aws sso login --profile=production:*)",
       "Bash(AWS_PROFILE=production aws sso login:*)"
+    ],
+    "ask": [
+      "Bash(dev nuke:*)"
     ],
     "defaultMode": "auto"
   },
@@ -79,6 +86,5 @@
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": false,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true,
-  "subagentModel": "opus"
+  "voiceEnabled": true
 }

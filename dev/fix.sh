@@ -51,22 +51,24 @@ run_step() {
   shift
   local log_file
   log_file=$(mktemp)
-  local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+  local spin=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
   local i=0
 
   # Run command in background
   eval "$@" > "$log_file" 2>&1 &
   local pid=$!
 
-  # Show spinner
-  while kill -0 "$pid" 2>/dev/null; do
-    printf "\r  ${spin:$i:1} %s" "$label"
-    i=$(( (i + 1) % ${#spin} ))
-    sleep 0.1
-  done
+  # Animate only on a terminal — captured output keeps every frame
+  if [[ -t 1 ]]; then
+    while kill -0 "$pid" 2>/dev/null; do
+      printf "\r  %s %s" "${spin[$i]}" "$label"
+      i=$(( (i + 1) % ${#spin[@]} ))
+      sleep 0.1
+    done
+  fi
   wait "$pid"
   local exit_code=$?
-  printf "\r\033[K"
+  [[ -t 1 ]] && printf "\r\033[K"
 
   if [[ $exit_code -ne 0 ]]; then
     echo -e "  ${RED}✘${NC} $label"

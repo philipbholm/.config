@@ -23,6 +23,11 @@ if [[ -d ~/.ssh ]]; then
   ln -sf "$DOTFILES/ssh/config.work" ~/.ssh/config
 fi
 
+# git/work/config signs ~/work commits with github_work; trust it locally so
+# they verify. The key only exists on work machines, so it is appended to the
+# generated ~/.ssh/allowed_signers instead of the tracked base.
+add_allowed_signer philip.holm@ledidi.no ~/.ssh/github_work.pub
+
 # Claude Code skills and agents: shared sets plus the Ledidi-specific ones
 # (skills: review-pr/learn/distribute;
 #  agents: none at present)
@@ -50,7 +55,8 @@ cat <<'EOF'
 Work setup complete. Manual follow-up:
 
   1. Set up Karabiner-Elements, AeroSpace, and Raycast
-  2. Restore ~/.ssh keys (github_work, bitbucket)
+  2. Restore ~/.ssh keys (github_work, bitbucket), then re-run so the work
+     signing key is trusted for signature verification
   3. Create ~/.config/zsh/.zsh_secrets (incl. DD_API_KEY / DD_APP_KEY)
   4. Sign in to GitHub: gh auth login
   5. Install and sign in to Docker Desktop

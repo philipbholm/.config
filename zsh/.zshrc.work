@@ -43,13 +43,17 @@ prisma() {
     echo "Error: Not inside a git repository"
     return 1
   }
-  local project_name slot worktree_slot_file
-  project_name="$(basename "$monorepo_root")"
-  worktree_slot_file="${DEV_STACKS_DIR:-$HOME/work/.dev-stacks}/$project_name/worktree-slot"
-  if [[ -f "$worktree_slot_file" ]]; then
-    slot=$(cat "$worktree_slot_file")
-  else
-    slot=0
+  . /Users/philip/.config/dev/lib/workspace.sh || return 1
+  # dev.sh hands worktrees slots 1-9 and only writes the slot file once a stack
+  # is up; the main checkout is slot 0. So an unresolved worktree slot must
+  # refuse rather than fall back to port 5432 — that is the main database.
+  local slot=0
+  if dev_is_worktree_repo "$monorepo_root"; then
+    slot=$(dev_slot_for_repo "$monorepo_root")
+    if [[ ! "$slot" =~ ^[1-9]$ ]]; then
+      echo "Error: no dev stack for this worktree — run \`dev up postgres -d\` first" >&2
+      return 1
+    fi
   fi
   local port=$((5432 + slot * 100))
   (cd "$monorepo_root/services/registries" &&

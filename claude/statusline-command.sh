@@ -9,7 +9,8 @@ cwd=$(echo "$input" | jq -r '.cwd // empty')
 model=$(echo "$input" | jq -r '.model.display_name // empty')
 # Drop trailing context-window suffix, e.g. "Opus 4.8 (1M context)" -> "Opus 4.8"
 model=$(echo "$model" | sed -E 's/ *\([0-9]+[MK]? context\)//')
-effort=$(jq -r '.effortLevel // empty' ~/.config/claude/settings.json 2>/dev/null)
+# Live session effort, not the configured default — only present on models that support it
+effort=$(echo "$input" | jq -r '.effort.level // empty')
 
 # Current dir (basename) + git branch from cwd
 dir=""
