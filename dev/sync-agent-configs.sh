@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Regenerate work agent configs by merging the clean base configs with the
-# work-only overlays (Datadog MCP + Codex work project trusts).
+# work-only overlays (Datadog MCP, Claude's bypassPermissions default, Codex
+# work project trusts).
 #
 # Writes REAL files (replacing the personal symlinks) so the work bits are
 # never written back through a symlink into the repo. Run on work machines

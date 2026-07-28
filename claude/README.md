@@ -12,6 +12,10 @@ This directory contains Claude Code configuration files that are version-control
 - `bin/` - Helper executables on PATH (`bb`, `jira`)
 - `settings.json` - Claude Code settings (hooks are declared here; the scripts
   themselves live in `dev/`, e.g. `dev/claude-notify.sh`)
+- `settings.work.json` - Work-only overlay merged over `settings.json` by
+  `dev/sync-agent-configs.sh`: the Datadog MCP server and
+  `permissions.defaultMode: "bypassPermissions"`, so work machines start without
+  permission prompts (the `deny` list in the base still applies)
 - `statusline-command.sh` - Statusline renderer referenced by `settings.json`
 
 ## Setup

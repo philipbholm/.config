@@ -73,6 +73,7 @@
   },
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
   "preferredNotifChannel": "notifications_disabled",
   "teammateMode": "in-process",
   "inputNeededNotifEnabled": false,
