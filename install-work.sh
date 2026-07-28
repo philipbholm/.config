@@ -42,7 +42,6 @@ ln -sf "$DOTFILES/dev/tunnel.sh" ~/bin/tunnel
 ln -sf "$DOTFILES/dev/setup-stack.sh" ~/bin/setup-stack
 ln -sf "$DOTFILES/dev/wt-down.sh" ~/bin/wt-down
 ln -sf "$DOTFILES/dev/sync-context.sh" ~/bin/sync-context
-ln -sf "$DOTFILES/dev/fix.sh" ~/bin/fix
 ln -sf "$DOTFILES/dev/sync-agent-configs.sh" ~/bin/sync-agent-configs
 
 # Generate work agent configs (Datadog MCP + Codex work project-trusts)

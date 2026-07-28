@@ -15,13 +15,19 @@ auto-reloads.
 
 ## Changed `.graphql` schema files {#graphql}
 
-Schema changes ripple through codegen and Registries frontend:
+Schema changes ripple through codegen, the federated supergraph, and the
+Registries frontend. Order matters — the frontend generates against the composed
+supergraph, so composing before the backend regenerates gives you stale types:
 
 ```bash
 cd services/registries && npm run generate
+cd services/apollo-router && ./compose-supergraph.sh
 cd apps/registries-frontend && npm run generate
-dev restart registries
+dev restart registries registries-frontend router
 ```
+
+The router serves the composed `supergraph.graphql` from startup, so it needs the
+restart even when nothing else changed.
 
 ## Changed `.proto` files {#proto}
 
