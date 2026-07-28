@@ -2,9 +2,14 @@
 
 Follow the workflow matching what you changed. Multiple may apply.
 
+Every `dev` step below assumes the stack is up. In a worktree running no
+containers the reload and restart steps are moot — skip them, and run the
+codegen steps, which need no Docker.
+
 ## Changed `.ts` files in a backend service
 
-No action needed. Docker mounts `src/` and nodemon auto-reloads.
+No action needed with the stack up: Docker mounts `src/` and nodemon
+auto-reloads.
 
 > Not picking up changes? `dev restart registries`
 

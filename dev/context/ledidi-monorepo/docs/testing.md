@@ -2,6 +2,11 @@
 
 ## Running Tests
 
+The backend suite needs postgres running; E2E needs the whole stack. Neither
+starts on its own — see the container table in
+[CLAUDE.local.md](/Users/philip/.config/dev/context/ledidi-monorepo/CLAUDE.local.md).
+Frontend unit tests need nothing beyond `setup-stack`.
+
 Tests must use the worktree-specific port via environment variables:
 
 ```bash
@@ -15,6 +20,10 @@ E2E_API_URL="http://localhost:{{REGISTRIES_PORT}}" \
 npx playwright test
 ```
 
+A full `dev up` writes `services/registries/.env.test.local` with that same
+`POSTGRES_URL`, and the vitest global setup loads it — so the prefix is only
+needed when postgres was started on its own.
+
 **Critical rules:**
 - Always pass the port via environment variable as shown above
 - Never modify hardcoded URLs, `.env` files, or config files to change ports
@@ -27,7 +36,7 @@ npx playwright test
 |------|---------|-----------|
 | Frontend unit | `src/**/*.test.ts(x)` | Vitest |
 | Frontend E2E | `src/app/**/*.spec.tsx` | Playwright |
-| Backend integration | `src/**/*.integration.test.ts` | Jest |
+| Backend integration | `src/**/*.integration.test.ts` | Vitest |
 
 ## TDD Workflow
 

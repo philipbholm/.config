@@ -5,6 +5,8 @@
 **Use `dev` instead of `docker compose`** — includes correct compose files.
 
 ```bash
+dev up                          # Start the full stack (browser work, E2E)
+dev up postgres -d              # Start only the database (backend suite)
 dev restart <service>           # Restart service
 dev up --build <service> -d     # Rebuild (after package.json changes)
 dev exec <service> sh           # Shell into container
@@ -15,6 +17,7 @@ dev ps                          # List containers
 **Never run:**
 - `docker compose up` / `docker compose restart`
 - `npm run dev` / `npm start`
+- `dev down` / `dev nuke` / `wt-down` — teardown waits until the PR is merged
 
 ---
 
@@ -63,6 +66,8 @@ Vitest accepts literal paths including brackets like `[lang]`.
 
 ### E2E Tests (Playwright)
 
+Needs the full stack — `dev up` if it isn't running.
+
 ```bash
 cd apps/registries-frontend
 
@@ -99,7 +104,9 @@ npm run build-ts        # TypeScript only (faster)
 npm run generate        # Generate GraphQL, Prisma, gRPC types
 ```
 
-### Tests (Jest)
+### Tests (Vitest)
+
+Needs postgres running — `dev up postgres -d` if the stack is down.
 
 **Always use `{{POSTGRES_PORT}}` via environment variable. Never modify config files to change ports.**
 
@@ -114,10 +121,17 @@ npm run test
 POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" \
 npm run test -- src/path/to/file.test.ts
 
-# Pattern match
+# Path substring match
 POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" \
-npm run test -- --testPathPattern="get-registries"
+npm run test -- get-registries
+
+# Test name match
+POSTGRES_URL="postgresql://postgres:postgres@localhost:{{POSTGRES_PORT}}/registries-test" \
+npm run test -- -t "reorders elements"
 ```
+
+Vitest takes positional path filters and `-t` for names. There is no
+`--testPathPattern` — that was Jest.
 
 ### Full Verification
 

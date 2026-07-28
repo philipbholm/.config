@@ -38,7 +38,7 @@ replace_port_section() {
     /^## Ports \(Worktree-Specific\)$/ {
       print
       print ""
-      print "No dev stack is running for this worktree. Run `dev up` to start one, then re-run `sync-context` to populate the port table."
+      print "No dev stack is running for this worktree, so it has no ports yet. Start only what the task needs: `dev up postgres -d` for the backend suite, `dev up` for browser work or E2E. Either one fills in this table."
       print ""
       skipping = 1
       next

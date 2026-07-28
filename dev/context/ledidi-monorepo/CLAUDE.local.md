@@ -40,6 +40,11 @@ one doesn't respond, the Docker stack is what needs attention — the standard
 ports (5432, 3000, 4000) belong to other stacks, and editing hardcoded URLs, env
 files, or configs to reach a service breaks the worktree instead of fixing it.
 
+The reference docs linked at the bottom of this file live outside the worktree
+and are never rewritten, so they spell ports as `{{POSTGRES_PORT}}` and friends.
+Those are placeholders for the values in the table above — substitute them, never
+type them.
+
 ## Workflow
 
 ### Worktrees
@@ -54,17 +59,56 @@ Worktrees live at `<repo>/.claude/worktrees/<name>` — nowhere else.
   produces unpredictable compose project names and orphaned slot files.
 - `setup-stack` installs dependencies and generates types. It starts no
   containers.
-- **The Docker stack is opt-in.** Run `dev up` only when you need to exercise
-  the app in a browser. Then re-run `sync-context` to get the port table.
-- **Teardown** → `wt-down` from inside the worktree. Not
-  `ExitWorktree action:remove`, which deletes the branch and leaves the Docker
-  stack orphaned.
+
+### Starting containers
+
+The Docker stack is opt-in, and different work needs different amounts of it.
+Start the row that matches the task:
+
+| Task | Command |
+|------|---------|
+| tsc, biome, frontend unit tests | nothing — `setup-stack` covers it |
+| Backend suite (`services/registries`) | `dev up postgres -d` |
+| Playwright E2E, browser verification | `dev up` |
+
+Postgres alone carries the backend suite: the vitest global setup
+(`src/test-setup.ts`) runs `generate` and `migrate-reset --force` against
+`POSTGRES_URL`, building `registries-test` itself. Starting postgres alone also
+skips the admin-mock container that `registries` requires.
+
+`dev up` fills in the port table above — there is no separate `sync-context` to
+run. It also writes `services/registries/.env.test.local` pointing at the test
+database, but only when `registries` is one of the services it started. So after
+a full `dev up` the backend suite runs on a bare `npm run test`; after
+`dev up postgres` pass `POSTGRES_URL` on the command line as
+[commands.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/commands.md)
+shows. The port comes from the table, never from an edited config file.
+
+The `tests` wrapper needs a slot, and only `dev up` creates one. In a worktree
+with no stack it aborts with "Run 'dev up' first" for **every** suite, frontend
+included — call vitest directly there, or start postgres.
+
+### Tearing down
+
+**Not until the PR is merged.** The stack stays up for the whole life of the
+branch. A green suite is not a reason to stop it, and neither is the end of a
+session. Never run `dev down`, `dev nuke`, or `wt-down` on your own initiative.
+
+`dev restart <service>` and `dev up --build <service>` are not teardown — use
+them freely while working.
+
+When you finish with containers still running, name the stack and its ports so
+nothing is left running silently.
+
+After the merge, teardown is `wt-down` from inside the worktree. Not
+`ExitWorktree action:remove`, which deletes the branch and leaves the Docker
+stack orphaned.
 
 ### Environment
 
 - **Use `dev` instead of `docker compose`** — includes correct compose files
-- **Dev server is always running** — no need to start it
-- Backend `.ts` changes auto-reload (nodemon). Frontend uses Vite HMR.
+- With the stack up, backend `.ts` changes auto-reload (nodemon) and the
+  frontend uses Vite HMR
 - Never run `npm run dev` / `npm start` — services run in Docker
 
 ### Commands
@@ -87,7 +131,7 @@ npx jest
 
 | When user says | What it means |
 |----------------|---------------|
-| "verify in browser" | Open browser and verify yourself |
+| "verify in browser" | Start the full stack if it isn't up, then open the browser and verify yourself |
 | "red/green TDD" | Run both unit tests and relevant E2E tests |
 | "commit" | Pre-commit hook must pass |
 | "push" | Pre-push hook must pass |
