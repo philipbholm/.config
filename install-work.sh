@@ -12,10 +12,10 @@ run_core
 brew_bundle "$DOTFILES/Brewfile.work"
 setup_macos_defaults
 
-# Work directories (also the marker that gates zsh/.zshrc.work)
+# Work directories (also the marker that gates zsh/.zshrc.work).
+# Worktrees live inside each repo at <repo>/.claude/worktrees, not here.
 echo "Creating work directory structure..."
 mkdir -p \
-  ~/work/worktrees \
   ~/work/.dev-stacks
 
 # Work SSH config (github_work key + bitbucket), replacing the personal base
@@ -24,8 +24,8 @@ if [[ -d ~/.ssh ]]; then
 fi
 
 # Claude Code skills and agents: shared sets plus the Ledidi-specific ones
-# (skills: create-issue/plan/implement/code-review/fix-feedback/learn;
-#  agents: ledidi-code-reviewer/-security-auth-reviewer/-test-reviewer)
+# (skills: review-pr/learn/distribute;
+#  agents: none at present)
 echo "Linking work Claude skills and agents..."
 link_claude_dir ~/.claude/skills "$DOTFILES/claude/skills" "$DOTFILES/claude/skills.work"
 link_claude_dir ~/.claude/agents "$DOTFILES/claude/agents" "$DOTFILES/claude/agents.work"
@@ -36,8 +36,8 @@ ln -sf "$DOTFILES/dev/dev.sh" ~/bin/dev
 ln -sf "$DOTFILES/dev/check.sh" ~/bin/check
 ln -sf "$DOTFILES/dev/tests.sh" ~/bin/tests
 ln -sf "$DOTFILES/dev/tunnel.sh" ~/bin/tunnel
-ln -sf "$DOTFILES/dev/gwc.sh" ~/bin/gwc
-ln -sf "$DOTFILES/dev/gwd.sh" ~/bin/gwd
+ln -sf "$DOTFILES/dev/setup-stack.sh" ~/bin/setup-stack
+ln -sf "$DOTFILES/dev/wt-down.sh" ~/bin/wt-down
 ln -sf "$DOTFILES/dev/sync-context.sh" ~/bin/sync-context
 ln -sf "$DOTFILES/dev/fix.sh" ~/bin/fix
 ln -sf "$DOTFILES/dev/sync-agent-configs.sh" ~/bin/sync-agent-configs

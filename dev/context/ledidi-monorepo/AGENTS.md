@@ -34,6 +34,24 @@ This is one of many parallel worktrees, each with its own isolated Docker stack 
 
 ## Workflow
 
+### Worktrees
+
+Worktrees live at `<repo>/.claude/worktrees/<name>` — nowhere else.
+
+- **New branch** → `EnterWorktree` with an **explicit `name`**, then run `setup-stack`
+  inside it.
+- **Existing branch** → `git worktree add .claude/worktrees/<name> <branch>`,
+  then `EnterWorktree path:<path>`, then `setup-stack`.
+- **Never omit the name.** A generated name becomes the Docker stack ID, which
+  produces unpredictable compose project names and orphaned slot files.
+- `setup-stack` installs dependencies and generates types. It starts no
+  containers.
+- **The Docker stack is opt-in.** Run `dev up` only when you need to exercise
+  the app in a browser. Then re-run `sync-context` to get the port table.
+- **Teardown** → `wt-down` from inside the worktree. Not
+  `ExitWorktree action:remove`, which deletes the branch and leaves the Docker
+  stack orphaned.
+
 ### Environment
 
 - **Use `dev` instead of `docker compose`** — includes correct compose files

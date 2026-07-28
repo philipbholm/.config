@@ -3,8 +3,11 @@
 DEV_SLOT_LABEL="com.ledidi.dev-slot"
 DEV_WORKSPACE_LABEL="com.ledidi.dev-workspace"
 
-dev_worktree_base() {
-    printf '%s\n' "${WORKTREE_BASE:-$HOME/work/worktrees}"
+# Worktrees live inside the repo at <repo>/.claude/worktrees, which is where
+# Claude Code's native EnterWorktree creates them. WORKTREE_BASE overrides it
+# for tests.
+dev_worktree_base_for_repo() {
+    printf '%s\n' "${WORKTREE_BASE:-${1%/}/.claude/worktrees}"
 }
 
 dev_stacks_dir() {
@@ -58,22 +61,22 @@ dev_repo_family_name() {
     basename "$(dirname "$common_dir")"
 }
 
+# Stack identity for a worktree. Keyed on the directory name, not the branch:
+# switching branches inside a worktree must not change which Docker stack,
+# slot file, and ports it owns. Branch tail is only a degenerate fallback.
 dev_worktree_raw_key_for_repo() {
     local repo_root=$1
+    local key
     local branch
-    local worktree_base
+
+    key=$(basename "$repo_root")
+    case "$key" in
+        ''|'.'|'/') ;;
+        *) printf '%s\n' "$key"; return ;;
+    esac
 
     branch=$(git -C "$repo_root" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
-    if [ -n "$branch" ]; then
-        printf '%s\n' "${branch##*/}"
-        return
-    fi
-
-    worktree_base=$(dev_worktree_base)
-    case "$repo_root" in
-        "$worktree_base"/*) printf '%s\n' "${repo_root#"$worktree_base"/}" ;;
-        *) basename "$repo_root" ;;
-    esac
+    printf '%s\n' "${branch##*/}"
 }
 
 dev_workspace_id_for_repo() {

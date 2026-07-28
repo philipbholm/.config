@@ -260,6 +260,14 @@ cleanup_stale() {
     echo "Removing stale ~/.tmux.conf symlink..."
     rm ~/.tmux.conf
   fi
+  # gwc/gwd were retired in favour of native worktrees + wt-down
+  local retired
+  for retired in ~/bin/gwc ~/bin/gwd; do
+    if [[ -L "$retired" ]]; then
+      echo "Removing stale $retired symlink..."
+      rm "$retired"
+    fi
+  done
   # If nvim data exists but isn't a LazyVim setup, clean for fresh bootstrap
   if [[ -d "$HOME/.local/share/nvim" ]] && [[ ! -d "$HOME/.local/share/nvim/lazy/LazyVim" ]]; then
     echo "Cleaning nvim state for LazyVim migration..."
