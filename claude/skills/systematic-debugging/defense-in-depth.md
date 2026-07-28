@@ -2,22 +2,36 @@
 
 ## Overview
 
-When you fix a bug caused by invalid data, adding validation at one place feels sufficient. But that single check can be bypassed by different code paths, refactoring, or mocks.
+When a bug came from invalid data, validating at the one place you found it
+feels sufficient. But that single check can be bypassed by a different code
+path, dropped in a refactor, or mocked out in a test.
 
-**Core principle:** Validate at EVERY layer data passes through. Make the bug structurally impossible.
+**Core principle:** once the root cause is fixed, add validation at the layers
+that would have caught the bad value, so the same class of bug can't return
+unnoticed.
 
-## Why Multiple Layers
+**Use when:** the root cause is identified and fixed, the bad value crossed
+several layers before doing damage, more than one code path reaches the same
+operation, or the failure was destructive — wrote outside its directory, deleted
+data, corrupted shared state.
 
-Single validation: "We fixed the bug"
-Multiple layers: "We made the bug impossible"
+**Exception:** a bug contained in one function, reached by one caller, needs one
+check. Extra layers there are code to maintain against a risk that doesn't
+exist.
 
-Different layers catch different cases:
-- Entry validation catches most bugs
-- Business logic catches edge cases
-- Environment guards prevent context-specific dangers
-- Debug logging helps when other layers fail
+## Choosing Layers
 
-## The Four Layers
+The four layers below are a menu, not a checklist. Scale how many you add to the
+blast radius of the bug: a wrong log line earns one entry check, `git init` in
+the source tree earns all four.
+
+- Entry validation catches most bad input, at the boundary where the error
+  message still points somewhere useful
+- Business logic validation catches values that are well-formed but wrong for
+  this particular operation
+- Environment guards prevent context-specific damage — the case for destructive
+  operations
+- Debug instrumentation buys forensics for whatever the other layers miss
 
 ### Layer 1: Entry Point Validation
 **Purpose:** Reject obviously invalid input at API boundary
@@ -90,7 +104,7 @@ When you find a bug:
 
 1. **Trace the data flow** - Where does bad value originate? Where used?
 2. **Map all checkpoints** - List every point data passes through
-3. **Add validation at each layer** - Entry, business, environment, debug
+3. **Pick the layers that fit** - How much damage could the bad value do?
 4. **Test each layer** - Try to bypass layer 1, verify layer 2 catches it
 
 ## Example from Session
@@ -109,14 +123,13 @@ Bug: Empty `projectDir` caused `git init` in source code
 - Layer 3: `WorktreeManager` refuses git init outside tmpdir in tests
 - Layer 4: Stack trace logging before git init
 
-**Result:** All 1847 tests passed, bug impossible to reproduce
-
 ## Key Insight
 
-All four layers were necessary. During testing, each layer caught bugs the others missed:
+That bug earned all four, and each layer caught cases the others missed:
 - Different code paths bypassed entry validation
 - Mocks bypassed business logic checks
 - Edge cases on different platforms needed environment guards
 - Debug logging identified structural misuse
 
-**Don't stop at one validation point.** Add checks at every layer.
+A bug that writes to one file through one caller would not have earned any of
+them past layer 1.

@@ -1,6 +1,6 @@
 ---
 name: test-driven-development
-description: Use when writing a test for new behavior or a bug fix — covers the red-green-refactor cycle and what makes a test honest.
+description: Use when implementing new behavior or a bug fix, before writing the implementation — covers the red-green-refactor cycle and what makes a test honest. Skip for throwaway prototypes, generated code, and config.
 ---
 
 # Test-Driven Development

@@ -8,20 +8,23 @@ If provided link to a PR review that, if not ask for link to PR. Then go through
 
 Be extremely skeptical and critical, provide constructive criticism.
 
+Before reviewing, read the project context — it carries the rules this file does not repeat:
+- repo-root `CLAUDE.local.md`
+- `/Users/philip/.config/dev/context/ledidi-monorepo/docs/architecture.md`
+- `/Users/philip/.config/dev/context/ledidi-monorepo/docs/backend.md`
+- `/Users/philip/.config/dev/context/ledidi-monorepo/docs/code-style.md`
+- `/Users/philip/.config/dev/context/ledidi-monorepo/docs/testing.md`
+- `/Users/philip/.config/dev/feedback/SYNTHESIZED_LEARNINGS.md` — guidelines distilled from earlier reviews of this repo
+
 - Note on every comment that the review was done automatically by claude code
-- ensure all comments are meaningful and comment on code with actual comments/suggestions.
+- post only comments that name a concrete problem or suggestion in the changed code
 - be relentlessly on the lookout for code that does not need to be there, overengineering and over complication. simplicity is king
+- ensure backend test coverage is sufficient
+- ensure frontend test coverage is sufficient
+- consider if storybook coverage frontend should be improved and if it is sufficient
+- for very large PRs, review in file-group passes yourself, delegate only if I ask for it
 
-After finishing and submitting the review, do the folliwing check:
-- Read out ALL comments made, and ensure that they are meaningful and comment on code with actual comments/suggestions.
-- use the `open` command to open the URL to the review in my browser so i can verify it.
-
-When conducting a code review, ALWAYS ensure the following steps are followed:
-- [ ] Ensure backend test coverage is sufficient
-- [ ] Ensure frontend test coverage is sufficient
-- [ ] Consider if storybook coverage frontend should be improved and if it is sufficient
-
-If the PR is larger than 20 files split it up in chunks of ~15 files and assign an agent to each chunk
+After submitting, list the comments you posted and use the `open` command to open the URL to the review in my browser so i can verify it.
 
 # pr structure
 
@@ -68,6 +71,12 @@ If the PR is larger than 20 files split it up in chunks of ~15 files and assign 
 
 ## authorization
 - ALL authorization logic should run inside the `authorize` part of the use case, and there should be a very good reason for that part to return true, be very critical of this.
+- the use case must be wrapped so `authorize` is enforced before `run` (`buildAuthorizedUseCase`). a use case that checks permissions inside `run` instead is a bug, not a style choice
+- look for authorization bypass: an early return that skips the check, or data being read before `authorize` has passed
+- handlers only extract the authentication context. a permission check in a resolver or gRPC handler is in the wrong layer
+- gRPC service-token calls must validate the required scope, not just that a token was present
+- permissions are `registries.{registryId}.{object}` for subject `user.{userId}`. check that every available scope identifier is passed, that it is the specific entity being touched, and that read vs write is correct
+- reading patient data needs audit logging on the server, and the user-visible result should be conditional on that log succeeding
 
 ## event sourcing
 - all state changes should happen through event sourcing, be on the lookout for accessing prisma directly in use cases, 99% of the time we should use an event instead
@@ -77,6 +86,10 @@ If the PR is larger than 20 files split it up in chunks of ~15 files and assign 
 - always place utils and sub components UNDER the main component/function returned from the file (e.g. react components frontend or use-cases backend)
 
 # front end
+
+## security
+- audit logging and masking of sensitive data have to be enforced on the server. a frontend-only access log, or masking a value the client has already fetched, is not security at all — flag it as critical
+- a security-critical mutation must be awaited and its failure must block the action. fire-and-forget or catch-and-continue around one is the same bug
 
 ## feature flags
 - always include explicit tests for both enabled and disabled for all codepaths related to feature flags
@@ -121,8 +134,7 @@ If the PR is larger than 20 files split it up in chunks of ~15 files and assign 
 - in general the rule is to not interfere with dates, just pass the datestring with offset and time zone stuff should just work. always flag quirks with e.g. formatting date sting so it does not include offset
 
 ## react
-- useEffects are the scourge, we should avoid them at all costs. always flag useEffect usage as a potential error (unless it is very clear that it is needed, or if it is extracted into a separate hook to encapsulate the nastiness)
-- minimize the usage of useEffects to the absolute minimum, ALWAYS flag considering an alternative approach
+- useEffects are the scourge, we should avoid them at all costs. always flag useEffect usage as a potential error and suggest the alternative approach (unless it is very clear that it is needed, or if it is extracted into a separate hook to encapsulate the nastiness)
 - always prefer to instantiate a hook as close to the usage of the hook result as possible, i.e. try to avoid unecessary prop drilling
 - variable naming: it is a common mistake to name things what they do in a specific instance instead of what they are, e.g. `const canEdit = permissions.hasPlatformCapabilities`. changing names like this makes the code harder to read, avoid it, just keep calling it hasPlatformCapabilities
 
@@ -150,7 +162,7 @@ If the PR is larger than 20 files split it up in chunks of ~15 files and assign 
 - it is extremely important that we get notified when something we can fix goes wrong, so make sure all logging has the appropriate level. we dont get alerts from warn
 
 # file naming
-- ALL new files should be lower-kebab-case named, this is only relevant for new files, dont flag existing files for this
+- ALL new files should be lower-kebab-case named. dont flag an existing file just because it shows up in the diff, only suggest a rename when the PR already rewrites that file substantially
 
 # infrastructure
 ## github actions

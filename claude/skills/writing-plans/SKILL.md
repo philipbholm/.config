@@ -1,6 +1,6 @@
 ---
 name: writing-plans
-description: Use when turning an agreed spec or set of requirements into a written implementation plan, before touching code.
+description: Use when turning an agreed spec or set of requirements into a written implementation plan for a multi-step change, before touching code. Skip when the change is small enough to just make.
 ---
 
 # Writing Plans
@@ -14,8 +14,7 @@ nothing about our toolset or problem domain, and don't know good test design
 very well. DRY. YAGNI. TDD. Frequent commits.
 
 **Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`, relative to the
-current project. Project instructions override this — for instance, the work
-profile's `plan` skill writes to the work vault instead.
+current project (project instructions override this location).
 
 ## Scope Check
 
@@ -92,8 +91,7 @@ include this section.]
 **Interfaces:**
 - Consumes: [what this task uses from earlier tasks — exact signatures]
 - Produces: [what later tasks rely on — exact function names, parameter
-  and return types. A task's implementer sees only their own task; this
-  block is how they learn the names and types neighboring tasks use.]
+  and return types, so the signatures line up across tasks.]
 
 - [ ] **Write the failing test**
 
@@ -131,8 +129,8 @@ failures** — never write them:
 - "TBD", "TODO", "implement later", "fill in details"
 - "Add appropriate error handling" / "add validation" / "handle edge cases"
 - "Write tests for the above" (without actual test code)
-- "Similar to Task N" (repeat the code — the engineer may be reading tasks out
-  of order)
+- "Similar to Task N" without naming what differs (say which parts change;
+  cross-referencing an earlier task's code is fine)
 - Steps that describe what to do without showing how (code blocks required for
   code steps)
 - References to types, functions, or methods not defined in any task

@@ -116,4 +116,5 @@ about which one this is.
 - [condition-based-waiting.md](condition-based-waiting.md) — replace arbitrary
   timeouts with condition polling
 - [find-polluter.sh](find-polluter.sh) — bisect a test suite to find which test
-  pollutes shared state
+  pollutes shared state; run from the project root by path
+  (`bash ~/.claude/skills/systematic-debugging/find-polluter.sh`)

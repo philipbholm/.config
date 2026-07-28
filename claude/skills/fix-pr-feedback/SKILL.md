@@ -1,6 +1,6 @@
 ---
 name: fix-pr-feedback
-description: Use when addressing code review feedback — either reviewer comments on a GitHub pull request, or a pasted list of issues to work through.
+description: Use when addressing code review feedback — either reviewer comments on a GitHub pull request, or a pasted list of issues to work through. Skip when the user only wants the feedback assessed or the fixes made without committing — this skill commits per issue and pushes.
 argument-hint: "[pr number | url | branch | list of issues]"
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep, TaskCreate, TaskUpdate, TaskList
 ---
@@ -83,7 +83,8 @@ open.
 
 ## Push
 
-`git push`, or `git push -u origin <branch>` if there's no upstream.
+`git push`, or `git push -u origin <branch>` if there's no upstream — unless the
+user asked you not to push.
 
 If the pre-push hook fails, capture its output verbatim, fix what it reports,
 and retry. Two cycles at most — after that, report the failure rather than
@@ -103,7 +104,7 @@ Disagreed (N):
 Not fixed (N):
   4. <issue summary> — <blocked by X | left for the reviewer to clarify | ...>
 
-Push: <pushed to origin/{branch} | failed: reason>
+Push: <pushed to origin/{branch} | failed: reason | skipped at your request>
 ```
 
 Anything not fully fixed-and-committed belongs in "Not fixed", including items

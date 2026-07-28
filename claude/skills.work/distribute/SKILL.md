@@ -1,6 +1,6 @@
 ---
 name: distribute
-description: Use when a change to EXISTING shared code must be spread across a stack of interdependent ("stacked") pull requests — each PR a branch built on the previous — so the edit lands on the right branch, flows down the stack, and every PR's checks go green. Keywords: stacked PRs, rebase --update-refs, flow-up, rebase --onto, tree-equality gate, force-with-lease, silent reintroduction, drive pr-checks green.
+description: Use when a change to EXISTING shared code must be spread across a stack of interdependent ("stacked") pull requests — each PR a branch built on the previous — so the edit lands on the right branch, flows down the stack, and every PR's checks go green. Skip when the change is additive and one branch owns it — land it there and restack the tail.
 ---
 
 # Distribute a change across a stacked PR set
@@ -48,7 +48,10 @@ conflict — inspect `git rerere diff` before each `--continue`.
 ```bash
 git switch <tip>
 git rebase -i --update-refs <base>     # mark the commit(s) that introduced the lines as `edit`
-# at each stop: make the change, git add -A, git rebase --continue
+# at each stop: make the change, then stage it narrowly — `git add -u` plus an explicit
+# `git add <path>` per file the change genuinely creates — and `git rebase --continue`.
+# `git add -A` would sweep untracked plan/scratch files into the owner commit (breaks gate #1);
+# rebase only guards you against unstaged *tracked* changes, so untracked files are on you.
 ```
 One rebase rewrites history **and moves every `dash/NN` ref atomically**; a conflict pauses it and a
 single `git rebase --continue` resumes. This replaces the manual loop below for most work.
@@ -57,8 +60,7 @@ single `git rebase --continue` resumes. This replaces the manual loop below for 
 1. **Author reference commit `R`** on the integration branch. Make the *entire* change as one commit
    and get it **genuinely green** — real `build-ts` + the affected test suites, not codegen alone —
    plus a grep proving completeness. `R` is the oracle: distribution rebuilds `R`'s exact tree across
-   the stack, and gate #1 proves the reconstruction. *(Good task to delegate to an implementer +
-   reviewer subagent.)*
+   the stack, and gate #1 proves the reconstruction.
 2. **Map each file to its owner** (mechanical):
    ```bash
    git log --oneline --diff-filter=A <tip> -- <file>   # branch/commit that ADDED the file
@@ -131,7 +133,13 @@ re-verify, re-push.
 
 ## Recovery / abort
 - Mid-rebase: `git rebase --abort` returns to pre-rebase state.
-- Full reset: `for b in $order; do git branch -f "$b" bak/<ns>/$b; done` (from the tag backups).
+- Full reset from the tag backups — **detach first**: `git branch -f` dies (exit 128, `cannot force
+  update the branch '<b>' used by worktree at ...`) on any branch a worktree has checked out, so an
+  unguarded loop half-restores and still looks like it worked.
+  ```bash
+  git switch --detach                 # and in every OTHER worktree holding a stack branch, detach there too
+  for b in $order; do git branch -f "$b" bak/<ns>/$b || echo "RESET FAILED on $b"; done
+  ```
 - **Second flow-up after a mid-flow fix:** once branches were rewritten, `bak/<ns>/*` are STALE
   (they point at *pre-rewrite* tips). Snapshot a **fresh** namespace from the once-rewritten tips
   (`for b in $order; do git tag ff1/$b "$b"; done`) and re-flow using `ff1/*` as the `prevbak` anchors.
@@ -151,8 +159,11 @@ re-verify, re-push.
 - Never commit plan/spec/scratch files into the repo — a tracked scratch file breaks gate #1.
 
 ## This repo (Ledidi monorepo) specifics
-- Stack `dash/01 … dash/27` (16 & 19 don't exist); base `dash/01`; integration/oracle branch =
-  `test/dashboard-integration` (kept == stack tip, never pushed as a PR). Branch→PR map in the plan.
+- Discover the stack, don't assume a numbering: branches via
+  `git for-each-ref --format='%(refname:short)' 'refs/heads/dash/*' | sort`, branch→PR map via
+  `gh pr list --search 'head:dash/' --json number,headRefName,baseRefName`. Base (not rewritten)
+  `dash/01-remove-legacy`; integration/oracle branch = `test/dashboard-integration` (kept == stack
+  tip, never pushed as a PR).
 - `dev` not raw `docker compose`; package scripts (`npm run generate`, `build-ts`, `test`) not
   `npx`. Generated GraphQL/Prisma is **gitignored** — never `git add`; regenerate per branch.
 - Node **24.15.0** for tests; run BE then FE suites **sequentially** (shared test Postgres).
@@ -160,9 +171,3 @@ re-verify, re-push.
   story-map confirmation box is in the PR body (`pr-story-map-reminder.yml`). Known pre-existing
   pre-push failure: `tsc-shell` (apps/shell baseUrl) — the sole case `--no-verify` is justified.
 - gitmoji commit prefixes; PRs are drafts with `## Why` / `## What`.
-
-## Success criteria
-- [ ] gate 1: `<tip>^{tree}` == `<ref>^{tree}`
-- [ ] gate 2: per-branch leftover grep clean on **every** branch; stack strictly linear; base untouched
-- [ ] local `bak/<ns>/*` tags intact (NOT pushed to remote); all branches force-pushed (`--force-with-lease`, no lease rejections); PR base refs unchanged post-push
-- [ ] every affected PR's required `pr-checks` = SUCCESS with the build/test sub-job actually run (NONE only where paths genuinely aren't triggered)

@@ -86,10 +86,10 @@ triggering the call, identify the pattern (same test? same parameter?).
 ## Finding Which Test Causes Pollution
 
 If something appears during tests but you don't know which test, use the
-bisection script in this directory:
+bisection script in this directory. Run it from the project root, by path:
 
 ```bash
-./find-polluter.sh '.git' 'src/**/*.test.ts'
+bash ~/.claude/skills/systematic-debugging/find-polluter.sh '.git' 'src/**/*.test.ts'
 ```
 
 It runs tests one by one and stops at the first polluter. See the script for

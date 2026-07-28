@@ -102,9 +102,9 @@ General:
 - generous spacing between logical blocks
 - Zod only at trust boundaries
 
-## Confidence Filter
+## Confidence and Severity
 
-Only report issues with high confidence. The original reviewer used a confidence threshold of 80/100. Preserve that bar: do not report speculative issues.
+Report everything you find, then bucket by severity in the review. Low-confidence or cosmetic items belong under Nitpick with a note on what would confirm them, not dropped.
 
 ## Output Expectations
 

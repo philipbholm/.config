@@ -3,7 +3,7 @@ name: learn
 description: Extract learnings from GitHub PR review feedback to prevent repeating mistakes
 argument-hint: "<pr-number>"
 disable-model-invocation: true
-allowed-tools: Bash(git *), Bash(gh *), Bash(mkdir *), Bash(ls *), Read, Write(/Users/philip/.config/dev/feedback/*), Glob, Grep
+allowed-tools: Bash(git *), Bash(gh *), Bash(mkdir *), Bash(ls *), Read, Write(/Users/philip/.config/dev/feedback/**), Glob, Grep
 ---
 
 ## Purpose
@@ -18,27 +18,26 @@ $ARGUMENTS must contain a PR number. If missing, tell the user:
 
 ## Step 1: Repository
 
-Always use `owner: "ledidi-as"` and `repo: "ledidi-monorepo"`.
+Always the `ledidi-as/ledidi-monorepo` repository.
 
 ## Step 2: Fetch All PR Feedback
 
-Use GitHub MCP tools to fetch everything. If MCP tools are unavailable, fall back to `gh api`.
-
-**Fetch all of these (paginate with `perPage: 100` until exhausted):**
-
-1. **PR details** — `mcp__plugin_github_github__pull_request_read` with `method: "get"` — title and description for context
-2. **Review comments** — `method: "get_review_comments"` — inline code review threads (primary source of learnings)
-3. **Reviews** — `method: "get_reviews"` — review summaries with body text
-4. **Comments** — `method: "get_comments"` — general PR conversation
-5. **Diff** — `method: "get_diff"` — code context for understanding feedback
-
-**Fallback** (if MCP tools fail):
+Fetch all of these with `gh api`. `--paginate` exhausts multi-page results.
 
 ```bash
+# PR details — title and description for context, and the author login for Step 6
 gh api repos/ledidi-as/ledidi-monorepo/pulls/{pr_number}
+
+# Inline code review threads — the primary source of learnings
 gh api repos/ledidi-as/ledidi-monorepo/pulls/{pr_number}/comments --paginate
+
+# Review summaries with body text
 gh api repos/ledidi-as/ledidi-monorepo/pulls/{pr_number}/reviews --paginate
+
+# General PR conversation
 gh api repos/ledidi-as/ledidi-monorepo/issues/{pr_number}/comments --paginate
+
+# Diff — code context for understanding the feedback
 gh api repos/ledidi-as/ledidi-monorepo/pulls/{pr_number} -H "Accept: application/vnd.github.diff"
 ```
 
@@ -68,7 +67,7 @@ Transform the filtered feedback into reusable learnings:
 - **Group related feedback** — 5 separate comments about error handling become 1 comprehensive learning about error handling strategy
 - **Include code examples** from the diff when they clarify the point (use short, focused snippets)
 - **Strip all attribution** — no reviewer names, no timestamps, no "the reviewer said". Learnings stand on their own.
-- **Target 3-10 learnings** per PR. If the PR has fewer than 3 substantive pieces of feedback, produce fewer learnings. Quality over quantity.
+- **Write one learning for every distinct principle** the feedback supports, after grouping — there is no cap. Every learning must trace to specific feedback in the PR; do not invent or pad. If the PR has little substantive feedback, produce correspondingly fewer learnings. Quality over quantity.
 
 ## Step 5: Check for Substance
 
@@ -82,9 +81,16 @@ Do not create a file with "No actionable learnings" content. Skip Step 6 entirel
 
 ## Step 6: Write Output
 
-Write to `/Users/philip/.config/dev/feedback/{pr_number}.md`
+Learnings are filed by PR authorship. Compare your own login against the PR author from Step 2:
 
-Create the directory if needed: `mkdir -p /Users/philip/.config/dev/feedback`
+```bash
+gh api user --jq .login
+```
+
+- **The PR author is you** → `/Users/philip/.config/dev/feedback/mine/{pr_number}.md`
+- **The PR author is someone else** → `/Users/philip/.config/dev/feedback/other/{pr_number}.md`
+
+Create the target directory if needed, e.g. `mkdir -p /Users/philip/.config/dev/feedback/mine`. Never write to the `feedback/` root — that holds only `SYNTHESIZED_LEARNINGS.md`.
 
 ### Output Format
 
@@ -126,4 +132,4 @@ Create the directory if needed: `mkdir -p /Users/philip/.config/dev/feedback`
 
 After writing the file, output the full absolute path so the user can open it:
 
-> Wrote learnings to `/Users/philip/.config/dev/feedback/{pr_number}.md`
+> Wrote learnings to `/Users/philip/.config/dev/feedback/{mine|other}/{pr_number}.md`

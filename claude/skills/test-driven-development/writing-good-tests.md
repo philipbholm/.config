@@ -61,19 +61,6 @@ getters, constants, and trivial forwarding earn tests only when they
 validate, normalize, default, derive, enforce, or cause side effects —
 otherwise assert the first consumer-visible result that depends on them.
 
-### Before writing the test body
-
-Name the production change that would make this test fail.
-
-- Cannot name one → redesign around an observable behavior
-- "The source text changed" → run the artifact and assert its effects
-- Only intentional decisions → change detector; test the behavior that
-  depends on the decision
-
-Then confirm the expected value is derived without the code under test. If
-it reuses the code's logic or helpers, replace it with a literal or a
-hand-checked fixture.
-
 ## Principle 2: Exercise the Real Thing
 
 **The mock earns no assertions.** A mock assertion passes when the mock
@@ -125,14 +112,6 @@ class own this resource's lifecycle? Wrong answers → test utility.
 the test logic, mocks miss methods the real components have, or tests
 break when the mock changes, switch to an integration test with real
 components. The question to ask: *do we need to be using a mock here?*
-
-### Before adding a mock or test helper
-
-List the real method's side effects and keep the ones the test depends on
-real — mock the slow or external level below them. Mock responses mirror
-the complete real structure. A method only tests call lives in test
-utilities, not production. And if you are about to assert on the mock
-itself, unmock it or delete the assertion.
 
 ## Tests Ship With the Implementation
 

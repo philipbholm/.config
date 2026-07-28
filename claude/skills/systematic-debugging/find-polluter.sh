@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Bisection script to find which test creates unwanted files/state
-# Usage: ./find-polluter.sh <file_or_dir_to_check> <test_pattern>
-# Example: ./find-polluter.sh '.git' 'src/**/*.test.ts'
+# Run from the project root (it uses `find .` and `npm test`), by path:
+#   bash ~/.claude/skills/systematic-debugging/find-polluter.sh <file_or_dir_to_check> <test_pattern>
+#   bash ~/.claude/skills/systematic-debugging/find-polluter.sh '.git' 'src/**/*.test.ts'
 
 set -e
 
@@ -31,10 +32,18 @@ else
   TOTAL=$(printf '%s\n' "$TEST_FILES" | wc -l | tr -d ' ')
 fi
 
+if [ "$TOTAL" -eq 0 ]; then
+  echo "❓ No test files matched: $TEST_PATTERN"
+  echo "   Nothing ran, so nothing was ruled out."
+  exit 2
+fi
+
 echo "Found $TOTAL test files"
 echo ""
 
 COUNT=0
+RAN=0
+SKIPPED=0
 for TEST_FILE in $TEST_FILES; do
   COUNT=$((COUNT + 1))
 
@@ -42,6 +51,7 @@ for TEST_FILE in $TEST_FILES; do
   if [ -e "$POLLUTION_CHECK" ]; then
     echo "⚠️  Pollution already exists before test $COUNT/$TOTAL"
     echo "   Skipping: $TEST_FILE"
+    SKIPPED=$((SKIPPED + 1))
     continue
   fi
 
@@ -49,6 +59,7 @@ for TEST_FILE in $TEST_FILES; do
 
   # Run the test
   npm test "$TEST_FILE" > /dev/null 2>&1 || true
+  RAN=$((RAN + 1))
 
   # Check if pollution appeared
   if [ -e "$POLLUTION_CHECK" ]; then
@@ -68,5 +79,12 @@ for TEST_FILE in $TEST_FILES; do
 done
 
 echo ""
-echo "✅ No polluter found - all tests clean!"
-exit 0
+if [ "$RAN" -gt 0 ] && [ "$SKIPPED" -eq 0 ]; then
+  echo "✅ No polluter found - all $RAN tests clean!"
+  exit 0
+fi
+
+echo "❓ Inconclusive - ran $RAN of $TOTAL tests, skipped $SKIPPED because"
+echo "   '$POLLUTION_CHECK' already existed before the test ran."
+echo "   Remove or rename it (or check a path only the tests create), then re-run."
+exit 2

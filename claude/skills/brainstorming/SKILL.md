@@ -26,8 +26,9 @@ different readings would produce materially different software.
   pieces are, how they relate, what order to build them. Then brainstorm the
   first one through the normal flow — each sub-project gets its own spec, plan,
   and implementation cycle.
-- For appropriately-scoped work, ask questions one at a time. Only one question
-  per message; if a topic needs more exploration, break it into several.
+- Ask open-ended questions one at a time. Group related discrete-option
+  decisions into a single `AskUserQuestion` call (it takes up to four questions)
+  rather than one message each.
 - Use `AskUserQuestion` whenever the question has discrete options — it handles
   multi-select and previews natively. Keep plain prose for open-ended
   exploration where you'd be inventing the options.
@@ -44,7 +45,8 @@ different readings would produce materially different software.
 - Once you understand what you're building, present it.
 - Scale each section to its complexity: a few sentences if straightforward, up
   to 200–300 words if nuanced.
-- Ask after each section whether it looks right so far.
+- Present the whole design, then stop for feedback. Break earlier only where a
+  section rests on a decision the user has to make.
 - Cover architecture, components, data flow, error handling, testing.
 - Be ready to go back and clarify if something doesn't make sense.
 
@@ -76,12 +78,12 @@ different readings would produce materially different software.
 ## After the Design
 
 Write the validated design to `docs/specs/YYYY-MM-DD-<topic>-design.md` (project
-instructions override this location) and commit it.
+instructions override this location).
 
 Then ask the user to review the written spec:
 
-> "Spec written and committed to `<path>`. Have a look and let me know if you
-> want anything changed before I write the implementation plan."
+> "Spec written to `<path>`. Have a look and let me know if you want anything
+> changed before I write the implementation plan."
 
 If they request changes, make them and ask again. Once they approve,
 `writing-plans` is the usual next step.
