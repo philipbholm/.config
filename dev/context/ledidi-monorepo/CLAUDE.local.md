@@ -13,11 +13,19 @@ Medical registry platform. Each service/app has its own `package.json`.
 | `services/codelist/` | Code list service (PostgreSQL, gRPC only) |
 | `packages/` | Shared libraries (@ledidi-as scope) |
 
-**Never touch `apps/main-frontend/`.** Always use `apps/registries-frontend/`.
+Default focus is `services/registries` and `apps/registries-frontend` unless I
+say otherwise. **Never touch `apps/main-frontend/`.**
+
+### Terminology
+
+- **Trials** and **studies** are the same thing in this repo, interchangeable.
+  Studies use the shell app as their frontend.
+- **John** is the AI agent that analyses tenders for Ledidi.
 
 ## Ports (Worktree-Specific)
 
-This is one of many parallel worktrees, each with its own isolated Docker stack and unique ports.
+This is one of many parallel worktrees, each with its own isolated Docker stack
+and unique ports.
 
 | Service | URL |
 |---------|-----|
@@ -27,10 +35,10 @@ This is one of many parallel worktrees, each with its own isolated Docker stack 
 | Codelist (gRPC) | localhost:{{CODELIST_GRPC_PORT}} |
 | PostgreSQL | localhost:{{POSTGRES_PORT}} |
 
-**Critical:**
-- These ports are assigned to this worktree only. Never try alternative ports (e.g., 5432, 3000, 4000).
-- Never modify hardcoded URLs, environment files, or config files to change ports for running tests or fixing connection issues.
-- If a port doesn't work, the issue is the Docker stack, not the port number.
+These ports belong to this worktree alone, and they are correct as listed. When
+one doesn't respond, the Docker stack is what needs attention — the standard
+ports (5432, 3000, 4000) belong to other stacks, and editing hardcoded URLs, env
+files, or configs to reach a service breaks the worktree instead of fixing it.
 
 ## Workflow
 
@@ -38,8 +46,8 @@ This is one of many parallel worktrees, each with its own isolated Docker stack 
 
 Worktrees live at `<repo>/.claude/worktrees/<name>` — nowhere else.
 
-- **New branch** → `EnterWorktree` with an **explicit `name`**, then run `setup-stack`
-  inside it.
+- **New branch** → `EnterWorktree` with an **explicit `name`**, then run
+  `setup-stack` inside it.
 - **Existing branch** → `git worktree add .claude/worktrees/<name> <branch>`,
   then `EnterWorktree path:<path>`, then `setup-stack`.
 - **Never omit the name.** A generated name becomes the Docker stack ID, which
@@ -83,21 +91,42 @@ npx jest
 | "red/green TDD" | Run both unit tests and relevant E2E tests |
 | "commit" | Pre-commit hook must pass |
 | "push" | Pre-push hook must pass |
-| "create pr" | Create as draft, apply `risk:standard` label, gitmoji prefix in title, include PR description with `## Why` and `## What` sections |
+| "create pr" / "open pr" | Draft PR, gitmoji title, `risk:standard` label, `## Why` and `## What` sections, then open its URL in my browser |
 | "save to vault" | Write a markdown file to `/Users/philip/vaults/work/dev` |
 
-### Error Handling
+Committing and pushing don't need approval. Labels beyond `risk:standard` do.
 
-If there are pre-existing lint or type errors, fix them first and commit the fix before starting new work.
+### Failing Builds and Tests
+
+Fix pre-existing lint or type errors first and commit that fix before starting
+new work.
+
+While master is green, a failing build, tool, or test comes from this branch.
+Those are yours to fix and stay on, including the ones that look unrelated to
+what you changed.
 
 ### Troubleshooting Dev Environment
 
-If the dev environment seems broken (connection refused, services not responding):
+Start with the container logs — they describe what actually happened, where
+anything earlier is a guess.
 
-1. Run `docker ps` to list running containers
-2. Look for containers with the current worktree name (e.g., `worktree-name-registries-1`)
-3. Only containers containing the worktree name belong to this environment — you can restart/modify these
-4. Do NOT try different ports or modify configs. The assigned ports are correct; the issue is the container state.
+1. `docker ps` to list running containers
+2. Find the ones carrying this worktree's name (e.g. `worktree-name-registries-1`)
+3. Read their logs, then restart or adjust those containers as needed
+
+Only containers with the worktree name belong to this environment. A connection
+failure means container state, not port configuration.
+
+After opening a branch in a worktree, load the frontend URL and confirm the page
+renders. **"An unknown error occurred. Please try again later or contact
+support."** is a Docker-side problem, not an application bug — usually a service
+needing a restart, an unrun migration, or missing dependencies.
+
+### Datadog
+
+Open a Datadog link and confirm it returns results before putting it in a
+comment, PR, or report. These URLs are easy to construct plausibly and wrong; a
+link showing nothing costs more than no link.
 
 ## Critical Rules
 
@@ -111,12 +140,16 @@ If the dev environment seems broken (connection refused, services not responding
 
 ### Code Style
 
-- Default to no comments. Only add a comment when strictly necessary to explain _why_ code exists (hidden constraint, subtle invariant, workaround for a specific bug, surprising behavior). Never add comments explaining _what_ the code does — names and types should carry that. No comments referencing the current task, fix, or callers (e.g. "added for X flow", "used by Y").
+- Comments explain _why_, never _what_ — see [code-style.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/code-style.md) for when one is warranted
+- Prefer early returns — narrow to the expected case, bail out on the rest
 - No TypeScript enums — use string types or const maps
 - Never use `as any` or `as unknown`
 - One GraphQL operation per `.graphql` file
 - Zod only at trust boundaries (API inputs, env vars, external responses)
 - Never throw plain `Error` — use typed errors (`NotFoundError`, `ValidationError`, etc.)
+- Handle caught error types explicitly, then rethrow what you didn't handle
+- Spell words out — no invented acronyms or abbreviations
+- No GitHub issue links (`#2858`) in source code
 
 ### Frontend
 
@@ -125,17 +158,21 @@ If the dev environment seems broken (connection refused, services not responding
 - `DICTIONARY` at bottom of file, same file where used
 - Don't destructure queries/forms (`const userQuery = useUserQuery()`)
 - Minimize `useEffect` — prefer computed values
+- Disable UI elements rather than removing them
 
 ### Testing
 
 - Integration tests for backend, unit tests for edge cases
 - MSW for GraphQL mocks, not custom Apollo client mocks
 - Imperative descriptions: `it("reorders elements", ...)` not `it("should...")`
+- Feature-flagged paths get tests in both the enabled and disabled state
+- A bug fix starts with a failing test that reproduces it
 
 ## Reference
 
 | Task | Documentation |
 |------|---------------|
+| Engineering principles | [principles.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/principles.md) |
 | Post-change workflows | [workflows.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/workflows.md) |
 | Architecture & patterns | [architecture.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/architecture.md) |
 | Backend development | [backend.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/backend.md) |

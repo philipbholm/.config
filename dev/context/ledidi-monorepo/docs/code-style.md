@@ -12,6 +12,26 @@
 - Never `z.coerce.boolean()` for env vars — use `z.stringbool()`
 - One GraphQL operation per `.graphql` file
 
+### Early Returns
+
+Narrow to the expected case and bail out on the rest, so the main path stays at
+the top level. This matters most in tests, where a conditional assertion silently
+passes when the condition is false:
+
+```typescript
+// Correct — the assertion always runs
+if (!(error instanceof ValidationError)) {
+  throw new Error(`Expected ValidationError, got ${error}`);
+}
+
+expect(error.field).toBe("patientId");
+
+// Wrong — passes when error is some other type
+if (error instanceof ValidationError) {
+  expect(error.field).toBe("patientId");
+}
+```
+
 ### Type Order
 
 Declare dependent types after their dependencies:
