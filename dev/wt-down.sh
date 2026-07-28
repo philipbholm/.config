@@ -55,20 +55,33 @@ existing_containers=$(docker ps -aq --filter "label=${DEV_WORKSPACE_LABEL}=${pro
 
 if [[ -n "$slot_file" || -n "$existing_containers" ]]; then
   echo "  Nuking dev stack ($project_name)..."
-  (cd "$worktree_path" && "$DEV_CMD" nuke)
+  # Running wt-down is the confirmation, and `dev nuke` refuses to assume one
+  # when there is no terminal to prompt on.
+  (cd "$worktree_path" && "$DEV_CMD" nuke --yes)
 
-  running=$(docker ps -q --filter "label=com.docker.compose.project=$project_name" 2>/dev/null || true)
-  [[ -n "$running" ]] && docker wait $running >/dev/null 2>&1
+  # `dev nuke` exits 0 when its own prompt is answered "n", so removing the
+  # directory has to be gated on the stack actually being gone — otherwise the
+  # containers and one of the nine slots are orphaned with no way back to them.
+  leftover=$(docker ps -aq --filter "label=${DEV_WORKSPACE_LABEL}=${project_name}" 2>/dev/null || true)
+  if [[ -n "$leftover" ]]; then
+    echo "Error: containers for $project_name are still there, so $worktree_path was kept." >&2
+    docker ps -a --filter "label=${DEV_WORKSPACE_LABEL}=${project_name}" >&2 || true
+    echo "Remove them ('dev nuke --yes' inside the worktree, or 'docker rm -f' on the ids above) and re-run wt-down." >&2
+    exit 1
+  fi
 fi
 
 echo "  Removing worktree..."
-# Step out first: removing the directory we are standing in leaves the shell
-# with no cwd, which makes every later command emit a getcwd error.
+# Step out of the directory we are about to delete: this script's own remaining
+# commands run with a cwd that no longer exists otherwise, and bash greets each
+# child process with a getcwd error. The caller is a separate process — a
+# `wt-down` shell wrapper has to cd out on its own.
 cd "$main_repo"
 git -C "$main_repo" worktree remove "$worktree_path"
 git -C "$main_repo" worktree prune
 
 dev_prune_stale_slot_files
-"$HOME/.config/dev/sync-context.sh"
+"$HOME/.config/dev/sync-context.sh" ||
+  echo "Warning: context sync failed; CLAUDE.local.md and AGENTS.md may be stale." >&2
 
 echo "Removed $worktree_path. Branch '$branch' still exists — 'git branch -d $branch' to delete it."

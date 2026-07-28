@@ -27,21 +27,41 @@ MONOREPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$MONOREPO_ROOT"
 PROJECT_NAME="$(dev_workspace_id_for_repo "$MONOREPO_ROOT")"
 FRONTEND_BASE_PORT=3003
+API_BASE_PORT=4006
 
 # Determine ports + compose project name from worktree slot.
-# dev.sh prefixes worktree stacks with wt{slot}- (see dev.sh:831), so the dc()
-# wrapper below must use the same name to target the real containers instead of
-# spinning up a duplicate stack that collides on the already-allocated ports.
+# dev.sh prefixes worktree stacks with wt{slot}- (see where dev.sh sets
+# project_name in worktree mode), so the dc() wrapper below must use the same
+# name to target the real containers instead of spinning up a duplicate stack
+# that collides on the already-allocated ports.
+#
+# A worktree only gets a slot file once `dev up` has run there. Without one we
+# must NOT fall back to the base ports — those belong to the main checkout, and
+# a tunnel is public, so the fallback would publish someone else's stack to the
+# internet. Refuse instead.
 worktree_slot_file="$(dev_slot_file_for_repo "$MONOREPO_ROOT")"
-if [[ -f "$worktree_slot_file" ]]; then
-  slot=$(cat "$worktree_slot_file")
+if dev_is_worktree_repo "$MONOREPO_ROOT"; then
+  if [[ ! -f "$worktree_slot_file" ]]; then
+    echo "Error: this worktree has no dev stack slot." >&2
+    echo "Expected: $worktree_slot_file" >&2
+    echo "Run 'dev up' here first. Tunneling without a slot would expose the main" >&2
+    echo "checkout's ports ($FRONTEND_BASE_PORT/$API_BASE_PORT) to the public internet." >&2
+    exit 1
+  fi
+  slot="$(tr -d '[:space:]' < "$worktree_slot_file")"
+  # Worktree slots are 1-9; a 0 or a garbled file would resolve to base ports.
+  if [[ ! "$slot" =~ ^[1-9]$ ]]; then
+    echo "Error: unusable slot '$slot' in $worktree_slot_file (expected 1-9)." >&2
+    echo "Run 'dev up' here to reassign it." >&2
+    exit 1
+  fi
   offset=$((slot * 100))
   frontend_port=$((FRONTEND_BASE_PORT + offset))
-  api_port=$((4006 + offset))
+  api_port=$((API_BASE_PORT + offset))
   PROJECT_NAME="wt${slot}-${PROJECT_NAME}"
 else
   frontend_port=$FRONTEND_BASE_PORT
-  api_port=4006
+  api_port=$API_BASE_PORT
 fi
 
 # Source vite config (read-only — copied, never edited)
@@ -178,6 +198,10 @@ generate_tunnel_overlay() {
 
     echo "Generating tunnel overlay..."
 
+    # The stack dir exists whenever a dev stack has been generated; create it
+    # anyway so a first run in the main checkout can't die on the redirect below.
+    mkdir -p "$TMP_BASE"
+
     # Patched vite.config.ts copy (mounted over the image's baked-in one):
     #   - allowedHosts so Vite's dev-server host check accepts *.trycloudflare.com
     #   - a process.env shim so amplify-config.ts's non-localhost branch
@@ -257,7 +281,9 @@ recreate_services() {
     dc up -d --force-recreate registries
 
     echo ""
-    wait_for_api 90
+    # `|| true`: a timeout is a warning, not a failure — set -e would otherwise
+    # abort the run (and tear the stack down) instead of letting the user reload.
+    wait_for_api 90 || true
 
     echo ""
     echo "Recreating frontend (tunnel env + patched vite.config, no image rebuild)..."
@@ -290,6 +316,15 @@ main() {
     echo "Ports: frontend=$frontend_port, api=$api_port"
     echo ""
 
+    # A non-interactive caller stays blocked for the whole run, so say so before
+    # the minutes of setup rather than after.
+    if [[ ! -t 1 ]]; then
+        echo "Note: this stays in the foreground until stopped, and the tunnel URLs are"
+        echo "printed only once the stack is ready. Non-interactive callers should run it"
+        echo "as a background job and read its output rather than waiting on it."
+        echo ""
+    fi
+
     # Clean baseline: kill any tunnels already bound to our ports and drop any
     # leftover overlay from a previous run that didn't clean up. This makes
     # re-runs and recovery-after-crash safe.
@@ -317,16 +352,20 @@ main() {
     echo ""
     echo "Waiting for tunnel URLs..."
 
-    API_URL=$(extract_url "$API_LOG" 30)
+    # `|| true` so the timeout path reaches the message below instead of set -e
+    # aborting the script on the failing assignment.
+    API_URL=$(extract_url "$API_LOG" 30) || true
     if [ -z "$API_URL" ]; then
-        echo "Error: Failed to get API tunnel URL"
+        echo "Error: Failed to get API tunnel URL. cloudflared log:" >&2
+        cat "$API_LOG" >&2
         exit 1
     fi
     echo "API URL: $API_URL"
 
-    FRONTEND_URL=$(extract_url "$FRONTEND_LOG" 30)
+    FRONTEND_URL=$(extract_url "$FRONTEND_LOG" 30) || true
     if [ -z "$FRONTEND_URL" ]; then
-        echo "Error: Failed to get frontend tunnel URL"
+        echo "Error: Failed to get frontend tunnel URL. cloudflared log:" >&2
+        cat "$FRONTEND_LOG" >&2
         exit 1
     fi
     echo "Frontend URL: $FRONTEND_URL"
@@ -349,8 +388,18 @@ main() {
     echo "Press Ctrl+C to stop tunnels and revert changes."
     echo ""
 
-    # Wait indefinitely
+    # Park until interrupted, but bail out if either cloudflared dies: exiting
+    # fires the EXIT trap, so a dead tunnel drops the overlay instead of leaving
+    # a URL advertised as ready that no longer resolves.
     while true; do
+        if ! kill -0 "$API_TUNNEL_PID" 2>/dev/null; then
+            echo "API tunnel exited (PID $API_TUNNEL_PID). Stopping." >&2
+            exit 1
+        fi
+        if ! kill -0 "$FRONTEND_TUNNEL_PID" 2>/dev/null; then
+            echo "Frontend tunnel exited (PID $FRONTEND_TUNNEL_PID). Stopping." >&2
+            exit 1
+        fi
         sleep 1
     done
 }

@@ -19,7 +19,7 @@ fi
 ### Usage:
 ###   dev up [--slot N] [--include-patient] [--build] [services...]  Start stack (full init flow)
 ###   dev down                           Stop and remove containers
-###   dev nuke                           Full teardown (volumes, images, slot)
+###   dev nuke [--yes]                   Full teardown (volumes, images, slot)
 ###   dev status                         Show all running stacks
 ###   dev start [services...]            Start stopped containers
 ###   dev <any docker compose command>   Passthrough to docker compose
@@ -29,6 +29,9 @@ fi
 ###   --include-patient  Include patient-bff and patient-frontend if present in the
 ###                      worktree (pins port 4010; off by default so only one stack
 ###                      at a time grabs it)
+###   --yes              Skip nuke's confirmation prompt. Required when stdin is not
+###                      a terminal (scripts, agents), where there is nothing to
+###                      prompt on.
 ###
 ### Examples:
 ###   dev up                             Start default services (no patient stack)
@@ -40,7 +43,7 @@ fi
 ###   dev ps                             List containers
 
 ADMIN_MOCK_NET="admin-mock-net"
-FRONTEND_BASE_PORT=3003
+SYNC_CONTEXT="$HOME/.config/dev/sync-context.sh"
 
 # --- Shared utility functions ---
 
@@ -161,7 +164,10 @@ available_services() {
         fi
     done
 
-    printf '%s\n' "${result[@]}"
+    # An empty array must not be expanded under `set -u` on bash 3.2.
+    if [ "${#result[@]}" -gt 0 ]; then
+        printf '%s\n' "${result[@]}"
+    fi
 }
 
 collect_compose_services() {
@@ -212,6 +218,18 @@ service_list_contains() {
     return 1
 }
 
+# Reached when the compose file defines none of the services this stack expects,
+# e.g. `dev up` in some other git repo. Name that instead of letting an empty
+# service list reach docker compose.
+require_services() {
+    [ "${#requested_services[@]}" -gt 0 ] && return 0
+
+    echo "Error: $repo_root/docker-compose.yml defines none of this stack's services" >&2
+    echo "(registries-frontend, postgres, codelist, registries, agent)." >&2
+    echo "Pass the services you want explicitly: dev $subcommand <service>..." >&2
+    exit 1
+}
+
 # --- Mode detection ---
 
 if ! git rev-parse --show-toplevel &>/dev/null; then
@@ -228,7 +246,12 @@ else
     mode="main"       # .git is a directory in main checkouts
 fi
 
+# Holds the generated override and the slot file, and `dev nuke` rm -rf's it, so
+# refuse to run at all if it ever resolves to something we must not delete.
 tmp_dir="$(dev_stack_dir_for_repo "$repo_root")"
+case "$tmp_dir" in
+    ''|'/'|"$HOME"|"$HOME/") echo "Error: refusing to use '$tmp_dir' as this stack's state dir." >&2; exit 1 ;;
+esac
 
 # --- Slot management ---
 
@@ -261,40 +284,73 @@ slot_from_existing_stack() {
     docker inspect --format "{{index .Config.Labels \"$DEV_SLOT_LABEL\"}}" "$container" 2>/dev/null
 }
 
+# Serializes slot allocation. is_slot_in_use answers from the dev-slot label on
+# running containers, so a claim is only visible to a competing run once the
+# containers exist — the lock therefore has to be held from the free-slot scan
+# all the way through `dc create` (see the up branch), not just until a number
+# has been picked. That stretch can take minutes on a cold create, so a lock is
+# stale when the pid that took it is gone rather than after a fixed age, and
+# competing runs wait instead of failing.
+SLOT_LOCKDIR="/tmp/dev-slot.lock"
+slot_lock_held="false"
+
+acquire_slot_lock() {
+    local wait_limit=600
+    local waited=0
+    local announced=false
+    local holder
+
+    while true; do
+        if mkdir "$SLOT_LOCKDIR" 2>/dev/null; then
+            echo "$$" > "$SLOT_LOCKDIR/owner"
+            slot_lock_held="true"
+            trap release_slot_lock EXIT
+            return 0
+        fi
+
+        holder=$(cat "$SLOT_LOCKDIR/owner" 2>/dev/null || true)
+        if [ -z "$holder" ] || ! kill -0 "$holder" 2>/dev/null; then
+            # Whoever took it is gone (crash, kill -9).
+            rm -f "$SLOT_LOCKDIR/owner"
+            if rmdir "$SLOT_LOCKDIR" 2>/dev/null; then
+                continue
+            fi
+            echo "Error: cannot clear the abandoned slot lock at $SLOT_LOCKDIR." >&2
+            exit 1
+        fi
+
+        if [ "$announced" = false ]; then
+            echo "Waiting for another dev run (pid $holder) to claim its slot..."
+            announced=true
+        fi
+        if [ "$waited" -ge "$wait_limit" ]; then
+            echo "Error: timed out waiting for the slot lock held by pid $holder." >&2
+            echo "If that process is gone, run: rm -rf $SLOT_LOCKDIR" >&2
+            exit 1
+        fi
+        sleep 2
+        waited=$(( waited + 2 ))
+    done
+}
+
+release_slot_lock() {
+    [ "$slot_lock_held" = "true" ] || return 0
+    slot_lock_held="false"
+    rm -f "$SLOT_LOCKDIR/owner"
+    rmdir "$SLOT_LOCKDIR" 2>/dev/null || true
+}
+
+# Only call while holding the slot lock — the scan is meaningless without it.
 next_available_slot() {
-    local lockdir="/tmp/dev-slot.lock"
-    local stale_seconds=30
-
-    if [ -d "$lockdir" ]; then
-        local lock_age
-        if [[ "$OSTYPE" == darwin* ]]; then
-            lock_age=$(( $(date +%s) - $(stat -f %m "$lockdir" 2>/dev/null || echo 0) ))
-        else
-            lock_age=$(( $(date +%s) - $(stat -c %Y "$lockdir" 2>/dev/null || echo 0) ))
-        fi
-        if [ "$lock_age" -gt "$stale_seconds" ]; then
-            rmdir "$lockdir" 2>/dev/null || true
-        fi
-    fi
-
-    if ! mkdir "$lockdir" 2>/dev/null; then
-        echo "Error: Another instance is allocating a slot. If this persists, run: rmdir $lockdir" >&2
-        exit 1
-    fi
-
-    trap 'rmdir "$lockdir" 2>/dev/null' EXIT
+    local s
 
     for s in $(seq 1 9); do
         if ! is_slot_in_use "$s"; then
-            rmdir "$lockdir" 2>/dev/null
-            trap - EXIT
             echo "$s"
             return
         fi
     done
 
-    rmdir "$lockdir" 2>/dev/null
-    trap - EXIT
     echo "Error: All slots (1-9) are in use." >&2
     exit 1
 }
@@ -306,7 +362,7 @@ save_slot() {
 
 read_saved_slot() {
     if [ -f "$slot_file" ]; then
-        cat "$slot_file"
+        tr -d '[:space:]' < "$slot_file"
     else
         echo ""
     fi
@@ -429,11 +485,11 @@ services:
       ${DEV_SLOT_LABEL}: "${s}"
       ${DEV_WORKSPACE_LABEL}: "${base_project_name}"
     environment:
-      - VITE_APP_URL=http://localhost:$(( FRONTEND_BASE_PORT + offset ))
+      - VITE_APP_URL=http://localhost:$(( DEV_FRONTEND_BASE_PORT + offset ))
       - VITE_GRAPHQL_URI=http://localhost:$(( 4006 + offset ))/graphql
       - VITE_GRAPHQL_PROM_URI=http://localhost:$(( 4006 + offset ))/graphql-prom
       - VITE_REGISTRIES_API_URL=http://localhost:$(( 4006 + offset ))
-      - VITE_SURVEY_URL=http://localhost:$(( FRONTEND_BASE_PORT + offset ))/surveys
+      - VITE_SURVEY_URL=http://localhost:$(( DEV_FRONTEND_BASE_PORT + offset ))/surveys
       - VITE_AGENT_SERVICE_URL=http://localhost:$(( 4007 + offset ))
     # Mirror the base docker-compose.yml registries-frontend volume list.
     # !override REPLACES the base list, so every mount the base provides must be
@@ -447,7 +503,7 @@ services:
       - $repo_root/packages/components/src:/packages/components/src:cached
       - /apps/registries-frontend/node_modules/.vite
     ports: !override
-      - "$(( FRONTEND_BASE_PORT + offset )):$FRONTEND_BASE_PORT"
+      - "$(( DEV_FRONTEND_BASE_PORT + offset )):$DEV_FRONTEND_BASE_PORT"
 
   admin:
     profiles: ["disabled"]
@@ -484,7 +540,7 @@ services:
       - default
       - admin-bridge
     environment:
-      - ALLOWED_ORIGINS=http://localhost:$(( FRONTEND_BASE_PORT + offset )),http://localhost:3010
+      - ALLOWED_ORIGINS=http://localhost:$(( DEV_FRONTEND_BASE_PORT + offset )),http://localhost:3010
       # Raise PROM endpoint rate limit (default 100/min) to the schema cap so
       # local seeders aren't throttled. See services/registries/src/env.ts.
       - PROM_RATE_LIMIT_MAX=10000
@@ -677,26 +733,11 @@ context_dir="$HOME/.config/dev/context/ledidi-monorepo"
 claude_local_md="$repo_root/CLAUDE.local.md"
 agents_md="$repo_root/AGENTS.md"
 
-apply_context_replacements() {
-    local file=$1
-    shift
-
-    [ -f "$file" ] || return
-
-    for pair in "$@"; do
-        local tag="${pair%%:*}"
-        local value="${pair##*:}"
-        if [[ "$OSTYPE" == darwin* ]]; then
-            sed -i '' "s|${tag}|${value}|g" "$file"
-        else
-            sed -i "s|${tag}|${value}|g" "$file"
-        fi
-    done
-}
-
+# Renders the templates for THIS workspace only. sync-context.sh does the same
+# for every workspace at once; both fill the port table through the shared
+# dev_apply_context_ports so the two can't drift.
 sync_context_files() {
     local s=$1
-    local offset=$(( s * 100 ))
     local claude_template="$context_dir/CLAUDE.local.md"
     local agents_template="$context_dir/AGENTS.md"
 
@@ -704,31 +745,27 @@ sync_context_files() {
         echo "Warning: CLAUDE.local.md template not found at $claude_template" >&2
     else
         cp "$claude_template" "$claude_local_md"
+        dev_apply_context_ports "$claude_local_md" "$s"
     fi
 
     if [ ! -f "$agents_template" ]; then
         echo "Warning: AGENTS.md template not found at $agents_template" >&2
     else
         cp "$agents_template" "$agents_md"
+        dev_apply_context_ports "$agents_md" "$s"
     fi
-
-    local replacements=(
-        "{{FRONTEND_PORT}}:$(( FRONTEND_BASE_PORT + offset ))"
-        "{{POSTGRES_PORT}}:$(( 5432 + offset ))"
-        "{{CODELIST_PORT}}:$(( 4005 + offset ))"
-        "{{CODELIST_GRPC_PORT}}:$(( 50005 + offset ))"
-        "{{REGISTRIES_PORT}}:$(( 4006 + offset ))"
-        "{{REGISTRIES_GRPC_PORT}}:$(( 50006 + offset ))"
-        "{{AGENT_PORT}}:$(( 4007 + offset ))"
-    )
-
-    apply_context_replacements "$claude_local_md" "${replacements[@]}"
-    apply_context_replacements "$agents_md" "${replacements[@]}"
 }
 
-remove_context_files() {
-    rm -f "$claude_local_md"
-    rm -f "$agents_md"
+# Teardown restores the context corpus instead of deleting it: CLAUDE.local.md
+# and AGENTS.md carry every project rule, not just the port table, and nothing
+# else puts them back. sync-context.sh re-renders them from the templates and
+# swaps the port section for a start-the-stack note when there is no stack.
+restore_context_files() {
+    if [ ! -x "$SYNC_CONTEXT" ]; then
+        echo "Warning: $SYNC_CONTEXT is not executable; leaving context files as they are." >&2
+        return 0
+    fi
+    "$SYNC_CONTEXT" || echo "Warning: context sync failed; CLAUDE.local.md and AGENTS.md may be stale." >&2
 }
 
 write_env_files() {
@@ -763,7 +800,7 @@ show_status() {
         local count
         count=$(docker ps -q --filter "label=com.docker.compose.project=${project}" 2>/dev/null | wc -l | tr -d ' ')
         echo "  Main — $project"
-        echo "    Frontend:   http://localhost:$FRONTEND_BASE_PORT/en"
+        echo "    Frontend:   http://localhost:$DEV_FRONTEND_BASE_PORT/en"
         echo "    Postgres:   localhost:5432"
         echo "    Containers: $count"
         echo
@@ -781,7 +818,7 @@ show_status() {
             local count
             count=$(docker ps -q --filter "label=com.docker.compose.project=${project}" 2>/dev/null | wc -l | tr -d ' ')
             echo "  Slot $s — $project"
-            echo "    Frontend:   http://localhost:$(( FRONTEND_BASE_PORT + offset ))/en"
+            echo "    Frontend:   http://localhost:$(( DEV_FRONTEND_BASE_PORT + offset ))/en"
             echo "    Agent:      http://localhost:$(( 4007 + offset ))"
             echo "    Postgres:   localhost:$(( 5432 + offset ))"
             echo "    Containers: $count"
@@ -802,7 +839,7 @@ if [ "$#" -lt 1 ]; then
     echo "Commands:"
     echo "  up [--slot N] [--include-patient] [--build] [services...]  Start stack (full init flow)"
     echo "  down                        Stop and remove containers"
-    echo "  nuke                        Full teardown (volumes, images, slot)"
+    echo "  nuke [--yes]                Full teardown (volumes, images, slot)"
     echo "  status                      Show all running stacks"
     echo "  start [services...]         Start stopped containers"
     echo "  <any>                       Passthrough to docker compose"
@@ -815,6 +852,7 @@ shift
 # Parse flags for up command
 slot_override=""
 include_patient="false"
+nuke_confirmed="false"
 if [ "$subcommand" = "up" ]; then
     while [ "$#" -gt 0 ]; do
         case "$1" in
@@ -839,6 +877,18 @@ if [ "$subcommand" = "up" ]; then
                 ;;
         esac
     done
+elif [ "$subcommand" = "nuke" ]; then
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --yes)
+                nuke_confirmed="true"
+                shift
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
 fi
 
 # Status doesn't need slot resolution or override generation
@@ -849,7 +899,26 @@ fi
 
 prerequisites_check
 
+# Every remaining subcommand ends up in docker compose. Say so here rather than
+# letting a missing compose file surface as an opaque compose or bash error.
+if [ ! -f "$repo_root/docker-compose.yml" ]; then
+    echo "Error: no docker-compose.yml in $repo_root." >&2
+    echo "dev manages the monorepo's stack and has to run inside a checkout of it." >&2
+    exit 1
+fi
+
+# Take the slot lock before scanning for a free slot; the up branch releases it
+# once the containers carrying the slot label exist.
+if [ "$subcommand" = "up" ] && [ "$mode" = "worktree" ]; then
+    acquire_slot_lock
+fi
+
 resolved_slot=$(resolve_slot)
+if ! [[ "$resolved_slot" =~ ^[0-9]$ ]]; then
+    echo "Error: unusable slot '$resolved_slot' (expected 0-9)." >&2
+    echo "Fix or delete $slot_file, then run 'dev up'." >&2
+    exit 1
+fi
 offset=$(( resolved_slot * 100 ))
 
 if [ "$mode" = "worktree" ]; then
@@ -861,7 +930,7 @@ else
 fi
 echo "Project: $project_name"
 if [ "$offset" -gt 0 ]; then
-    echo "Frontend: http://localhost:$(( FRONTEND_BASE_PORT + offset ))/en"
+    echo "Frontend: http://localhost:$(( DEV_FRONTEND_BASE_PORT + offset ))/en"
 fi
 echo
 
@@ -888,8 +957,9 @@ case "$subcommand" in
             [ -n "$service" ] && requested_services+=("$service")
         done < <(collect_compose_services "$@")
         if [ "${#requested_services[@]}" -eq 0 ]; then
-            requested_services=("${default_services[@]}")
+            requested_services=(${default_services[@]+"${default_services[@]}"})
         fi
+        require_services
 
         needs_admin_mock=false
         if service_list_contains "registries" "${requested_services[@]}"; then
@@ -912,10 +982,19 @@ case "$subcommand" in
 
         generate_override "$resolved_slot"
 
+        # Materialize the containers — and with them the dev-slot label another
+        # run reads to see this slot as taken — before releasing the slot lock.
+        # `create` takes services only; the up-only flags in "$@" are not valid
+        # here, and `up` below still applies them.
+        if [ "$mode" = "worktree" ]; then
+            dc create "${requested_services[@]}"
+            release_slot_lock
+        fi
+
         if [ "$#" -gt 0 ]; then
             dc up "$@" -d --wait
         else
-            dc up -d --wait "${default_services[@]}"
+            dc up -d --wait "${requested_services[@]}"
         fi
 
         # Always sync context files so Claude has correct ports
@@ -927,7 +1006,7 @@ case "$subcommand" in
         fi
 
         if service_list_contains "registries-frontend" "${requested_services[@]}"; then
-            echo "Stack is running at http://localhost:$(( FRONTEND_BASE_PORT + offset ))/en/registries"
+            echo "Stack is running at http://localhost:$(( DEV_FRONTEND_BASE_PORT + offset ))/en/registries"
         else
             echo "Stack is running."
         fi
@@ -940,13 +1019,12 @@ case "$subcommand" in
             docker network disconnect "default-network-wt-${resolved_slot}" admin-mock 2>/dev/null || true
             docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
         fi
-        remove_context_files
+        restore_context_files
         remove_env_files
         ;;
 
     nuke)
         echo "This will remove all containers, volumes, and images for this stack."
-        # Only prompt if stdin is a terminal (skip in non-interactive/piped contexts)
         if [ -t 0 ]; then
             read -r -p "Are you sure? (y/N): " confirm
             echo
@@ -954,6 +1032,13 @@ case "$subcommand" in
                 echo "Nuke cancelled."
                 exit 0
             fi
+        elif [ "$nuke_confirmed" != "true" ]; then
+            # No terminal to prompt on (script, agent, pipe). Deleting volumes —
+            # in main mode, the main checkout's postgres data — needs to be asked
+            # for on purpose.
+            echo "Error: stdin is not a terminal, so there is nothing to confirm on." >&2
+            echo "Re-run as 'dev nuke --yes' if you really mean to remove the volumes and images." >&2
+            exit 1
         fi
         generate_override "$resolved_slot"
         dc down -v --rmi local --remove-orphans
@@ -964,9 +1049,9 @@ case "$subcommand" in
             docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
             clear_saved_slot
         fi
-        remove_context_files
         remove_env_files
         rm -rf "$tmp_dir"
+        restore_context_files
         echo
         echo "Nuke complete."
         ;;
@@ -977,8 +1062,9 @@ case "$subcommand" in
             [ -n "$service" ] && requested_services+=("$service")
         done < <(collect_compose_services "$@")
         if [ "${#requested_services[@]}" -eq 0 ]; then
-            requested_services=("${default_services[@]}")
+            requested_services=(${default_services[@]+"${default_services[@]}"})
         fi
+        require_services
 
         needs_admin_mock=false
         if service_list_contains "registries" "${requested_services[@]}"; then
@@ -997,7 +1083,7 @@ case "$subcommand" in
         if [ "$#" -gt 0 ]; then
             dc up -d "$@"
         else
-            dc up -d "${default_services[@]}"
+            dc up -d "${requested_services[@]}"
         fi
         ;;
 
