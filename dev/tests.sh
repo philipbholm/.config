@@ -19,6 +19,10 @@ set -euo pipefail
 ### With no suite arguments, all suites run. Extra args after -- are
 ### forwarded to the underlying test runner.
 ###
+### The registries and e2e suites need this worktree's Docker ports. With no
+### stack up they are skipped and the run exits non-zero, so a partial run is
+### never mistaken for a green one. Frontend unit tests need no containers.
+###
 ### Examples:
 ###   tests                            Run changed tests across all suites
 ###   tests --all                      Run all tests in all suites
@@ -36,6 +40,7 @@ cd "$monorepo_root" || exit 1
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
 BOLD='\033[1m'
 DIM='\033[2m'
 NC='\033[0m'
@@ -78,26 +83,43 @@ for s in "${suites[@]}"; do
 done
 
 # --- Determine ports from worktree slot ---
+#
+# A slot only exists once `dev up` has run. Frontend unit tests need no ports at
+# all, so a missing slot is not fatal — it disqualifies just the suites that
+# talk to containers.
 
 worktree_slot_file="$(dev_slot_file_for_repo "$monorepo_root")"
+slot=""
 
 if [[ -f "$monorepo_root/.git" ]]; then
   # Worktree — .git is a file, not a directory
-  if [[ -f "$worktree_slot_file" ]]; then
-    slot=$(cat "$worktree_slot_file")
-  else
-    echo "Error: No slot assigned for worktree at '$monorepo_root'. Run 'dev up' first."
-    exit 1
-  fi
+  [[ -f "$worktree_slot_file" ]] && slot=$(cat "$worktree_slot_file")
 else
   # Main repo — always slot 0
   slot=0
 fi
-offset=$((slot * 100))
-FRONTEND_BASE_PORT=3003
-postgres_port=$((5432 + offset))
-frontend_port=$((FRONTEND_BASE_PORT + offset))
-api_port=$((4006 + offset))
+
+skipped_suites=()
+
+if [[ -n "$slot" ]]; then
+  offset=$((slot * 100))
+  FRONTEND_BASE_PORT=3003
+  postgres_port=$((5432 + offset))
+  frontend_port=$((FRONTEND_BASE_PORT + offset))
+  api_port=$((4006 + offset))
+else
+  # Drop the port-dependent suites rather than aborting the whole run. They are
+  # reported as skipped and force a non-zero exit, so this never reads as green.
+  runnable_suites=()
+  for s in "${suites[@]}"; do
+    case "$s" in
+      registries) skipped_suites+=("Registries tests — no stack, run 'dev up postgres -d'") ;;
+      e2e)        skipped_suites+=("E2E tests — no stack, run 'dev up'") ;;
+      *)          runnable_suites+=("$s") ;;
+    esac
+  done
+  suites=("${runnable_suites[@]}")
+fi
 
 # --- Collect changed files (when not --all) ---
 
@@ -331,11 +353,17 @@ done
 for s in "${failed_suites[@]}"; do
   echo -e "  ${RED}✘${NC} $s"
 done
+for s in "${skipped_suites[@]}"; do
+  echo -e "  ${YELLOW}⊘${NC} $s"
+done
 
 final_exit=0
 echo ""
 if [[ ${#failed_suites[@]} -gt 0 ]]; then
   echo -e "${RED}${BOLD}❌ Some tests failed!${NC}"
+  final_exit=1
+elif [[ ${#skipped_suites[@]} -gt 0 ]]; then
+  echo -e "${YELLOW}${BOLD}⚠️  Passed what ran, but some suites could not.${NC}"
   final_exit=1
 else
   echo -e "${GREEN}${BOLD}✅ All tests passed!${NC}"

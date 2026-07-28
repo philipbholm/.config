@@ -84,9 +84,10 @@ a full `dev up` the backend suite runs on a bare `npm run test`; after
 [commands.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/commands.md)
 shows. The port comes from the table, never from an edited config file.
 
-The `tests` wrapper needs a slot, and only `dev up` creates one. In a worktree
-with no stack it aborts with "Run 'dev up' first" for **every** suite, frontend
-included — call vitest directly there, or start postgres.
+The `tests` wrapper runs what the current containers allow. With no stack up it
+runs the frontend suite and skips registries and e2e, naming the command that
+would enable each. A skipped suite exits non-zero, so a partial run never reads
+as green — check the summary, not just the exit code.
 
 ### Tearing down
 
