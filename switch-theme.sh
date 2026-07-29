@@ -27,8 +27,20 @@ case "$MODE" in
     ;;
 esac
 
+# Hourly no-arg runs (see launchd/com.philip.theme-watcher.plist) mean most
+# invocations change nothing: skip the apply steps when both the appearance and
+# the theme file already match, so borders isn't restarted for no reason.
+# An explicit light/dark argument always applies (it doubles as a re-kick).
+if [ -z "${1:-}" ] && cmp -s "$THEME_DIR/$MODE.toml" "$ACTIVE_THEME" 2>/dev/null; then
+  STYLE=$(defaults read -g AppleInterfaceStyle 2>/dev/null || echo Light)
+  if { [ "$MODE" = dark ] && [ "$STYLE" = Dark ]; } ||
+     { [ "$MODE" = light ] && [ "$STYLE" = Light ]; }; then
+    exit 0
+  fi
+fi
+
 # Fixed schedule: keep macOS's own sunset/sunrise switching off so it can't
-# override us between our 07:00/18:00 runs.
+# override us between our hourly runs.
 defaults write -g AppleInterfaceStyleSwitchesAutomatically -bool false
 osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to $DARK"
 
