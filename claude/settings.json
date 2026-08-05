@@ -79,6 +79,7 @@
     "superpowers@claude-plugins-official": false
   },
   "effortLevel": "xhigh",
+  "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "preferredNotifChannel": "notifications_disabled",
