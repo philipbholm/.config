@@ -182,6 +182,16 @@ Open a Datadog link and confirm it returns results before putting it in a
 comment, PR, or report. These URLs are easy to construct plausibly and wrong; a
 link showing nothing costs more than no link.
 
+## Writing for People
+
+Report to me in ASD-STE100 Simplified Technical English.
+
+Everything else a person reads — output in Claude Code, commit messages, GitHub
+issues and PRs, Slack — uses the simplest language that still carries the
+meaning. Aim low enough that a five-year-old keeps up. Write the draft, then read
+it back and ask what makes it simpler without losing the point, and send that
+version instead.
+
 ## Critical Rules
 
 ### Architecture
