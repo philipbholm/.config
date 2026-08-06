@@ -277,9 +277,14 @@ Worth knowing, because you report on it:
   was committed, or `push: false` — and then any answer carrying a commit link is
   held rather than posted with a dead link.
 - **Reply** — after the fixing, not alongside it, and the split is by who's on
-  the other end.
+  the other end. Each post is read back before the agent calls it done, then the
+  automated thread is resolved.
 
-Threads are never resolved, human reviewer or not.
+An automated thread is resolved once its answer is posted — the finding has been
+dealt with and nobody is waiting on it. A thread a person started is never
+resolved, however thoroughly it was answered; that one is theirs to close. This
+matches the repo convention, so check the project's own git docs before assuming
+it: a repo that says otherwise wins over this line.
 
 ### Every automated finding gets an answer
 
@@ -359,7 +364,7 @@ Refuted (N):
 Not fixed (N):
   c4. <issue summary> — <reverted after verification failed: X | left in tree: Y>
 
-Answered on the PR: N automated threads. Nothing was sent to a person.
+Answered on the PR: N automated threads, N resolved. Nothing was sent to a person.
 
 Waiting on you — N human items:
   <absolute path to the written file>
@@ -379,7 +384,12 @@ of what's waiting is enough.
 
 Then `git diff <baseSha>..HEAD --stat` for the cumulative picture.
 
-Six things to surface rather than bury, because they mean something is unfinished:
+Seven things to surface rather than bury, because they mean something is unfinished:
+
+- **a reply with `posted: true` but `bodyVerified` unset or false** — the answer
+  may be sitting on the thread as a literal file path instead of its text. Read
+  the thread and check. This is what `-f body=@…` used to do, silently, because
+  the API call succeeds either way.
 
 - **`halted`** — the run stopped early. Say where and why, and that later items
   were never attempted.

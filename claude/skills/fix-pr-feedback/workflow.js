@@ -267,6 +267,9 @@ const REPLY = {
     posted: { type: 'boolean' },
     alreadyPresent: { type: 'boolean', description: 'True if an equivalent reply was already on the thread and you posted nothing' },
     url: { type: 'string' },
+    bodyVerified: { type: 'boolean', description: 'True if you read the posted comment back and its body was the real text, not a file path' },
+    resolved: { type: 'boolean', description: 'True if the review thread was resolved after posting' },
+    resolveError: { type: 'string', description: 'Why resolving failed, if it did — the reply still counts as posted' },
     error: { type: 'string' },
   },
 }
@@ -1150,6 +1153,7 @@ Report the ref range git prints (e.g. \`e9495317b..27cbdf66f\`) in \`range\`.`
 function replyPrompt(it, ctx) {
   const kind = it.kind || 'a reply'
   const source = it.issue.source || (it.issue.commentId && it.issue.file ? 'inline' : 'issue')
+  const [owner, name] = String(ctx.repo || '').split('/')
   return `${where(ctx)}
 Post ${kind} on one pull request review thread. Post the text verbatim — it is
 already written and reviewed; you are the delivery step, not an editor.
@@ -1170,19 +1174,75 @@ already posted. Read the existing replies on the thread
 (\`gh api repos/${ctx.repo}/pulls/${ctx.prNumber}/comments\` for inline threads,
 \`gh pr view ${ctx.prNumber} --comments\` for top-level) and look for an
 equivalent comment from the authenticated user (\`gh api user --jq .login\`). If
-one is there, post nothing and return \`alreadyPresent: true\`. Duplicate
+one is there, post nothing and return \`alreadyPresent: true\`${source === 'inline' ? ' — but still\nresolve the thread as below, because the earlier run may have died before it got\nthere' : ''}. Duplicate
 rebuttals on a colleague's review read badly.
 
-Otherwise:
+One exception: a previous reply whose whole body is a file path, a bare \`@\`, or
+empty is a *failed* post, not an existing one. Delete it
+(\`gh api -X DELETE repos/${ctx.repo}/pulls/comments/<id>\`) and post properly.
+
+Otherwise, **write the body to a file first** with the Write tool — say
+\`reply-${it.id}.md\` in your scratchpad directory — and pass that file to \`gh\`.
+The body is Markdown full of backticks, newlines and \`$\`; putting it on a
+command line hands it to the shell to mangle.
 
 ${
   source === 'inline'
-    ? `This is an inline review comment, so reply in its thread:\n\n    gh api repos/${ctx.repo}/pulls/${ctx.prNumber}/comments/${it.issue.commentId}/replies -f body=@-\n\npiping the body on stdin so quoting cannot mangle it.`
-    : `This is a ${source === 'review' ? 'review body' : 'top-level'} comment with no inline thread, so use\n\n    gh pr comment ${ctx.prNumber} --body-file -\n\nand open by quoting the point you are answering, so it is clear which comment you mean.`
+    ? `This is an inline review comment, so reply in its thread:
+
+    gh api repos/${ctx.repo}/pulls/${ctx.prNumber}/comments/${it.issue.commentId}/replies -F body=@<path to that file>
+
+\`-F\` is not a typo for \`-f\` and the two are not interchangeable here. Only
+\`-F\` (\`--field\`) reads a value from a file or stdin when it starts with \`@\`.
+\`-f\` (\`--raw-field\`) is a *raw string* parameter: it posts the literal text
+\`@/tmp/whatever.md\` as the comment. That has happened on a real PR — twice in
+one run — and it is silent, because the request succeeds.`
+    : `This is a ${source === 'review' ? 'review body' : 'top-level'} comment with no inline thread, so use
+
+    gh pr comment ${ctx.prNumber} --body-file <path to that file>
+
+and open by quoting the point you are answering, so it is clear which comment
+you mean.`
 }
 
-Report whether it posted and the resulting url. Do not edit, resolve, or close
-the thread.`
+**Then read the posted comment back** and confirm the body is the real text:
+
+    gh api repos/${ctx.repo}/pulls/comments/<new comment id> --jq '.body[0:80]'
+
+If it comes back as a path, an \`@\`, or empty, the flag was wrong. Delete that
+comment (\`gh api -X DELETE repos/${ctx.repo}/pulls/comments/<id>\`) and post it
+again properly. Do not leave a broken reply on the thread.
+${
+  source === 'inline'
+    ? `
+**Then resolve the thread.** This is an automated reviewer's finding and it now
+has its answer, so it should not stay open — that is this repo's convention for
+AI-reviewer threads (threads a person started are never resolved, and none of
+those reach you). Resolving needs the thread's node id, which is not the comment
+id, so look it up first:
+
+    gh api graphql -f query='
+      { repository(owner: "${owner || '<owner>'}", name: "${name || '<name>'}") {
+          pullRequest(number: ${ctx.prNumber}) {
+            reviewThreads(first: 100) {
+              nodes { id isResolved comments(first: 100) { nodes { databaseId } } } } } } }' \\
+      --jq '.data.repository.pullRequest.reviewThreads.nodes[]
+            | select(any(.comments.nodes[]; .databaseId == ${it.issue.commentId}))
+            | .id'
+
+Then, with the \`PRRT_…\` id that returns:
+
+    gh api graphql -f query='mutation($id: ID!) {
+      resolveReviewThread(input: { threadId: $id }) { thread { isResolved } } }' -f id=<PRRT_…>
+
+Set \`resolved\` from what the mutation reports. If it fails, report the error in
+\`resolveError\` and still return \`posted: true\` — a posted answer on an
+unresolved thread is a much smaller problem than no answer, and it is not worth
+retrying more than once.
+`
+    : ''
+}
+Report whether it posted and the resulting url. Do not edit or close the thread.`
 }
 
 // ------------------------------------------------------------------ run
