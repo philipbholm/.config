@@ -29,7 +29,7 @@ fi
 add_allowed_signer philip.holm@ledidi.no ~/.ssh/github_work.pub
 
 # Claude Code skills and agents: shared sets plus the Ledidi-specific ones
-# (skills: review-pr/learn/distribute;
+# (skills: review-pr/pr-findings/learn/distribute;
 #  agents: none at present)
 echo "Linking work Claude skills and agents..."
 link_claude_dir ~/.claude/skills "$DOTFILES/claude/skills" "$DOTFILES/claude/skills.work"
