@@ -178,7 +178,7 @@ link_core() {
   link_claude_dir ~/.claude/skills "$DOTFILES/claude/skills"
   link_claude_dir ~/.claude/agents "$DOTFILES/claude/agents"
 
-  # claude-notify: Telegram on/off switch + Stop/Notification hook handler.
+  # claude-notify: macOS notification on/off switch + Stop/Notification hook handler.
   ln -sf "$DOTFILES/dev/claude-notify.sh" ~/bin/claude-notify
 
   # Codex: config + rules symlinked; skills copied (Codex's loader doesn't

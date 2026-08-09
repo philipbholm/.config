@@ -12,7 +12,7 @@ Development utility scripts for the monorepo.
 | `sync-context` | Rewrite `CLAUDE.local.md` + `AGENTS.md` in the main checkout and every worktree with that stack's real ports |
 | `wt-down` | Tear down the worktree you're standing in: nuke its stack, remove the directory, re-sync context. Leaves the branch alone |
 | `sync-agent-configs` | Merge the work-only overlays into the live Claude/Codex/Cursor agent configs (not monorepo-specific) |
-| `claude-notify` | Telegram notify hook for Claude Code plus its `on/off/toggle/status` switch (not monorepo-specific) |
+| `claude-notify` | macOS notification hook for Claude Code plus its `on/off/toggle/status` switch (not monorepo-specific) |
 
 There is no lint/build/test wrapper here. The monorepo's own `lefthook.yml` gates all six workspaces (services/registries, services/patient-bff, apps/registries-frontend, apps/patient-frontend, apps/shell, packages/components) on commit; for ad-hoc runs, call the underlying commands (`npm run build-ts`, `npx vitest run`, `npx biome check`) from the workspace you changed.
 

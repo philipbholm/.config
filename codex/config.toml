@@ -1,9 +1,7 @@
 model = "gpt-5.5"
 model_reasoning_effort = "xhigh"
 personality = "pragmatic"
-# notifications disabled — re-enable by restoring:
-# notify = ["/Users/philip/.config/dev/codex-notify.sh"]
-notify = []
+notify = ["/Users/philip/.config/dev/codex-notify.sh"]
 
 [projects."/Users/philip/.config"]
 trust_level = "trusted"
