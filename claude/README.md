@@ -37,4 +37,9 @@ its own previous links on each run, so switching a machine from work to personal
 removes the work skills and agents; anything you drop into those directories by hand is
 left untouched.
 
+Plugin skills are not linked here at all. `settings.json` enables the plugin
+(`mattpocock-skills@claude-plugins-official`, `context7@claude-plugins-official`) and
+Claude Code loads its skills from the plugin cache under the plugin's namespace, e.g.
+`mattpocock-skills:tdd`. Update them with `/plugin update`, no reinstall needed.
+
 Runtime files (history, cache, projects, etc.) live directly in `~/.claude` and are not version-controlled.

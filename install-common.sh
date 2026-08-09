@@ -146,6 +146,13 @@ link_claude_dir() {
   done
 }
 
+# Matt Pocock's skills ship as a plugin and are enabled as one in
+# claude/settings.json, so they load from the plugin cache under its namespace
+# (mattpocock-skills:tdd) and survive `/plugin update` without a reinstall.
+# Nothing here links them; cleanup_stale only clears links an earlier local
+# setup left in ~/.claude/skills, and verify says so when the plugin is absent.
+MATTPOCOCK_CACHE="$HOME/.claude/plugins/cache/claude-plugins-official/mattpocock-skills"
+
 link_core() {
   echo "Creating core symlinks..."
 
@@ -308,6 +315,16 @@ cleanup_stale() {
       rm "$retired"
     fi
   done
+  # The mattpocock-skills plugin is enabled directly now; drop the flattened
+  # links an earlier setup put in ~/.claude/skills, or every skill is listed
+  # twice — once namespaced, once via a link that dangles after a plugin update.
+  local link
+  for link in ~/.claude/skills/*; do
+    if [[ -L "$link" && "$(readlink "$link")" == "$MATTPOCOCK_CACHE"/* ]]; then
+      echo "Removing stale plugin-skill symlink $link..."
+      rm "$link"
+    fi
+  done
   # If nvim data exists but isn't a LazyVim setup, clean for fresh bootstrap
   if [[ -d "$HOME/.local/share/nvim" ]] && [[ ! -d "$HOME/.local/share/nvim/lazy/LazyVim" ]]; then
     echo "Cleaning nvim state for LazyVim migration..."
@@ -350,7 +367,7 @@ verify() {
 
   # Paths that must resolve for the shell, git and agent configs to work at all
   # (~/.claude/skills and ~/.claude/agents are real dirs, both empty on a
-  # personal machine.
+  # personal machine — plugin skills come from the plugin, not from links here.
   # settings.json / config.toml / mcp.json are real files on work machines.)
   local link
   for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents ~/.claude/skills \
@@ -372,6 +389,14 @@ verify() {
       missing+=("$link")
     fi
   done
+
+  # Plugins install through Claude Code's own manager, so the installer can only
+  # point out that this one is absent.
+  if [[ ! -d "$MATTPOCOCK_CACHE" ]]; then
+    echo ""
+    echo "  mattpocock-skills plugin is not installed — run"
+    echo "  '/plugin install mattpocock-skills@claude-plugins-official' in Claude Code."
+  fi
 
   if [[ ${#missing[@]} -gt 0 ]]; then
     echo ""

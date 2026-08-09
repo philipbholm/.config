@@ -76,7 +76,7 @@
   },
   "enabledPlugins": {
     "context7@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": false
+    "mattpocock-skills@claude-plugins-official": true
   },
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
