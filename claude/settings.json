@@ -2,7 +2,8 @@
   "env": {
     "EDITOR": "cursor",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "CLAUDE_CODE_NO_FLICKER": "1"
+    "CLAUDE_CODE_NO_FLICKER": "1",
+    "CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION": "2000"
   },
   "permissions": {
     "allow": [
@@ -43,9 +44,6 @@
     "defaultMode": "auto"
   },
   "model": "opus[1m]",
-  "worktree": {
-    "baseRef": "fresh"
-  },
   "hooks": {
     "Stop": [
       {
@@ -70,6 +68,9 @@
       }
     ]
   },
+  "worktree": {
+    "baseRef": "fresh"
+  },
   "statusLine": {
     "type": "command",
     "command": "/Users/philip/.claude/statusline-command.sh"
@@ -78,7 +79,10 @@
     "context7@claude-plugins-official": true,
     "mattpocock-skills@claude-plugins-official": true
   },
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
+  "voice": {
+    "enabled": false
+  },
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "preferredNotifChannel": "notifications_disabled",
@@ -86,5 +90,5 @@
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": false,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true
+  "voiceEnabled": false
 }
