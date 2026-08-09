@@ -173,7 +173,8 @@ link_core() {
   ln -sf "$DOTFILES/claude/statusline-command.sh" ~/.claude/statusline-command.sh
 
   # Shared skills/agents only. install-work.sh re-links with the .work sets
-  # added; claude/agents is currently empty (every agent is Ledidi-specific).
+  # added; both claude/skills and claude/agents are currently empty (every skill
+  # and agent of our own is Ledidi-specific).
   link_claude_dir ~/.claude/skills "$DOTFILES/claude/skills"
   link_claude_dir ~/.claude/agents "$DOTFILES/claude/agents"
 
@@ -348,10 +349,11 @@ verify() {
   done
 
   # Paths that must resolve for the shell, git and agent configs to work at all
-  # (~/.claude/agents is a real dir; it is empty on the personal profile.
+  # (~/.claude/skills and ~/.claude/agents are real dirs, both empty on a
+  # personal machine.
   # settings.json / config.toml / mcp.json are real files on work machines.)
   local link
-  for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents \
+  for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents ~/.claude/skills \
               ~/.codex/config.toml ~/.cursor/mcp.json ~/.ssh/allowed_signers; do
     if [[ ! -e "$link" ]]; then
       missing+=("$link")
@@ -363,8 +365,7 @@ verify() {
   # (link_claude_dir leaves such an entry alone), and a link left by an older
   # install can dangle.
   local unlinked=()
-  for link in ~/.claude/skills/explain-diff-html ~/.claude/statusline-command.sh \
-              ~/bin/python ~/bin/pip; do
+  for link in ~/.claude/statusline-command.sh ~/bin/python ~/bin/pip; do
     if [[ ! -L "$link" ]]; then
       unlinked+=("$link")
     elif [[ ! -e "$link" ]]; then

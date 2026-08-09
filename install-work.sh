@@ -28,9 +28,10 @@ fi
 # generated ~/.ssh/allowed_signers instead of the tracked base.
 add_allowed_signer philip.holm@ledidi.no ~/.ssh/github_work.pub
 
-# Claude Code skills and agents: shared sets plus the Ledidi-specific ones
-# (skills: review-pr/learn/distribute;
-#  agents: none at present)
+# Claude Code skills and agents: shared sets (both empty at present) plus the
+# work-only ones — every skill of our own is now work-only, and there are no
+# agents of our own at all. The plugin skills link_core linked are untouched:
+# link_claude_dir only prunes links that point into $DOTFILES/claude.
 echo "Linking work Claude skills and agents..."
 link_claude_dir ~/.claude/skills "$DOTFILES/claude/skills" "$DOTFILES/claude/skills.work"
 link_claude_dir ~/.claude/agents "$DOTFILES/claude/agents" "$DOTFILES/claude/agents.work"
