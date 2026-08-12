@@ -170,6 +170,7 @@ link_core() {
   # Claude Code: base settings + agents + skills + statusline.
   # On work, sync-agent-configs.sh replaces settings.json with a generated file.
   ln -sf "$DOTFILES/claude/settings.json" ~/.claude/settings.json
+  ln -sf "$DOTFILES/claude/CLAUDE.md" ~/.claude/CLAUDE.md
   ln -sf "$DOTFILES/claude/statusline-command.sh" ~/.claude/statusline-command.sh
 
   # Shared skills/agents only. install-work.sh re-links with the .work sets
@@ -356,7 +357,7 @@ verify() {
   # install can dangle.
   local unlinked=()
   for link in ~/.claude/skills/explain-diff-html ~/.claude/statusline-command.sh \
-              ~/bin/python ~/bin/pip; do
+              ~/.claude/CLAUDE.md ~/bin/python ~/bin/pip; do
     if [[ ! -L "$link" ]]; then
       unlinked+=("$link")
     elif [[ ! -e "$link" ]]; then

@@ -182,16 +182,6 @@ Open a Datadog link and confirm it returns results before putting it in a
 comment, PR, or report. These URLs are easy to construct plausibly and wrong; a
 link showing nothing costs more than no link.
 
-## Writing for People
-
-Report to me in ASD-STE100 Simplified Technical English.
-
-Everything else a person reads — output in Claude Code, commit messages, GitHub
-issues and PRs, Slack — uses the simplest language that still carries the
-meaning. Aim low enough that a five-year-old keeps up. Write the draft, then read
-it back and ask what makes it simpler without losing the point, and send that
-version instead.
-
 ## Critical Rules
 
 ### Architecture
@@ -204,7 +194,8 @@ version instead.
 
 ### Code Style
 
-- Comments explain _why_, never _what_ — see [code-style.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/code-style.md) for when one is warranted
+- Comments are a last resort — a name that says it makes the comment unnecessary
+- Comment only what the code cannot express (hidden constraint, workaround, surprising invariant), never _what_ the code does. A comment that stays must stand on its own — spell the thing out instead of pointing at it — see [code-style.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/code-style.md)
 - Prefer early returns — narrow to the expected case, bail out on the rest
 - No TypeScript enums — use string types or const maps
 - Never use `as any` or `as unknown`

@@ -4,7 +4,7 @@
 
 - Descriptive names, not `data`, `info`, `item`
 - Generous newlines between blocks
-- Default to no comments. Only add one when strictly necessary to explain _why_ code exists (hidden constraint, subtle invariant, workaround for a specific bug, surprising behavior). Never add comments explaining _what_ the code does. No comments referencing the current task, fix, or callers (e.g. "added for X flow", "used by Y").
+- Default to no comments. Reach for a clearer name first — most comments are a name that never got written. Only add one when strictly necessary to explain _why_ code exists (hidden constraint, subtle invariant, workaround for a specific bug, surprising behavior). A comment that stays must stand on its own: spell the thing out rather than point at a spec, a ticket or a number the reader cannot open. Never add comments explaining _what_ the code does. No comments referencing the current task, fix, or callers (e.g. "added for X flow", "used by Y").
 - No TypeScript enums — string types or const maps
 - Never `as any` or `as unknown`
 - `as SomeType` only when TS can't infer but shape is known

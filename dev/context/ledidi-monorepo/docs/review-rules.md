@@ -45,6 +45,8 @@ Be extremely skeptical and critical, and constructive with it.
 # General
 
 - Code comments: ensure code comments have intent and are not redundant/noisy.
+  Flag a comment that restates the code, one a clearer name would have replaced,
+  and one that takes a paragraph to say a sentence.
 
 # Testing
 
