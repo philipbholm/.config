@@ -218,6 +218,10 @@ Be extremely skeptical and critical, and constructive with it.
   simple helpers to avoid long cumbersome repeated test setup, but it should be
   minimal and have no logic. We have the test application builders that should
   do most of the lifting wrt. test setup.
+- Flag a locally-defined test helper that reads fine as an inline expression:
+  construction wrappers, field accessors (`rowsOf`, `dayOf`, `messageOf`),
+  custom assertions, single-use `.withX()` builder methods. A closure for
+  `.toThrow` and the shared application builders are fine.
 
 ## Translations
 

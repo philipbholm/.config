@@ -187,6 +187,17 @@ const result = await e2eRegistryTestBuilder(client)
 
 ## Anti-Patterns
 
+- Inline trivial test helpers; do not extract them. A test that reads top to
+  bottom beats a shorter one that hides steps behind a local function — even
+  when inlining makes the file longer. Four shapes, all removed in PR review of
+  the analysis tests:
+  - construction wrappers — `readerFor()` around `new PrismaAnalysisTableReader(...)`
+  - field accessors — `rowsOf(result, id)`, `cellsOf`, `dayOf`, `messageOf`
+  - custom assertions — `expectRefusal(...)` instead of an inline `expect`
+  - single-use builder methods — a `.withGenderOptions()` one test calls
+  Not shared helpers, so they stay: a closure passed to
+  `expect(() => ...).toThrow()`, and the application builders
+  (`buildTestApplication`, `registryTestBuilder`, `buildAnalysisSampleCase`).
 - Don't create shared helpers for simple test values — inline them
 - Prefer plain variables over trivial helper functions
 - Don't test test-only utilities
