@@ -79,10 +79,12 @@
     "context7@claude-plugins-official": true,
     "mattpocock-skills@claude-plugins-official": true
   },
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "voice": {
-    "enabled": false
+    "enabled": true,
+    "mode": "hold"
   },
+  "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "preferredNotifChannel": "notifications_disabled",
@@ -90,5 +92,5 @@
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": false,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": false
+  "voiceEnabled": true
 }
