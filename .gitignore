@@ -13,6 +13,7 @@ raycast
 tmp
 node_modules
 browseruse
+openrouter
 .DS_Store
 alacritty/active_theme.toml
 uv
