@@ -9,10 +9,12 @@ Development utility scripts for the monorepo.
 | `dev` | Smart docker compose wrapper — auto-detects main vs worktree |
 | `tunnel` | Start cloudflared tunnels for remote access |
 | `setup-stack` | Prepare a worktree: npm install, backend + frontend type generation, supergraph. Starts no containers |
+| `wt-up` | Create a named worktree under `<repo>/.worktrees/` for any agent harness |
 | `sync-context` | Rewrite `CLAUDE.local.md` + `AGENTS.md` in the main checkout and every worktree with that stack's real ports |
 | `wt-down` | Tear down the worktree you're standing in: nuke its stack, remove the directory, re-sync context. Leaves the branch alone |
 | `sync-agent-configs` | Merge the work-only overlays into the live Claude/Codex/Cursor agent configs (not monorepo-specific) |
 | `claude-notify` | Telegram notify hook for Claude Code plus its `on/off/toggle/status` switch (not monorepo-specific) |
+| `browser` | Launch the Chromium `chrome-devtools-mcp` attaches to on `:9222` — Chrome (work) or Brave (personal), on a persistent debug profile (not monorepo-specific) |
 
 There is no lint/build/test wrapper here. The monorepo's own `lefthook.yml` gates all six workspaces (services/registries, services/patient-bff, apps/registries-frontend, apps/patient-frontend, apps/shell, packages/components) on commit; for ad-hoc runs, call the underlying commands (`npm run build-ts`, `npx vitest run`, `npx biome check`) from the workspace you changed.
 
@@ -85,7 +87,7 @@ The Apollo `router` is not in the set `dev up` starts, and `dev.sh` never rewrit
 ~/work/.dev-stacks/<workspace-id>/docker-compose.stack.yml
 ```
 
-This file is regenerated on every command except `dev status`. The `DEV_STACKS_DIR` env var controls the base directory. The workspace ID is the slugified *directory* name — the repo directory for the main checkout, the worktree directory (`<repo>/.claude/worktrees/<name>`) for a worktree — so switching branches inside a worktree keeps its stack, ports and slot. The slot itself lives next to the override in `worktree-slot`; `tunnel` and `sync-context` read it, and `dev up` is what writes it.
+This file is regenerated on every command except `dev status`. The `DEV_STACKS_DIR` env var controls the base directory. The workspace ID is the slugified *directory* name — the repo directory for the main checkout, the worktree directory (`<repo>/.worktrees/<name>`) for a worktree — so switching branches inside a worktree keeps its stack, ports and slot. The slot itself lives next to the override in `worktree-slot`; `tunnel` and `sync-context` read it, and `dev up` is what writes it.
 
 ## Helsenorge / patient-bff demo setup
 
@@ -174,14 +176,16 @@ ln -sf ~/.config/dev/tunnel.sh ~/bin/tunnel
 ~/bin/dev                -> ~/.config/dev/dev.sh
 ~/bin/tunnel             -> ~/.config/dev/tunnel.sh
 ~/bin/setup-stack        -> ~/.config/dev/setup-stack.sh
+~/bin/wt-up              -> ~/.config/dev/wt-up.sh
 ~/bin/wt-down            -> ~/.config/dev/wt-down.sh
 ~/bin/sync-context       -> ~/.config/dev/sync-context.sh
 ~/bin/sync-agent-configs -> ~/.config/dev/sync-agent-configs.sh
 ~/bin/claude-notify      -> ~/.config/dev/claude-notify.sh
+~/bin/browser            -> ~/.config/dev/browser.sh
 ```
 
-The first seven come from `install-work.sh`; `claude-notify` from
-`install-common.sh`.
+The first seven come from `install-work.sh`; `claude-notify` and `browser` from
+`install-common.sh` (core, so both land on personal machines too).
 
 ## Why Symlinks?
 

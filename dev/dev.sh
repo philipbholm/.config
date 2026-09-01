@@ -937,7 +937,7 @@ echo
 default_services=()
 while IFS= read -r service; do
     [ -n "$service" ] && default_services+=("$service")
-done < <(available_services registries-frontend postgres codelist registries agent)
+done < <(available_services registries-frontend postgres codelist registries)
 
 # Optional services that branches opt into by adding files to the worktree.
 # patient-bff comes from services/patient-bff/docker-compose.yml; patient-frontend

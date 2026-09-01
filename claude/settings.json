@@ -5,6 +5,12 @@
     "CLAUDE_CODE_NO_FLICKER": "1",
     "CLAUDE_CODE_BASALT_COVE": "1"
   },
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:9222"]
+    }
+  },
   "permissions": {
     "allow": [
       "Bash(bb:*)",
@@ -74,11 +80,6 @@
   "statusLine": {
     "type": "command",
     "command": "/Users/philip/.claude/statusline-command.sh"
-  },
-  "enabledPlugins": {
-    "context7@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": false,
-    "mattpocock-skills@claude-plugins-official": true
   },
   "effortLevel": "xhigh",
   "autoMemoryEnabled": false,

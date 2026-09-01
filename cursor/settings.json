@@ -41,10 +41,12 @@
     "**/generated/": true,
     "**/.venv/": true,
     "**/.git/": true,
-    "**/.claude/worktrees/": true
+    "**/.claude/worktrees/": true,
+    "**/.worktrees/": true
   },
   "files.watcherExclude": {
-    "**/.claude/worktrees/**": true
+    "**/.claude/worktrees/**": true,
+    "**/.worktrees/**": true
   },
   "workbench.settings.openDefaultKeybindings": true,
   "workbench.sideBar.location": "right",

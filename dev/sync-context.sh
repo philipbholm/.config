@@ -7,7 +7,6 @@ CONTEXT_DIR="$HOME/.config/dev/context/ledidi-monorepo"
 CLAUDE_TEMPLATE="$CONTEXT_DIR/CLAUDE.local.md"
 AGENTS_TEMPLATE="$CONTEXT_DIR/AGENTS.md"
 MAIN_REPO="$HOME/work/ledidi-monorepo"
-WORKTREE_BASE="$(dev_worktree_base_for_repo "$MAIN_REPO")"
 
 NO_STACK="no-stack"
 
@@ -194,15 +193,20 @@ if [[ -d "$MAIN_REPO" ]]; then
   targets+=("$MAIN_REPO:$(main_repo_slot)")
 fi
 
-while IFS= read -r git_file; do
-  wt=$(dirname "$git_file")
+# Ask Git for every registered worktree instead of assuming a harness-specific
+# directory. This covers native `.worktrees`, legacy Claude worktrees, and
+# Codex-managed worktrees outside the repository.
+while IFS= read -r wt; do
+  [[ "$wt" == "$MAIN_REPO" ]] && continue
+  [[ -d "$wt" ]] || continue
+
   slot_file="$(dev_slot_file_for_repo "$wt")"
   if [[ -f "$slot_file" ]]; then
     targets+=("$wt:$(tr -d '[:space:]' < "$slot_file")")
   else
     targets+=("$wt:$NO_STACK")
   fi
-done < <(find "$WORKTREE_BASE" -type f -name .git 2>/dev/null)
+done < <(git -C "$MAIN_REPO" worktree list --porcelain | sed -n 's/^worktree //p')
 
 if (( ${#targets[@]} == 0 )); then
   echo "No targets found"

@@ -3,11 +3,28 @@
 DEV_SLOT_LABEL="com.ledidi.dev-slot"
 DEV_WORKSPACE_LABEL="com.ledidi.dev-workspace"
 
-# Worktrees live inside the repo at <repo>/.claude/worktrees, which is where
-# Claude Code's native EnterWorktree creates them. WORKTREE_BASE overrides it
-# for tests.
+# New worktrees live inside the repo at <repo>/.worktrees. The location belongs
+# to the repository workflow, not to any one agent harness. WORKTREE_BASE
+# overrides it for tests.
 dev_worktree_base_for_repo() {
-    printf '%s\n' "${WORKTREE_BASE:-${1%/}/.claude/worktrees}"
+    printf '%s\n' "${WORKTREE_BASE:-${1%/}/.worktrees}"
+}
+
+# Include Claude-era worktrees while they still exist. New worktrees always use
+# dev_worktree_base_for_repo; this list exists so context sync and teardown keep
+# working until the old checkouts are removed normally.
+dev_worktree_bases_for_repo() {
+    local repo_root=${1%/}
+
+    if [ -n "${WORKTREE_BASE:-}" ]; then
+        printf '%s\n' "$WORKTREE_BASE"
+        return
+    fi
+
+    printf '%s\n' "$repo_root/.worktrees"
+    if [ -d "$repo_root/.claude/worktrees" ]; then
+        printf '%s\n' "$repo_root/.claude/worktrees"
+    fi
 }
 
 dev_stacks_dir() {

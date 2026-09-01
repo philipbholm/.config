@@ -50,14 +50,15 @@ form into a command.
 
 ### Worktrees
 
-Worktrees live at `<repo>/.claude/worktrees/<name>` — nowhere else.
+Worktrees live at `<repo>/.worktrees/<name>` — nowhere else. The path is shared
+by every agent harness.
 
-- **New branch** → `EnterWorktree` with an **explicit `name`**, then run
-  `setup-stack` inside it.
-- **Existing branch** → `git worktree add .claude/worktrees/<name> <branch>`,
-  then `EnterWorktree path:<path>`, then `setup-stack`.
-- **Never omit the name.** A generated name becomes the Docker stack ID, which
-  produces unpredictable compose project names and orphaned slot files.
+- **New branch** → `wt-up <name> <branch> [start-point]`.
+- **Existing branch** → `wt-up <name> <branch>`.
+- Continue the task from the path printed by `wt-up`, then run `setup-stack`.
+- Always choose an explicit name. The directory name becomes the Docker stack
+  ID, so generated names produce unpredictable compose project names and
+  orphaned slot files.
 - `setup-stack` installs dependencies and generates types. It starts no
   containers.
 

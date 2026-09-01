@@ -97,18 +97,20 @@ make_core_dirs() {
     ~/.cursor \
     ~/.claude \
     ~/.codex/rules \
-    ~/.codex/skills \
+    ~/.agents/skills \
     ~/.ssh \
     ~/.zsh
 }
 
-# Populate a ~/.claude subdirectory with one symlink per entry of the given
-# source dirs:  link_claude_dir <dest> <src_dir>...
+# Populate a directory with one symlink per entry of the given source dirs:
+#   link_entries <dest> <src_dir>...
 # Per-entry rather than one symlink for the whole directory, so the work-only
-# sets (claude/skills.work, claude/agents.work) can be layered on by
-# install-work.sh and stay off personal machines. Each run is a full reset of
-# the links this function manages; machine-local entries are left as they are.
-link_claude_dir() {
+# sets (skills.work, claude/agents.work) can be layered on by install-work.sh
+# and stay off personal machines, and so one source set can be fanned into more
+# than one dest (skills go into both ~/.claude/skills and ~/.agents/skills).
+# Each run is a full reset of the links this function manages; machine-local
+# entries are left as they are.
+link_entries() {
   local dest="$1"
   shift
 
@@ -119,11 +121,11 @@ link_claude_dir() {
   mkdir -p "$dest"
 
   # Drop links made by a previous run (a work skill/agent left behind after a
-  # personal reinstall would otherwise linger). Anything else is machine-local
-  # and is left alone.
+  # personal reinstall would otherwise linger). Anything pointing outside the
+  # dotfiles repo is machine-local and is left alone.
   local link
   for link in "$dest"/*; do
-    if [[ -L "$link" && "$(readlink "$link")" == "$DOTFILES/claude/"* ]]; then
+    if [[ -L "$link" && "$(readlink "$link")" == "$DOTFILES/"* ]]; then
       rm "$link"
     fi
   done
@@ -170,25 +172,34 @@ link_core() {
   # Claude Code: base settings + agents + skills + statusline.
   # On work, sync-agent-configs.sh replaces settings.json with a generated file.
   ln -sf "$DOTFILES/claude/settings.json" ~/.claude/settings.json
-  ln -sf "$DOTFILES/claude/CLAUDE.md" ~/.claude/CLAUDE.md
+  ln -sf "$DOTFILES/agents/AGENTS.md" ~/.claude/CLAUDE.md
   ln -sf "$DOTFILES/claude/statusline-command.sh" ~/.claude/statusline-command.sh
 
-  # Shared skills/agents only. install-work.sh re-links with the .work sets
-  # added; claude/agents is currently empty (every agent is Ledidi-specific).
-  link_claude_dir ~/.claude/skills "$DOTFILES/claude/skills"
-  link_claude_dir ~/.claude/agents "$DOTFILES/claude/agents"
+  # General skills, fanned into both roots: Claude reads only ~/.claude/skills,
+  # while Codex and Cursor read ~/.agents/skills. One source, two link targets —
+  # the unified replacement for the old symlink/rsync/nothing split.
+  # install-work.sh re-links with skills.work added. claude/agents is Claude-only
+  # and currently empty.
+  link_entries ~/.claude/skills "$DOTFILES/skills"
+  link_entries ~/.agents/skills "$DOTFILES/skills"
+  link_entries ~/.claude/agents "$DOTFILES/claude/agents"
 
   # claude-notify: Telegram on/off switch + Stop/Notification hook handler.
   ln -sf "$DOTFILES/dev/claude-notify.sh" ~/bin/claude-notify
 
-  # Codex: config + rules symlinked; skills copied (Codex's loader doesn't
-  # follow symlinked skill dirs reliably). On work, sync-agent-configs.sh
-  # replaces config.toml with a generated file.
+  # browser: launch the Chromium (Chrome/Brave) that chrome-devtools-mcp attaches
+  # to on :9222. Core, since all three agents use that MCP on both profiles.
+  ln -sf "$DOTFILES/dev/browser.sh" ~/bin/browser
+
+  # Codex: config + rules symlinked. Skills come from ~/.agents/skills (linked
+  # above), which Codex reads and symlink-follows — no separate copy anymore. On
+  # work, sync-agent-configs.sh replaces config.toml with a generated file.
   ln -sfn "$DOTFILES/codex/config.toml" ~/.codex/config.toml
+  ln -sfn "$DOTFILES/codex/keybindings.json" ~/.codex/keybindings.json
+  # Codex calls its global instruction file AGENTS.md. Share the same personal
+  # writing and workflow rules Claude loads globally.
+  ln -sfn "$DOTFILES/agents/AGENTS.md" ~/.codex/AGENTS.md
   ln -sfn "$DOTFILES/codex/rules/default.rules" ~/.codex/rules/default.rules
-  for skill_dir in "$DOTFILES"/codex/skills/*/; do
-    rsync -a --delete "$skill_dir" ~/.codex/skills/"$(basename "$skill_dir")"/
-  done
 
   # python/pip → python3/pip3 (real commands, not just shell aliases)
   ln -sf /opt/homebrew/bin/python3 ~/bin/python
@@ -344,7 +355,7 @@ verify() {
   # (~/.claude/agents is a real dir; it is empty on the personal profile.
   # settings.json / config.toml / mcp.json are real files on work machines.)
   local link
-  for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents \
+  for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents ~/.agents/skills \
               ~/.codex/config.toml ~/.cursor/mcp.json ~/.ssh/allowed_signers; do
     if [[ ! -e "$link" ]]; then
       missing+=("$link")
@@ -353,11 +364,12 @@ verify() {
 
   # These must be links, not just present: a real file or directory in their
   # place resolves fine while shadowing the copy the installer meant to link
-  # (link_claude_dir leaves such an entry alone), and a link left by an older
+  # (link_entries leaves such an entry alone), and a link left by an older
   # install can dangle.
   local unlinked=()
-  for link in ~/.claude/skills/explain-diff-html ~/.claude/statusline-command.sh \
-              ~/.claude/CLAUDE.md ~/bin/python ~/bin/pip; do
+  for link in ~/.claude/skills/explain-diff-html ~/.agents/skills/explain-diff-html \
+              ~/.claude/statusline-command.sh ~/.claude/CLAUDE.md ~/.codex/AGENTS.md \
+              ~/.codex/keybindings.json ~/bin/browser ~/bin/python ~/bin/pip; do
     if [[ ! -L "$link" ]]; then
       unlinked+=("$link")
     elif [[ ! -e "$link" ]]; then

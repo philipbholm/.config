@@ -10,7 +10,7 @@ trust_level = "trusted"
 
 [mcp_servers.chrome-devtools]
 command = "npx"
-args = ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:9222", "--isolated"]
+args = ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:9222"]
 
 [notice]
 hide_rate_limit_model_nudge = true
@@ -23,6 +23,3 @@ status_line_use_colors = true
 
 [tui.model_availability_nux]
 "gpt-5.5" = 4
-
-[plugins."superpowers@openai-curated"]
-enabled = true

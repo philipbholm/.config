@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is a macOS dotfiles and workflow repo rooted at `~/.config`. Top-level directories map directly to managed tools: `zsh/`, `tmux/`, `nvim/`, `alacritty/`, `git/`, `cursor/`, `claude/`, and `codex/`. Development automation lives in `dev/`, including the worktree teardown helper (`wt-down.sh`), Docker stack tooling (`dev.sh`), and the agent notification hooks (`claude-notify.sh`, `codex-notify.sh`). `dev/admin-mock/` is the only standalone TypeScript package in the repo.
+This repository is a macOS dotfiles and workflow repo rooted at `~/.config`. Top-level directories map directly to managed tools: `zsh/`, `tmux/`, `nvim/`, `alacritty/`, `git/`, `cursor/`, `claude/`, and `codex/`; `agents/` holds harness-neutral global guidance, and `skills/` (plus work-only `skills.work/`) holds the shared `SKILL.md` skill set that Claude Code, Codex, and Cursor all load. Development automation lives in `dev/`, including the worktree helpers (`wt-up.sh`, `wt-down.sh`), Docker stack tooling (`dev.sh`), the debug-browser launcher (`browser.sh`), and the agent notification hooks (`claude-notify.sh`, `codex-notify.sh`). `dev/admin-mock/` is the only standalone TypeScript package in the repo.
 
 ## Build, Test, and Development Commands
 
@@ -10,7 +10,7 @@ Use the repo from `~/.config`.
 
 - `./install.sh work|personal` picks a profile and execs `install-<profile>.sh`; both source `install-common.sh`, which installs brew dependencies, creates expected directories, and refreshes symlinks. With no profile the dispatcher only prints usage and exits 1.
 - `zsh -lc 'source zsh/.zshrc'` smoke-tests shell config syntax and startup.
-- `bash dev/setup-stack.sh` bootstraps a worktree (npm install + codegen); `bash dev/wt-down.sh` tears the current one down. Worktrees themselves are created natively under `<repo>/.claude/worktrees/`.
+- `bash dev/wt-up.sh <name> <branch> [start-point]` creates a harness-agnostic worktree under `<repo>/.worktrees/`; `bash dev/setup-stack.sh` bootstraps it and `bash dev/wt-down.sh` tears it down.
 - `bash dev/dev.sh status` shows active dev stacks; `bash dev/dev.sh up` starts the current stack when run inside a supported repo.
 - `bash -n dev/<script>.sh` syntax-checks a script without running it; every script in `dev/` is Bash.
 - This repo wraps no monorepo lint/build/test runner. The Ledidi monorepo's own `lefthook.yml` gates all six workspaces on commit; for ad-hoc runs, call the underlying commands (`npm run build-ts`, `npx vitest run`, `npx biome check`) from the workspace you changed.

@@ -4,8 +4,11 @@
 
 # Git & worktrees
 #
-# Worktrees are created natively by Claude Code (EnterWorktree) under
-# <repo>/.claude/worktrees/. wt-down tears the current one down.
+# Worktrees are shared by every agent harness under <repo>/.worktrees/.
+
+wt-up() {
+  /Users/philip/.config/dev/wt-up.sh "$@"
+}
 
 wt-down() {
   /Users/philip/.config/dev/wt-down.sh "$@"

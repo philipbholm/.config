@@ -15,6 +15,14 @@ const PROTO_DIR = path.resolve(__dirname, "../api");
 const WORKSPACES = [
   { id: "stubbed-workspace-1", name: "Ledidi", customer_id: "stubbed-customer-id" },
   { id: "stubbed-workspace-2", name: "Demo Workspace", customer_id: "stubbed-customer-id" },
+  // The two seeded ACME workspaces registries treats as able to store PII (see
+  // services/registries/src/adapters/workspace-pii-encryption-keys.ts) and the
+  // registries-frontend pins as SEEDED_WORKSPACE_IDS. GetWorkspacesForUser
+  // returns every workspace to every user, so listing them here is what lets a
+  // codelist-enabled registry pass createRegistry's workspace-membership guard
+  // locally.
+  { id: "019e8f0f-90cc-776f-ae76-4190088bad27", name: "ACME Project Alpha", customer_id: "stubbed-customer-id" },
+  { id: "019e8f0f-911a-716a-8a73-3077448eeff9", name: "ACME Project Beta", customer_id: "stubbed-customer-id" },
 ];
 
 function userToProto(u: MockUser) {

@@ -40,9 +40,8 @@ ln -sf ~/.config/cursor-agent/mcp.json       ~/.cursor/mcp.json
 ln -sf ~/.config/cursor-agent/statusline.sh  ~/.cursor/statusline.sh
 chmod +x ~/.config/cursor-agent/statusline.sh
 
-# 4. Install superpowers (interactive — no CLI equivalent)
-#    In a Cursor agent chat, run:
-#        /add-plugin superpowers
+# 4. Skills: the installer links the shared set into ~/.agents/skills, which the
+#    Cursor CLI reads — nothing to install by hand.
 ```
 
 ## MCP servers

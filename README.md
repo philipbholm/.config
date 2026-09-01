@@ -85,7 +85,7 @@ Notes:
 
 - `~/.config` contains this repo and the managed local configuration
 - `~/work` contains main working repositories such as `ledidi-monorepo`, `legacy`, and related work repos
-- Git worktrees live inside each repo at `<repo>/.claude/worktrees/<name>`, created natively by Claude Code and torn down with the `wt-down` helper
+- Git worktrees live inside each repo at `<repo>/.worktrees/<name>`, created with the harness-agnostic `wt-up` helper and torn down with `wt-down`
 - `~/work/.dev-stacks` is used by the local `dev` tooling for generated Docker Compose stack files
 - `~/private` contains private/personal repositories
 - `~/vaults` contains Obsidian or other note vaults
