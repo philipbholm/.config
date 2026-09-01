@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Codex notify hook - posts a Telegram message when Codex is idle.
+# Codex notify hook - posts a macOS notification when Codex is idle.
 
 payload="${1:-}"
 cwd="${PWD:-unknown}"
@@ -20,24 +20,13 @@ if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
   [ -n "$payload_cwd" ] && cwd="$payload_cwd"
 fi
 
-if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
-  secrets_file="$HOME/.config/zsh/.zsh_secrets"
-  if [ -r "$secrets_file" ]; then
-    set -a
-    # shellcheck disable=SC1090
-    . "$secrets_file" >/dev/null 2>&1 || true
-    set +a
-  fi
-fi
-
-if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
-  log "missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"
-  exit 0
-fi
-
-if ! curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-  --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-  --data-urlencode "text=Codex idle - $(basename "$cwd")" \
-  >/dev/null 2>>"$log_file"; then
-  log "telegram send failed"
+message="idle - $(basename "$cwd")"
+if command -v terminal-notifier >/dev/null 2>&1; then
+  terminal-notifier -title "Codex" -message "$message" -sound Hero \
+    -group "codex-$(basename "$cwd")" -activate org.alacritty \
+    >/dev/null 2>>"$log_file" || log "send failed: $message"
+else
+  esc=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  osascript -e "display notification \"$esc\" with title \"Codex\" sound name \"Hero\"" \
+    >/dev/null 2>>"$log_file" || log "send failed: $message"
 fi

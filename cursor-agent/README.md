@@ -10,7 +10,12 @@ from the Cursor GUI editor settings in `../cursor/` (which symlink into
 |------|---------------|-----------------|
 | `mcp.json` | `~/.cursor/mcp.json` | **symlink** → this repo |
 | `statusline.sh` | `~/.cursor/statusline.sh` | **symlink** → this repo |
+| `hooks.json` | `~/.cursor/hooks.json` | **symlink** → this repo |
 | `cli-config.json` | `~/.cursor/cli-config.json` | **copy only** (see below) |
+
+`hooks.json` registers the CLI `stop` hook that runs `../dev/cursor-notify.sh`
+(a macOS banner when a turn ends), matching Claude's `Stop` hook and Codex's
+`notify`.
 
 ### Why `cli-config.json` is not symlinked
 
@@ -38,7 +43,8 @@ jq -s '.[0] * .[1]' ~/.cursor/cli-config.json \
 # 3. Symlink the no-secret files
 ln -sf ~/.config/cursor-agent/mcp.json       ~/.cursor/mcp.json
 ln -sf ~/.config/cursor-agent/statusline.sh  ~/.cursor/statusline.sh
-chmod +x ~/.config/cursor-agent/statusline.sh
+ln -sf ~/.config/cursor-agent/hooks.json     ~/.cursor/hooks.json
+chmod +x ~/.config/cursor-agent/statusline.sh ~/.config/dev/cursor-notify.sh
 
 # 4. Skills: the installer links the shared set into ~/.agents/skills, which the
 #    Cursor CLI reads — nothing to install by hand.

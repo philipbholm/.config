@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Telegram notifications for Claude Code — on/off switch + hook handler.
+# macOS notifications for Claude Code — on/off switch + hook handler.
 #
 # Usage:
 #   claude-notify on|off|toggle|status   manage notifications
@@ -7,13 +7,14 @@
 #
 # Wired into Claude Code via the Stop and Notification hooks in
 # claude/settings.json. State lives in a machine-local file (not version
-# controlled); a missing state file counts as enabled. Sends are best-effort
-# and silently no-op when the Telegram secrets are absent.
+# controlled); a missing state file counts as enabled. Posts via
+# terminal-notifier (Brewfile) with osascript as a floor; clicking the
+# banner focuses Alacritty.
 
 set -u
 
-STATE_FILE="${CLAUDE_NOTIFY_STATE:-$HOME/.claude/telegram-notify.state}"
-LOG_FILE="${CLAUDE_NOTIFY_LOG:-$HOME/.claude/telegram-notify.log}"
+STATE_FILE="${CLAUDE_NOTIFY_STATE:-$HOME/.claude/notify.state}"
+LOG_FILE="${CLAUDE_NOTIFY_LOG:-$HOME/.claude/notify.log}"
 
 log() {
   printf '%s %s\n' "$(date -Iseconds)" "$*" >>"$LOG_FILE" 2>/dev/null || true
@@ -30,30 +31,22 @@ set_state() {
 }
 
 report() {
-  if is_enabled; then echo "Claude Telegram notifications: ON"; else echo "Claude Telegram notifications: OFF"; fi
+  if is_enabled; then echo "Claude notifications: ON"; else echo "Claude notifications: OFF"; fi
 }
 
 send() {
-  # $1 = message text. Loads secrets lazily so it works even when the hook
-  # runs without the interactive shell's environment.
-  if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
-    local secrets_file="$HOME/.config/zsh/.zsh_secrets"
-    if [ -r "$secrets_file" ]; then
-      set -a
-      # shellcheck disable=SC1090
-      . "$secrets_file" >/dev/null 2>&1 || true
-      set +a
-    fi
+  # $1 = message, $2 = sound, $3 = group key (coalesces banners per project).
+  local message="$1" sound="$2" group="$3"
+  if command -v terminal-notifier >/dev/null 2>&1; then
+    terminal-notifier -title "Claude Code" -message "$message" -sound "$sound" \
+      -group "claude-$group" -activate org.alacritty >/dev/null 2>>"$LOG_FILE" \
+      || log "send failed: $message"
+  else
+    local esc
+    esc=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    osascript -e "display notification \"$esc\" with title \"Claude Code\" sound name \"$sound\"" \
+      >/dev/null 2>>"$LOG_FILE" || log "send failed: $message"
   fi
-
-  if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
-    log "skip: missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"
-    return 0
-  fi
-
-  curl -fsS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-    --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-    --data-urlencode "text=$1" >/dev/null 2>>"$LOG_FILE" || log "send failed: $1"
 }
 
 case "${1:-status}" in
@@ -85,7 +78,7 @@ case "${1:-status}" in
     case "$bg" in ''|*[!0-9]*) bg=0 ;; esac
     [ "$bg" -gt 0 ] && { log "skip stop: $bg background task(s) in flight"; exit 0; }
     cwd=$(printf '%s' "$payload" | jq -r '.cwd // "unknown"' 2>/dev/null)
-    send "Claude Code done — $(basename "$cwd")"
+    send "done — $(basename "$cwd")" Hero "$(basename "$cwd")"
     ;;
   notification)
     is_enabled || exit 0
@@ -99,7 +92,8 @@ case "${1:-status}" in
     # notification, so drop it. permission_prompt/elicitation/etc. still notify.
     [ "$ntype" = "idle_prompt" ] && { log "skip notification: idle_prompt"; exit 0; }
     cwd=$(printf '%s' "$payload" | jq -r '.cwd // "unknown"' 2>/dev/null)
-    send "Claude Code [$ntype] — $(basename "$cwd")"
+    # No leading "[" — terminal-notifier drops a -message that starts with it.
+    send "$ntype — $(basename "$cwd")" Sosumi "$(basename "$cwd")"
     ;;
   *)
     echo "usage: claude-notify on|off|toggle|status" >&2

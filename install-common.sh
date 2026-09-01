@@ -164,10 +164,12 @@ link_core() {
   ln -sf "$DOTFILES/cursor/settings.json" ~/.cursor/settings.json
   ln -sf "$DOTFILES/cursor/keybindings.json" ~/.cursor/keybindings.json
 
-  # Cursor agent (CLI): base mcp.json + statusline.
+  # Cursor agent (CLI): base mcp.json + statusline + notify hook.
   # On work, sync-agent-configs.sh replaces mcp.json with a generated file.
+  # hooks.json fires dev/cursor-notify.sh (macOS banner) on the CLI `stop` event.
   ln -sfn "$DOTFILES/cursor-agent/mcp.json" ~/.cursor/mcp.json
   ln -sf "$DOTFILES/cursor-agent/statusline.sh" ~/.cursor/statusline.sh
+  ln -sfn "$DOTFILES/cursor-agent/hooks.json" ~/.cursor/hooks.json
 
   # Claude Code: base settings + agents + skills + statusline.
   # On work, sync-agent-configs.sh replaces settings.json with a generated file.
@@ -184,7 +186,7 @@ link_core() {
   link_entries ~/.agents/skills "$DOTFILES/skills"
   link_entries ~/.claude/agents "$DOTFILES/claude/agents"
 
-  # claude-notify: Telegram on/off switch + Stop/Notification hook handler.
+  # claude-notify: macOS notification on/off switch + Stop/Notification hook handler.
   ln -sf "$DOTFILES/dev/claude-notify.sh" ~/bin/claude-notify
 
   # browser: launch the Chromium (Chrome/Brave) that chrome-devtools-mcp attaches
@@ -234,6 +236,14 @@ setup_launch_agents() {
   local LAUNCH_AGENTS="$HOME/Library/LaunchAgents"
   mkdir -p "$LAUNCH_AGENTS"
   local plist name label
+  # Prune agents whose repo plist was removed (now-broken symlinks into launchd/)
+  for plist in "$LAUNCH_AGENTS"/com.philip.*.plist; do
+    if [ -L "$plist" ] && [ ! -e "$plist" ]; then
+      label="$(basename "${plist%.plist}")"
+      launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+      rm -f "$plist"
+    fi
+  done
   for plist in "$DOTFILES"/launchd/*.plist; do
     name="$(basename "$plist")"
     label="${name%.plist}"
@@ -352,7 +362,8 @@ verify() {
   done
 
   # Paths that must resolve for the shell, git and agent configs to work at all
-  # (~/.claude/agents is a real dir; it is empty on the personal profile.
+  # (~/.claude/skills and ~/.claude/agents are real dirs, both empty on a
+  # personal machine — plugin skills come from the plugin, not from links here.
   # settings.json / config.toml / mcp.json are real files on work machines.)
   local link
   for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents ~/.agents/skills \

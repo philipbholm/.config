@@ -1,11 +1,31 @@
 #!/bin/bash
+# JankyBorders launcher/reconfigurator.
+# Usage: bordersrc [light|dark]
+# No argument (launchd startup path): read the current macOS appearance.
+
+MODE="${1:-}"
+if [ -z "$MODE" ]; then
+	if defaults read -g AppleInterfaceStyle 2>/dev/null | grep -q Dark; then
+		MODE=dark
+	else
+		MODE=light
+	fi
+fi
+
+if [ "$MODE" = "dark" ]; then
+	active_color="0xffe2e2e3"
+	inactive_color="0xff414550"
+else
+	active_color="0xff0451a5"
+	inactive_color="0xffc9c9c9"
+fi
 
 options=(
 	style=round
 	width=10.0
 	hidpi=on
-	active_color="0xffe2e2e3"
-	inactive_color="0xff414550"
+	active_color="$active_color"
+	inactive_color="$inactive_color"
 )
 
 /opt/homebrew/bin/borders "${options[@]}"
