@@ -41,9 +41,9 @@ into `~/.claude/agents`, on both profiles; `install-work.sh` calls it again to a
 switching a machine from work to personal removes the work skills and agents; anything
 you drop into those directories by hand is left untouched.
 
-Plugin skills are not linked here at all. `settings.json` enables the plugin
-(`mattpocock-skills@claude-plugins-official`, `context7@claude-plugins-official`) and
-Claude Code loads its skills from the plugin cache under the plugin's namespace, e.g.
-`mattpocock-skills:tdd`. Update them with `/plugin update`, no reinstall needed.
+The `mattpocock-skills@claude-plugins-official` plugin is installed but disabled.
+The vendored skills linked through `~/.claude/skills` are the active copies; enabling
+the plugin would expose a second copy of the same skills. `claude plugin list` shows
+the current plugin state.
 
 Runtime files (history, cache, projects, etc.) live directly in `~/.claude` and are not version-controlled.

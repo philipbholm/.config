@@ -90,8 +90,13 @@ Repos under `~/work/` keep their agent issue tracker inside the repo's ignored
     <repo>/.scratch/agents/issue-tracker.md
 
 Read that file first, before any `/wayfinder`, `/triage`, `/to-spec` or
-`/to-tickets` work. It is the authority on where maps, tickets and specs live.
-Its sibling `agents/triage-labels.md` holds the triage label vocabulary.
+`/to-tickets` work, or when `/code-review` needs an originating issue. It is
+the authority on where maps, tickets and specs live. Its sibling
+`agents/triage-labels.md` holds the triage label vocabulary.
+
+Read `<repo>/.scratch/agents/domain.md` before an engineering skill explores a
+repo. It defines where the repo's `CONTEXT.md` and ADRs live and how to consume
+them.
 
 Maps, tickets and specs sit beside the `agents/` directory, one directory per
 effort:
@@ -106,4 +111,5 @@ can still be there, closed. Do not read them as the tracker, and do not create
 new ones. Pull requests are different — they stay on GitHub as normal.
 
 If `<repo>/.scratch/` does not exist, the repo has no tracker yet.
-Ask me before you make one.
+Ask me before you make one, or run `/setup-matt-pocock-skills` when I request
+the complete tracker, label and domain setup.
