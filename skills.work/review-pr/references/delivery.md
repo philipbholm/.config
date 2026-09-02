@@ -11,8 +11,7 @@ it. Do not write the report into the repository.
 The report contains:
 
 - PR title, URL, author, and base and head SHAs
-- review timestamp, harness name, and the exact model name supplied by the
-  runtime; use `unknown model` rather than inferring a model
+- review timestamp and harness name
 - a verdict: approve, comment, or ask for changes
 - counts by severity and pass
 - separate Coding Standards, Security and Privacy, and Correctness and
@@ -61,12 +60,11 @@ label in the prose when more than one pass found the problem.
 End every posted inline comment and the review body with:
 
 ```text
-🤖 **Automated review by <harness> using <model>.**
+🤖 **Automated review by <harness>.**
 ```
 
-Use the current runtime's harness name (`Claude Code`, `Codex`, or `Cursor`) and
-the exact model name supplied by the runtime. Use `unknown model` rather than
-inferring one.
+Use the current runtime's harness name (`Claude Code`, `Codex`, or `Cursor`).
+Do not name the model.
 
 Do not approve or request changes unless the user separately and explicitly
 asks for that review event.
