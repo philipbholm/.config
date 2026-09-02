@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is a macOS dotfiles and workflow repo rooted at `~/.config`. Top-level directories map directly to managed tools: `zsh/`, `tmux/`, `nvim/`, `alacritty/`, `git/`, `cursor/`, `claude/`, and `codex/`; `agents/` holds harness-neutral global guidance, and `skills/` (plus work-only `skills.work/`) holds the shared `SKILL.md` skill set that Claude Code, Codex, and Cursor all load. Development automation lives in `dev/`, including the worktree helpers (`wt-up.sh`, `wt-down.sh`), Docker stack tooling (`dev.sh`), the debug-browser launcher (`browser.sh`), and the agent notification hooks (`claude-notify.sh`, `codex-notify.sh`). `dev/admin-mock/` is the only standalone TypeScript package in the repo.
+This repository is a macOS dotfiles and workflow repo rooted at `~/.config`. Top-level directories map directly to managed tools: `zsh/`, `tmux/`, `nvim/`, `alacritty/`, `git/`, `cursor/`, `claude/`, and `codex/`; `agents/` holds harness-neutral global guidance, and `skills/` (plus work-only `skills.work/`) holds the shared `SKILL.md` skill set that Claude Code, Codex, and Cursor all load. Development automation lives in `dev/`, including the worktree helpers (`wt-up.sh`, `wt-down.sh`), Docker stack tooling (`dev.sh`), the debug-browser launcher (`browser.sh`), and the agent notification hooks (`claude-notify.sh`, `codex-notify.sh`, `cursor-notify.sh`). `dev/admin-mock/` is the only standalone TypeScript package in the repo.
 
 ## Build, Test, and Development Commands
 

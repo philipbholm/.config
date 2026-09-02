@@ -8,10 +8,15 @@ from the Cursor GUI editor settings in `../cursor/` (which symlink into
 
 | File | Live location | How it's linked |
 |------|---------------|-----------------|
-| `mcp.json` | `~/.cursor/mcp.json` | **symlink** → this repo |
+| `mcp.json` | `~/.cursor/mcp.json` | **symlink** on personal; **generated merge** on work |
 | `statusline.sh` | `~/.cursor/statusline.sh` | **symlink** → this repo |
 | `hooks.json` | `~/.cursor/hooks.json` | **symlink** → this repo |
 | `cli-config.json` | `~/.cursor/cli-config.json` | **copy only** (see below) |
+
+On a personal machine `install-common.sh` symlinks `mcp.json` (chrome-devtools
+only). On a work machine `sync-agent-configs.sh` replaces that symlink with a
+real file: base + `mcp.work.json` (adds Datadog). Do not re-symlink the base on
+a work machine — that drops Datadog.
 
 `hooks.json` registers the CLI `stop` hook that runs `../dev/cursor-notify.sh`
 (a macOS banner when a turn ends), matching Claude's `Stop` hook and Codex's
@@ -40,11 +45,14 @@ tmp=$(mktemp)
 jq -s '.[0] * .[1]' ~/.cursor/cli-config.json \
   ~/.config/cursor-agent/cli-config.json > "$tmp" && mv "$tmp" ~/.cursor/cli-config.json
 
-# 3. Symlink the no-secret files
-ln -sf ~/.config/cursor-agent/mcp.json       ~/.cursor/mcp.json
+# 3. Symlink statusline + hooks.
 ln -sf ~/.config/cursor-agent/statusline.sh  ~/.cursor/statusline.sh
 ln -sf ~/.config/cursor-agent/hooks.json     ~/.cursor/hooks.json
 chmod +x ~/.config/cursor-agent/statusline.sh ~/.config/dev/cursor-notify.sh
+
+# mcp.json — pick one. Do not run both.
+# Personal: ln -sf ~/.config/cursor-agent/mcp.json ~/.cursor/mcp.json
+# Work:     bash ~/.config/dev/sync-agent-configs.sh
 
 # 4. Skills: the installer links the shared set into ~/.agents/skills, which the
 #    Cursor CLI reads — nothing to install by hand.
@@ -52,10 +60,11 @@ chmod +x ~/.config/cursor-agent/statusline.sh ~/.config/dev/cursor-notify.sh
 
 ## MCP servers
 
-`mcp.json` mirrors Claude Code and Codex: `chrome-devtools` and `datadog`.
-Datadog launches via `../dev/mcp-datadog.sh`, which maps `DD_API_KEY` /
-`DD_APP_KEY` (from the gitignored `~/.config/zsh/.zsh_secrets`) to the
-`DATADOG_*` vars the MCP server expects — so no secret is committed.
+Tracked `mcp.json` is the shared base: `chrome-devtools` only. Work machines
+add `datadog` via `mcp.work.json`. Datadog launches via `../dev/mcp-datadog.sh`,
+which maps `DD_API_KEY` / `DD_APP_KEY` (from the gitignored
+`~/.config/zsh/.zsh_secrets`) to the `DATADOG_*` vars the MCP server expects —
+so no secret is committed.
 
 Approve / check servers with:
 
