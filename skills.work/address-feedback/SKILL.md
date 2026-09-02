@@ -76,7 +76,9 @@ earlier one has already landed, so keep that order when you work through them.
 ## Check the scale before starting
 
 The default is all of them. Every automated finding gets evaluated — that's the
-point, and a finding nobody looked at is a finding that stays open.
+point, and a finding nobody looked at is a finding that stays open. Only what
+was posted is in scope: a review can hold findings back into an HTML report,
+and those are the user's to weigh.
 
 Over roughly 40 items, stop and report the count and the automated/human split
 before starting, so the size isn't a surprise. Take the lot unless the user
@@ -88,8 +90,8 @@ narrows it. The useful narrowing axes:
   answer them.
 - **threads already settled in conversation**, and the user's own replies.
   These are the only ones to drop on your own initiative, and say which.
-- **by severity** — only if the user asks. Deferring the `Nit`s leaves them
-  unanswered on the PR.
+- **by severity** — only if the user asks. Deferring the lowest severity on the
+  PR leaves those threads unanswered.
 
 ## Telling automated comments from human ones
 
@@ -98,8 +100,7 @@ member accounts, and the same account carries both kinds. `user.type` is `User`
 for every one of them.
 
 Go by the body. Inline findings all open with the same header, whoever ran the
-review: a severity in bold (`Critical`, `Blocker`, `Major`, `Minor`, `Nit`), a
-`·`, and a backticked category —
+review: a severity in bold, a `·`, and a backticked slug —
 
 ```text
 🟡 **Minor** · `test-coverage`
@@ -107,20 +108,30 @@ review: a severity in bold (`Critical`, `Blocker`, `Major`, `Minor`, `Nit`), a
 ```
 
 Match on the severity word, not the emoji: the colour varies for a given
-severity.
+severity. The words in use are `Critical`, `Blocker`, `Major`, `Minor` and
+`Nit` — a reviewer driven by hand uses a wider set than any one skill defines.
+Read the slug as prose and take it at face value; it is a pass name in one
+review and a topic in the next, and nothing here depends on its value.
+
+An inline comment is also automated when it *ends* with the attribution footer,
+whether or not the header is there. Either signal is enough, and this only ever
+moves a comment from human to automated.
 
 **Review bodies are the part that varies.** Different people drive the reviewer
-differently and each shape announces itself its own way. All three of these were
-on one PR at once:
+differently and each shape announces itself its own way. All four of these were
+on one PR at once, the last from an older review that still named its model:
 
 ```text
 🤖 **Automated review by Claude Code.**
 ## Automated review — PR #3707 … produced automatically by **Claude Code**
 _This review was produced automatically by Claude Code._
+🤖 **Automated review by Claude Code using claude-opus-4-6.**
 ```
 
-So read it as *an announcement at the top of the body*, not as a phrase to grep
-for. A person writing "the automated review is wrong here" is a person.
+So read it as *an announcement at the top of the body, or the footer at the
+bottom*, not as a phrase to grep for. These four are samples and not a list to
+match against. A person writing "the automated review is wrong here" is a
+person.
 
 Everything else is human — short prose, questions, bare ` ```suggestion ` blocks,
 and any reply inside a thread an automated comment started, since a person
@@ -135,7 +146,10 @@ without the user seeing it.
 Take the items in order. For each one:
 
 1. **Read the full comment**, then the surrounding code and the conventions for
-   it. If the item carries an `original_commit_id`, diff that SHA against the
+   it. A review body can carry several findings at once, since findings with no
+   valid inline location all land there. Split such a body into one item per
+   finding, and answer them together in one reply on that body — GitHub has no
+   separate thread to answer each on. If the item carries an `original_commit_id`, diff that SHA against the
    branch first — a comment on a revision the branch has moved past may already
    be answered in the log, and then it's `already-fixed`, not work.
 2. **Decide the outcome:** `fix`, `already-fixed`, `disagree`, or `unclear`.
