@@ -55,6 +55,9 @@ by every agent harness.
 
 - **New branch** → `wt-up <name> <branch> [start-point]`.
 - **Existing branch** → `wt-up <name> <branch>`.
+- Name the branch in kebab-case, short, and with no prefix.
+  `numeric-summary-family`, not `feat/numeric-summary-family` and not
+  `worktree-numeric-summary-family`.
 - Continue the task from the path printed by `wt-up`, then run `setup-stack`.
 - Always choose an explicit name. The directory name becomes the Docker stack
   ID, so generated names produce unpredictable compose project names and
