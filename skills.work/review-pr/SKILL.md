@@ -1,7 +1,7 @@
 ---
 name: review-pr
 description: Review a GitHub pull request through isolated Coding Standards, Security and Privacy, and Correctness and Reliability passes. Produces an HTML report by default and posts only when explicitly requested. Use only for a PR number; use code-review for local branches and fixed-point diffs.
-argument-hint: "[pr number]"
+argument-hint: "[pr number] [report|post]"
 ---
 
 Review one GitHub pull request. The default `report` mode is read-only. Use
@@ -24,6 +24,9 @@ isolated subagents, stop and report that the review contract cannot be met.
 
 Use the supplied PR number. Ask for one when it is missing. Do not use
 this skill for a local branch or an arbitrary diff.
+
+Default to `report` mode. Use `post` mode only when the user passes `post` as
+an argument or asks in plain words to publish the findings to GitHub.
 
 Fetch the PR metadata, including its repository, number, URL, title, body,
 author, files, base SHA, and head SHA. Confirm both SHAs resolve locally,
