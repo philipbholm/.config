@@ -44,8 +44,9 @@ start** — `dev up postgres -d` in that worktree. Verification runs `vitest`, a
 an integration test with no database fails in a way that looks exactly like a
 broken fix.
 
-Read `CLAUDE.local.md` and its linked docs for the code you are changing — the
-project conventions live there.
+Read the repository's `AGENTS.md` or `CLAUDE.local.md` and
+`/Users/philip/.config/dev/context/CODING_STANDARDS.md` before changing code.
+Repository context may add stricter rules to the shared standards.
 
 ## Collect the feedback
 
