@@ -29,28 +29,28 @@ This covers everything I read: chat, status summaries, reports of work you
 already did, commit messages, PR and issue text, Slack, README files, test
 names, and strings a user sees.
 
-<examples>
-<example>
-Weak: The refactor consolidates duplicated validation logic across the handler
+### Examples
+
+**Weak:** The refactor consolidates duplicated validation logic across the handler
 layer, thereby reducing the surface area for divergent behaviour.
-Better: Three handlers each had their own copy of the same validation. Now they
+
+**Better:** Three handlers each had their own copy of the same validation. Now they
 share one function.
-</example>
-<example>
-Weak: A table shows the prefix that ends at its own level, and nothing below it.
-Better: A table carries the columns down to its own level, and stops there. A
+
+**Weak:** A table shows the prefix that ends at its own level, and nothing below it.
+
+**Better:** A table carries the columns down to its own level, and stops there. A
 patientEventEntry table has the first three; the fourth is absent, not null.
-</example>
-<example>
-Weak: Two things worth knowing, neither a blocker.
-Better: One problem you must know about. The rest of the stack uses this field,
+
+**Weak:** Two things worth knowing, neither a blocker.
+
+**Better:** One problem you must know about. The rest of the stack uses this field,
 so those branches will not compile after you restack.
-</example>
-</examples>
 
 ## Code comments
 
-A different register. Write fewer comments, not shorter ones.
+Code comments follow different writing rules. Write fewer comments, not shorter
+ones.
 
 Reach for a better name before a comment.
 
@@ -64,12 +64,21 @@ Do not write "deliberately", "intentionally", "Note that", or capitalised NOT.
 
 Only touch comments in code you are already changing.
 
-<example>
-Weak: // One repeating on the event alone sits above the other repeating on a
-form inside it, and broadcasts down, so the two do line up.
-Better: // No formId means repeating on the event alone: its one value per
-event entry broadcasts down to every form entry inside it.
-</example>
+### Example
+
+**Weak:**
+
+```text
+// One repeating on the event alone sits above the other repeating on a form
+// inside it, and broadcasts down, so the two do line up.
+```
+
+**Better:**
+
+```text
+// No formId means repeating on the event alone: its one value per event entry
+// broadcasts down to every form entry inside it.
+```
 
 ## Agent skills
 
@@ -98,7 +107,3 @@ new ones. Pull requests are different — they stay on GitHub as normal.
 
 If `<repo>/.scratch/` does not exist, the repo has no tracker yet.
 Ask me before you make one.
-
-<writing>
-Lead with the outcome. Name things. Leave things out instead of compressing.
-</writing>
