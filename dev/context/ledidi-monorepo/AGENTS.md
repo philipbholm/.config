@@ -43,6 +43,58 @@ files, or configs to reach a service breaks the worktree instead of fixing it.
 
 ## Workflow
 
+### Creating a PR
+
+"Create a PR that <does something>" runs every step below; a bare "create pr"
+runs the ones whose precondition still holds. A preceding `/grilling` or
+`/to-spec` does not consume the instruction — interview in the main checkout,
+and start step 1 when I confirm. That confirmation is the only approval the
+design needs.
+
+1. **Spec.** Larger efforts get a spec at `.scratch/<slug>/spec.md` before
+   implementation; judge the size yourself. A smaller change gets no spec file:
+   its design, and the alternative you discarded, go in the PR's `## Why`.
+   Effort files always live in the main checkout's `.scratch/`, reached by
+   absolute path — a worktree has none of its own.
+
+2. **Worktree.** Uncommitted changes where you are standing mean stop and ask;
+   they may be the work I mean. A feature branch with commits in the main
+   checkout comes along as-is: `wt-up <name> <branch>`. Anything else starts
+   fresh: `git fetch origin`, then branch from `origin/master`, because `wt-up`
+   fetches nothing and an inherited HEAD is whatever was checked out last. One
+   kebab-case string names both worktree and branch — report it in your first
+   update, and stop and ask when a directory of that name already exists.
+
+3. **Dependencies.** Run `setup-stack`, naming any extra workspace the branch
+   touches.
+
+4. **Containers.** Start `dev up postgres -d`. Browser work needs `dev up`, and
+   `dev status` before it: I can run three stacks at once, so ask before
+   starting a fourth.
+
+5. **Implement**, running the suites for the workspaces you touched — see
+   **Starting containers**. E2E when I ask for it.
+
+6. **Review.** Run `/code-review` and fix what it finds. The PR does not exist
+   yet, so those fixes land as ordinary commits.
+
+7. **Open it.** `gh pr create --draft`, gitmoji title, `risk:standard` label,
+   `## Why` and `## What` sections, then open its URL in my browser. A
+   product-code PR updates the story-map data under
+   `services/registries/docs/story-map/src/data/` when user-visible behavior
+   changes; otherwise tick the **Story map reviewed** checkbox added by the bot.
+
+8. **Checks.** Run `gh pr checks <number>`. A red `pr-checks` blocks master —
+   fix it and push. Report every other failing check.
+
+9. **Report.** The worktree path, the branch, the containers you started and
+   their ports, which suites ran and which the stack could not support, the
+   review's outcome, the PR URL, and the state of its checks.
+
+A step that fails ends the flow there. Name the step, say what state the
+worktree is in, and leave it standing — `setup-stack`'s npm install is the
+expensive part, and it survives a fixed `GITHUB_TOKEN`.
+
 ### Worktrees
 
 Worktrees live at `<repo>/.worktrees/<name>` — nowhere else. The path is shared
@@ -151,14 +203,8 @@ npx jest
 | "red/green TDD" | Run both unit tests and relevant E2E tests |
 | "commit" | Pre-commit hook must pass |
 | "push" | Pre-push hook must pass |
-| "create pr" / "open pr" | Draft PR, gitmoji title, `risk:standard` label, `## Why` and `## What` sections, then open its URL in my browser |
+| "create pr" / "open pr" | Run the **Creating a PR** flow |
 | "save to vault" | Write a markdown file to `/Users/philip/vaults/work/dev` |
-
-A product-code PR must update the story-map data under
-`services/registries/docs/story-map/src/data/` when user-visible behavior
-changes. Otherwise tick the **Story map reviewed** checkbox added by the bot.
-After creating a PR, run `gh pr checks <number>` and report every failing check;
-only `pr-checks` blocks master.
 
 Committing and pushing don't need approval. Labels beyond `risk:standard` do.
 
