@@ -1,11 +1,11 @@
 ---
-name: fix-pr-feedback
+name: address-feedback
 description: Use when addressing code review feedback — either reviewer comments on a GitHub pull request, or a pasted list of issues to work through. Skip when the user only wants the feedback assessed or the fixes made without committing — this skill commits per issue and pushes.
 argument-hint: "[pr number | url | branch | list of issues]"
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
-# Fix Review Feedback
+# Address Review Feedback
 
 Work through review feedback one item at a time: understand it, decide whether
 it's right, fix what should be fixed, argue back on what shouldn't, commit each
