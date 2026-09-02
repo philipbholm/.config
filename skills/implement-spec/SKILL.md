@@ -30,6 +30,7 @@ Communication to and from subagents should be sparse. Communicate primarily thro
 
 7. Once all tickets are complete, run /code-review on the PR branch. Fix all issues raised by the code review in a single **implementer subagent**.
 
-8. Mark the PR as ready for review.
+8. Report that the PR is ready for review. Leave the PR in draft until the user
+   explicitly asks to mark it ready.
 
 9. Clean up all **implementer subagent** worktrees.

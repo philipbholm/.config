@@ -80,6 +80,15 @@ Only touch comments in code you are already changing.
 // broadcasts down to every form entry inside it.
 ```
 
+## Pull requests
+
+Keep every pull request in draft until I explicitly ask you to mark that pull
+request ready for review. A finished implementation, resolved review findings,
+or green checks mean the draft is ready for me; they do not change its state.
+
+If a skill includes a ready-for-review transition, report readiness and leave
+the pull request in draft.
+
 ## Agent skills
 
 ### Issue tracker
