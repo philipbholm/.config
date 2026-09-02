@@ -89,6 +89,24 @@ or green checks mean the draft is ready for me; they do not change its state.
 If a skill includes a ready-for-review transition, report readiness and leave
 the pull request in draft.
 
+## Seeding a registry
+
+"Seed with X" means seed a demo registry with the scripts in `~/work/scripts`:
+
+```bash
+cd ~/work/scripts
+npx tsx create-registry.ts <registry> --slot <n> --patients 20
+```
+
+Twenty patients unless I name a count, and no `--language` flag unless I name a
+language, which leaves every registry in its own default language. `--slot <n>`
+is required: it is the slot of the Ledidi stack I am working in, computed from
+the registries GraphQL port as (port - 4006) / 100, and the main checkout is
+slot 0.
+
+The **Seeding a registry** section of a Ledidi checkout's `AGENTS.md` carries
+the rest: which registry key each phrase maps to, and what has to be running.
+
 ## Agent skills
 
 ### Issue tracker

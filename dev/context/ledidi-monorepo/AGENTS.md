@@ -145,6 +145,51 @@ accept it; `services/codelist` is on Jest and has no equivalent.
 Nothing flags a suite you never started, so a green frontend run is not a green
 branch. Say which suites ran and which the current stack couldn't support.
 
+### Seeding a registry
+
+"Seed with <something>" means fill this stack with one of the demo registries in
+`~/work/scripts`:
+
+```bash
+cd ~/work/scripts
+npx tsx create-registry.ts <registry> --slot <n> --patients 20
+```
+
+Twenty patients is the default here, so pass `--patients` only when I name a
+different count. Leave `--language` off unless I name a language: without it
+each registry seeds in its own language, `en` for nrras, mrgfus and njr and `nb`
+for the rest.
+
+`--slot <n>` is required and has no default. Compute it from the registries
+GraphQL port in the port table above: slot = (port - 4006) / 100. The main
+checkout is slot 0.
+
+The stack has to be up first. The seeder builds the whole registry over the
+GraphQL API and then backdates dates straight in postgres, so it needs
+`dev up`, not `dev up postgres`.
+
+Pick `<registry>` from what I said:
+
+| I say | `<registry>` |
+|-------|--------------|
+| ankle fracture, ankelbrudd | `ankle` |
+| headache, hodepine | `headache` |
+| NOBAREV, paediatric rheumatology | `nobarev` |
+| Parkinson | `parkinson` |
+| cholesteatoma, kolesteatom | `kolesteatom` |
+| myeloma, myelomatose | `myeloma` |
+| robotic-assisted surgery, NRRAS | `nrras` |
+| MRgFUS, focused ultrasound | `mrgfus` |
+| joint replacement, NJR | `njr` |
+
+If what I said fits none of these nine, ask me which registry I mean instead of
+seeding the closest one. `npx tsx create-registry.ts <registry> --help` lists
+the flags this section does not cover, such as `--completeness` and
+`--hip-only`.
+
+Local only. Never point `create-registry.ts` at the test or production endpoint.
+Re-running deletes the existing registry of the same name and builds it again.
+
 ### Tearing down
 
 **Not until the PR is merged.** The stack stays up for the whole life of the
@@ -199,6 +244,7 @@ npx jest
 
 | When user says | What it means |
 |----------------|---------------|
+| "seed with X" | Run the **Seeding a registry** flow with registry X |
 | "verify in browser" | Start the full stack if it isn't up, then open the browser and verify yourself |
 | "red/green TDD" | Run both unit tests and relevant E2E tests |
 | "commit" | Pre-commit hook must pass |
