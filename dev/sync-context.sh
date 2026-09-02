@@ -4,8 +4,7 @@ set -euo pipefail
 . "$HOME/.config/dev/lib/workspace.sh"
 
 CONTEXT_DIR="$HOME/.config/dev/context/ledidi-monorepo"
-CLAUDE_TEMPLATE="$CONTEXT_DIR/CLAUDE.local.md"
-AGENTS_TEMPLATE="$CONTEXT_DIR/AGENTS.md"
+CONTEXT_TEMPLATE="$CONTEXT_DIR/AGENTS.md"
 MAIN_REPO="$HOME/work/ledidi-monorepo"
 
 NO_STACK="no-stack"
@@ -110,7 +109,7 @@ Start it only for work on the main checkout itself.
 # else's.
 replace_main_port_prose() {
   local file="$1"
-  local heading intro caveat docs
+  local heading intro caveat
 
   heading='## Ports (Main Checkout)'
   intro='This is the main checkout, and the ports below are the base set it publishes.
@@ -120,15 +119,9 @@ numbers are shared with them.'
 one doesn't respond, the Docker stack is what needs attention — editing
 hardcoded URLs, env files, or configs to reach a service breaks the checkout
 instead of fixing it."
-  docs='The reference docs linked at the bottom of this file live outside the repo, so
-their ports are never filled in — they appear as double-braced names like the
-Postgres one. Read the real value from the table above; never type the braced
-form into a command.'
-
   replace_paragraph "$file" '^## Ports \(Worktree-Specific\)$' "$heading"
   replace_paragraph "$file" '^This is one of many parallel worktrees,' "$intro"
   replace_paragraph "$file" '^These ports belong to this worktree alone' "$caveat"
-  replace_paragraph "$file" '^The reference docs linked at the bottom' "$docs"
 }
 
 # `wt-down` exits 1 in the main checkout by design, so the teardown rules there
@@ -152,24 +145,13 @@ nothing is left running silently.
   replace_section "$1" '### Tearing down' '^##+ ' "$body"
 }
 
-for template in "$CLAUDE_TEMPLATE" "$AGENTS_TEMPLATE"; do
-  if [[ ! -f "$template" ]]; then
-    echo "Template not found: $template" >&2
-    exit 1
-  fi
-done
+if [[ ! -f "$CONTEXT_TEMPLATE" ]]; then
+  echo "Template not found: $CONTEXT_TEMPLATE" >&2
+  exit 1
+fi
 
-# The two templates are hand-maintained copies of one corpus, identical below
-# their first line. Editing one and forgetting the other would hand Codex and
-# Cursor different rules from Claude, so refuse to spread a divergence.
-divergence="$(diff <(tail -n +2 "$CLAUDE_TEMPLATE") <(tail -n +2 "$AGENTS_TEMPLATE") || true)"
-if [[ -n "$divergence" ]]; then
-  echo "Error: the context templates have diverged below line 1:" >&2
-  echo "  $CLAUDE_TEMPLATE" >&2
-  echo "  $AGENTS_TEMPLATE" >&2
-  echo "Copy the intended version over the other, keeping each file's own '# CLAUDE.md' /" >&2
-  echo "'# AGENTS.md' first line, then re-run sync-context. First differences:" >&2
-  printf '%s\n' "$divergence" | head -n 20 >&2 || true
+if [[ "$(head -n 1 "$CONTEXT_TEMPLATE")" != '# AGENTS.md' ]]; then
+  echo "Template must start with '# AGENTS.md': $CONTEXT_TEMPLATE" >&2
   exit 1
 fi
 
@@ -249,8 +231,8 @@ for entry in "${targets[@]}"; do
   claude_dest="$target/CLAUDE.local.md"
   agents_dest="$target/AGENTS.md"
 
-  cp "$CLAUDE_TEMPLATE" "$claude_dest"
-  cp "$AGENTS_TEMPLATE" "$agents_dest"
+  cp "$CONTEXT_TEMPLATE" "$agents_dest"
+  sed '1s/^# AGENTS\.md$/# CLAUDE.local.md/' "$CONTEXT_TEMPLATE" > "$claude_dest"
 
   if [[ "$target" == "$MAIN_REPO" ]]; then
     # The templates are written for a worktree. The main checkout follows the

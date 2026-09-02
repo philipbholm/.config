@@ -41,11 +41,6 @@ one doesn't respond, the Docker stack is what needs attention — the standard
 ports (5432, 3000, 4000) belong to other stacks, and editing hardcoded URLs, env
 files, or configs to reach a service breaks the worktree instead of fixing it.
 
-The reference docs linked at the bottom of this file live outside the worktree,
-so their ports are never filled in — they appear as double-braced names like the
-Postgres one. Read the real value from the table above; never type the braced
-form into a command.
-
 ## Workflow
 
 ### Worktrees
@@ -85,9 +80,8 @@ skips the admin-mock container that `registries` requires.
 run. It also writes `services/registries/.env.test.local` pointing at the test
 database, but only when `registries` is one of the services it started. So after
 a full `dev up` the backend suite runs on a bare `npm run test`; after
-`dev up postgres` pass `POSTGRES_URL` on the command line as
-[commands.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/commands.md)
-shows. The port comes from the table, never from an edited config file.
+`dev up postgres` pass `POSTGRES_URL` on the command line. The port comes from
+the table, never from an edited config file.
 
 Run each suite directly — no wrapper decides for you. The container table above
 says which ones the current stack supports: frontend unit tests need nothing, the
@@ -120,10 +114,18 @@ stack orphaned.
 - **Use `dev` instead of `docker compose`** — includes correct compose files
 - With the stack up, backend `.ts` changes auto-reload (nodemon) and the
   frontend uses Vite HMR
-- Generated code never reloads. `.graphql`, `.proto` and `prisma/schema.prisma`
-  changes need an explicit codegen pass, and for schema changes the order matters
-  — see [workflows.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/workflows.md)
+- Generated code never reloads. Run the matching workflow below.
 - Never run `npm run dev` / `npm start` — services run in Docker
+
+| Change | Workflow |
+|------|---------|
+| Backend `.graphql` schema | `services/registries: npm run generate` → `services/apollo-router: ./compose-supergraph.sh` → `apps/registries-frontend: npm run generate` → restart registries, frontend, and router |
+| `.proto` | Run `npm run generate-proto` in the owner, generate in every consumer, then restart affected services |
+| `prisma/schema.prisma` | Create and inspect the migration, apply it, run `npm run generate`, then restart the service; pass this worktree's `POSTGRES_URL` to every database command |
+| `package.json` | Run `npm install`, then `dev up --build <service> -d`; a restart does not install dependencies |
+
+When upgrading a service Docker image for a vulnerability, check whether its
+migrator uses the same image and needs the same upgrade.
 
 ### Commands
 
@@ -151,6 +153,12 @@ npx jest
 | "push" | Pre-push hook must pass |
 | "create pr" / "open pr" | Draft PR, gitmoji title, `risk:standard` label, `## Why` and `## What` sections, then open its URL in my browser |
 | "save to vault" | Write a markdown file to `/Users/philip/vaults/work/dev` |
+
+A product-code PR must update the story-map data under
+`services/registries/docs/story-map/src/data/` when user-visible behavior
+changes. Otherwise tick the **Story map reviewed** checkbox added by the bot.
+After creating a PR, run `gh pr checks <number>` and report every failing check;
+only `pr-checks` blocks master.
 
 Committing and pushing don't need approval. Labels beyond `risk:standard` do.
 
@@ -186,57 +194,10 @@ Open a Datadog link and confirm it returns results before putting it in a
 comment, PR, or report. These URLs are easy to construct plausibly and wrong; a
 link showing nothing costs more than no link.
 
-## Critical Rules
+## Coding Standards
 
-### Architecture
-
-- 3-layer pattern: Handler → Application → Adapter
-- Never import transport-generated types (GraphQL/gRPC) into application code
-- Use cases depend on projection classes, never `PrismaClient` (except static reference tables)
-- All domain mutations emit events; projections handle persistence
-- Every handler must call `authorize()` before data access
-
-### Code Style
-
-- Comments are a last resort — a name that says it makes the comment unnecessary
-- Comment only what the code cannot express (hidden constraint, workaround, surprising invariant), never _what_ the code does. A comment that stays must stand on its own — spell the thing out instead of pointing at it — see [code-style.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/code-style.md)
-- Prefer early returns — narrow to the expected case, bail out on the rest
-- No TypeScript enums — use string types or const maps
-- Never use `as any` or `as unknown`
-- One GraphQL operation per `.graphql` file
-- Zod only at trust boundaries (API inputs, env vars, external responses)
-- Never throw plain `Error` — use typed errors (`NotFoundError`, `ValidationError`, etc.)
-- Handle caught error types explicitly, then rethrow what you didn't handle
-- Spell words out — no invented acronyms or abbreviations
-- No GitHub issue links (`#2858`) in source code
-
-### Frontend
-
-- shadcn/ui components before custom ones
-- Translation keys for ALL UI text — never hardcode strings
-- `DICTIONARY` at bottom of file, same file where used
-- Don't destructure queries/forms (`const userQuery = useUserQuery()`)
-- Minimize `useEffect` — prefer computed values
-- Disable UI elements rather than removing them
-
-### Testing
-
-- Integration tests for backend, unit tests for edge cases
-- MSW for GraphQL mocks, not custom Apollo client mocks
-- Imperative descriptions: `it("reorders elements", ...)` not `it("should...")`
-- Feature-flagged paths get tests in both the enabled and disabled state
-- A bug fix starts with a failing test that reproduces it
-
-## Reference
-
-| Task | Documentation |
-|------|---------------|
-| Engineering principles | [principles.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/principles.md) |
-| Post-change workflows | [workflows.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/workflows.md) |
-| Architecture & patterns | [architecture.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/architecture.md) |
-| Backend development | [backend.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/backend.md) |
-| Frontend development | [frontend.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/frontend.md) |
-| Testing guidelines | [testing.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/testing.md) |
-| Commands reference | [commands.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/commands.md) |
-| Code style | [code-style.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/code-style.md) |
-| Git & PRs | [git.md](/Users/philip/.config/dev/context/ledidi-monorepo/docs/git.md) |
+Read
+[CODING_STANDARDS.md](/Users/philip/.config/dev/context/CODING_STANDARDS.md)
+before changing or reviewing code. The file is the shared authority for
+engineering, security, privacy, reliability, and testing rules. This repository
+context adds operational detail but does not duplicate those rules.

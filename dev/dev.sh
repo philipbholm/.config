@@ -733,26 +733,22 @@ context_dir="$HOME/.config/dev/context/ledidi-monorepo"
 claude_local_md="$repo_root/CLAUDE.local.md"
 agents_md="$repo_root/AGENTS.md"
 
-# Renders the templates for THIS workspace only. sync-context.sh does the same
+# Renders the template for THIS workspace only. sync-context.sh does the same
 # for every workspace at once; both fill the port table through the shared
 # dev_apply_context_ports so the two can't drift.
 sync_context_files() {
     local s=$1
-    local claude_template="$context_dir/CLAUDE.local.md"
-    local agents_template="$context_dir/AGENTS.md"
+    local context_template="$context_dir/AGENTS.md"
 
-    if [ ! -f "$claude_template" ]; then
-        echo "Warning: CLAUDE.local.md template not found at $claude_template" >&2
+    if [ ! -f "$context_template" ]; then
+        echo "Warning: context template not found at $context_template" >&2
+    elif [ "$(head -n 1 "$context_template")" != '# AGENTS.md' ]; then
+        echo "Warning: context template must start with '# AGENTS.md': $context_template" >&2
     else
-        cp "$claude_template" "$claude_local_md"
-        dev_apply_context_ports "$claude_local_md" "$s"
-    fi
-
-    if [ ! -f "$agents_template" ]; then
-        echo "Warning: AGENTS.md template not found at $agents_template" >&2
-    else
-        cp "$agents_template" "$agents_md"
+        cp "$context_template" "$agents_md"
+        sed '1s/^# AGENTS\.md$/# CLAUDE.local.md/' "$context_template" > "$claude_local_md"
         dev_apply_context_ports "$agents_md" "$s"
+        dev_apply_context_ports "$claude_local_md" "$s"
     fi
 }
 

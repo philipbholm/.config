@@ -217,8 +217,8 @@ dev_slot_for_repo() {
 }
 
 # Host ports the main checkout (slot 0) publishes. A worktree on slot N publishes
-# each of them at +N*100. Shared so the compose overrides and the context
-# templates cannot drift apart.
+# each of them at +N*100. Shared so the compose overrides and rendered context
+# files cannot drift apart.
 DEV_FRONTEND_BASE_PORT=3003
 DEV_ROUTER_BASE_PORT=4000
 DEV_CODELIST_BASE_PORT=4005

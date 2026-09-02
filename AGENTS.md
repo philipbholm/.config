@@ -31,3 +31,15 @@ Commit subjects follow Conventional Commits: `type(scope): imperative subject`, 
 ## Security & Configuration Tips
 
 Do not commit secrets or machine-specific auth state. Keep sensitive values in local files like `zsh/.zsh_secrets`, and prefer updating tracked templates, scripts, or docs instead of hardcoding personal paths unless the repo already standardizes them.
+
+## Agent Context
+
+- `agents/AGENTS.md` is the harness-neutral source for global writing and
+  workflow rules. The installers link it to each harness's global instruction
+  filename.
+- `skills/` contains shared skills. `skills.work/` contains work-only skills.
+- `dev/context/ledidi-monorepo/AGENTS.md` is the single source for Ledidi
+  repository context. `dev/sync-context.sh` renders both `AGENTS.md` and
+  `CLAUDE.local.md` into every Ledidi checkout.
+- "Update the context" means updating the Ledidi source template and any file
+  that the template references.

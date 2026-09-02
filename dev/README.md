@@ -10,7 +10,7 @@ Development utility scripts for the monorepo.
 | `tunnel` | Start cloudflared tunnels for remote access |
 | `setup-stack` | Prepare a worktree: npm install, backend + frontend type generation, supergraph. Starts no containers |
 | `wt-up` | Create a named worktree under `<repo>/.worktrees/` for any agent harness |
-| `sync-context` | Rewrite `CLAUDE.local.md` + `AGENTS.md` in the main checkout and every worktree with that stack's real ports |
+| `sync-context` | Render `CLAUDE.local.md` and `AGENTS.md` from one template in the main checkout and every worktree, using that stack's real ports |
 | `wt-down` | Tear down the worktree you're standing in: nuke its stack, remove the directory, re-sync context. Leaves the branch alone |
 | `sync-agent-configs` | Merge the work-only overlays into the live Claude/Codex/Cursor agent configs (not monorepo-specific) |
 | `claude-notify` | macOS notification hook for Claude Code plus its `on/off/toggle/status` switch (not monorepo-specific) |
@@ -18,7 +18,11 @@ Development utility scripts for the monorepo.
 
 There is no lint/build/test wrapper here. The monorepo's own `lefthook.yml` gates all six workspaces (services/registries, services/patient-bff, apps/registries-frontend, apps/patient-frontend, apps/shell, packages/components) on commit; for ad-hoc runs, call the underlying commands (`npm run build-ts`, `npx vitest run`, `npx biome check`) from the workspace you changed.
 
-There is no codegen wrapper either. The ordered recipe — backend generate, supergraph compose, frontend generate, restart — lives in [context/ledidi-monorepo/docs/workflows.md](context/ledidi-monorepo/docs/workflows.md#graphql), where the agent reading a schema change will find it.
+There is no codegen wrapper either. The generated monorepo `AGENTS.md` and
+`CLAUDE.local.md` carry the ordered recipes for GraphQL, proto, Prisma, and
+dependency changes. Both files come from
+`context/ledidi-monorepo/AGENTS.md`; `CLAUDE.local.md` only gets a different
+heading for Claude Code.
 
 ## `dev` — Unified Dev Stack Manager
 
