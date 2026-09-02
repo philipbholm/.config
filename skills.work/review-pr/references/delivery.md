@@ -41,21 +41,25 @@ Immediately before posting, fetch the PR metadata again. Stop without posting
 when its head SHA differs from the reviewed head SHA. Generate a new review
 instead of attaching stale findings to changed code.
 
-Submit one neutral GitHub review with event `COMMENT`. Post every Critical and
-Major finding inline on the relevant changed line when GitHub accepts that
-location. Put PR-structure findings and findings without a valid inline
-location in the review body. Keep Minor and Needs investigation findings in the
-HTML report only.
+Submit one neutral GitHub review with event `COMMENT`. Post every Critical,
+Major and Minor finding inline on the relevant changed line when GitHub accepts
+that location. Put PR-structure findings and findings without a valid inline
+location in the review body. Keep Needs investigation findings in the HTML
+report only: they are unconfirmed, and the report is where a person weighs
+them.
 
 Start each inline comment with the existing machine-readable finding header:
 
 ```text
 🔴 **Critical** · `security-privacy`
 🟠 **Major** · `correctness-reliability`
+🟡 **Minor** · `coding-standards`
 ```
 
-Use the finding's severity and primary pass slug. Keep every contributing pass
-label in the prose when more than one pass found the problem.
+Use the finding's severity and the slug of the pass that primarily found it.
+The three slugs are `coding-standards`, `security-privacy`, and
+`correctness-reliability`. Keep every contributing pass label in the prose when
+more than one pass found the problem.
 
 End every posted inline comment and the review body with:
 
