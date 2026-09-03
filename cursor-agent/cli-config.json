@@ -15,7 +15,7 @@
   "suggestNextPrompt": false,
   "statusLine": {
     "type": "command",
-    "command": "~/.cursor/statusline.sh",
+    "command": "~/.config/cursor-agent/statusline.sh",
     "padding": 2
   },
   "model": {
