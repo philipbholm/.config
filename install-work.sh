@@ -30,7 +30,8 @@ add_allowed_signer philip.holm@ledidi.no ~/.ssh/github_work.pub
 
 # Skills and agents: general sets plus the work-only ones. Skills are fanned
 # into both roots (~/.claude/skills for Claude, ~/.agents/skills for Codex and
-# Cursor). Work skills: review-pr and address-feedback. Agents: none yet.
+# Cursor). Work skills include Ledidi workflows, review-pr and
+# address-feedback. Agents: none yet.
 echo "Linking work skills and agents..."
 link_entries ~/.claude/skills "$DOTFILES/skills" "$DOTFILES/skills.work"
 link_entries ~/.agents/skills "$DOTFILES/skills" "$DOTFILES/skills.work"

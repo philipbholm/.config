@@ -124,27 +124,6 @@ instead of fixing it."
   replace_paragraph "$file" '^These ports belong to this worktree alone' "$caveat"
 }
 
-# `wt-down` exits 1 in the main checkout by design, so the teardown rules there
-# are about the shared slot-0 stack instead.
-replace_main_teardown_section() {
-  local body
-  body='### Tearing down
-
-This is the main checkout, not a worktree, so `wt-down` refuses to run here and
-there is no directory to remove. Its stack is the one nothing else owns: never
-run `dev down` or `dev nuke` here on your own initiative, and a green suite is
-not a reason to stop it.
-
-`dev restart <service>` and `dev up --build <service>` are not teardown — use
-them freely while working.
-
-When you finish with containers still running, name the stack and its ports so
-nothing is left running silently.
-'
-
-  replace_section "$1" '### Tearing down' '^##+ ' "$body"
-}
-
 if [[ ! -f "$CONTEXT_TEMPLATE" ]]; then
   echo "Template not found: $CONTEXT_TEMPLATE" >&2
   exit 1
@@ -235,11 +214,9 @@ for entry in "${targets[@]}"; do
   sed '1s/^# AGENTS\.md$/# CLAUDE.local.md/' "$CONTEXT_TEMPLATE" > "$claude_dest"
 
   if [[ "$target" == "$MAIN_REPO" ]]; then
-    # The templates are written for a worktree. The main checkout follows the
-    # same rules, but not the ones about ports it doesn't own or a directory it
-    # cannot remove.
+    # The template's port section is written for a worktree. The main checkout
+    # gets the slot-0 version instead.
     for dest in "$claude_dest" "$agents_dest"; do
-      replace_main_teardown_section "$dest"
       if [[ "$slot" == "$NO_STACK" ]]; then
         replace_main_port_section "$dest"
       else
