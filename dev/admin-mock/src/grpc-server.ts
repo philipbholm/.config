@@ -21,8 +21,8 @@ const WORKSPACES = [
   // returns every workspace to every user, so listing them here is what lets a
   // codelist-enabled registry pass createRegistry's workspace-membership guard
   // locally.
-  { id: "019e8f0f-90cc-776f-ae76-4190088bad27", name: "ACME Project Alpha", customer_id: "stubbed-customer-id" },
-  { id: "019e8f0f-911a-716a-8a73-3077448eeff9", name: "ACME Project Beta", customer_id: "stubbed-customer-id" },
+  { id: "019e8f0f-90cc-776f-ae76-4190088bad27", name: "ACME Project Alpha", customer_id: "stubbed-customer-id", pii_encryption_key_configured: true },
+  { id: "019e8f0f-911a-716a-8a73-3077448eeff9", name: "ACME Project Beta", customer_id: "stubbed-customer-id", pii_encryption_key_configured: true },
 ];
 
 function userToProto(u: MockUser) {
@@ -100,6 +100,18 @@ const workspaceServiceImpl = {
     callback: GrpcCallback<unknown>,
   ) {
     callback(null, { items: WORKSPACES });
+  },
+
+  GetWorkspacePiiEncryptionKey(
+    call: grpc.ServerUnaryCall<{ workspace_id: string }, unknown>,
+    callback: GrpcCallback<unknown>,
+  ) {
+    const workspace = WORKSPACES.find(({ id }) => id === call.request.workspace_id);
+    callback(null, {
+      pii_encryption_key_id: workspace?.pii_encryption_key_configured
+        ? "local-mock-encryption-key"
+        : undefined,
+    });
   },
 };
 
