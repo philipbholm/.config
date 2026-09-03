@@ -192,6 +192,16 @@ alias t='tmux new-session -A -s main'
 alias claude='claude --dangerously-skip-permissions'
 alias codex='codex --yolo'
 
+# `cursor` on its own starts the Cursor agent. With arguments it is still the
+# Cursor IDE launcher, so `cursor .` opens the folder in the editor.
+cursor() {
+  if (( $# == 0 )); then
+    cursor-agent --force
+  else
+    command cursor "$@"
+  fi
+}
+
 # Modern ls (eza)
 if command -v eza &> /dev/null; then
   alias ll='eza -lha --group-directories-first --icons=auto'
