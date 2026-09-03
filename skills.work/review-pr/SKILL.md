@@ -63,8 +63,8 @@ Spawn all three subagents in parallel. Give each subagent:
   this pass directly.`
 
 The Coding Standards pass applies every relevant documented rule, including PR
-title, description, and risk-assessment rules. It skips checks already enforced
-by repository tooling.
+title and description rules. It skips checks already enforced by repository
+tooling.
 
 The Security and Privacy pass traces sensitive data across trust boundaries.
 It checks authorization and scope, tenant isolation, frontend and API exposure,

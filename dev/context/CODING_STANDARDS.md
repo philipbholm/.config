@@ -343,8 +343,6 @@ It supports code review and does not establish legal compliance.
 
 - A PR title includes a gitmoji. The description explains why the change exists
   under `## Why` and what it changes under `## What`.
-- The PR risk assessment matches the repository's SDLC rules and the actual
-  security, privacy, data, migration, and operational risk in the diff.
 - Keep one concern per PR. Separate prerequisite fixes, formatting, security,
   and observability work when they can land independently.
 - Aim for fewer than 25 files and 1,500 changed lines. More than 40 files or
