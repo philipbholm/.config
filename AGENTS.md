@@ -34,6 +34,13 @@ Do not commit secrets or machine-specific auth state. Keep sensitive values in l
 
 ## Agent Context
 
+Every change here has to work for all three harnesses: Claude Code, Codex and
+Cursor Agent. A rule, skill or script that only one of them can load is
+unfinished. When a harness needs its own filename, wiring or syntax, add that
+harness's copy in the same change and link it from `install-common.sh`; when a
+harness cannot do the thing at all, say so in the file itself rather than
+leaving the gap for the next reader to find.
+
 - `agents/AGENTS.md` is the harness-neutral source for global writing and
   workflow rules. The installers link it to each harness's global instruction
   filename.
