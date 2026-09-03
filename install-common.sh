@@ -164,12 +164,17 @@ link_core() {
   ln -sf "$DOTFILES/cursor/settings.json" ~/.cursor/settings.json
   ln -sf "$DOTFILES/cursor/keybindings.json" ~/.cursor/keybindings.json
 
-  # Cursor agent (CLI): base mcp.json + statusline + notify hook.
+  # Cursor Agent (CLI): base mcp.json + statusline + notify hook.
   # On work, sync-agent-configs.sh replaces mcp.json with a generated file.
   # hooks.json fires dev/cursor-notify.sh (macOS banner) on the CLI `stop` event.
   ln -sfn "$DOTFILES/cursor-agent/mcp.json" ~/.cursor/mcp.json
   ln -sf "$DOTFILES/cursor-agent/statusline.sh" ~/.cursor/statusline.sh
   ln -sfn "$DOTFILES/cursor-agent/hooks.json" ~/.cursor/hooks.json
+
+  # Cursor Agent has no global instruction file under ~/.cursor. It walks every
+  # parent directory of the workspace looking for AGENTS.md, so ~/AGENTS.md is
+  # where the global rules reach it — my repos all live under ~/work.
+  ln -sfn "$DOTFILES/agents/AGENTS.md" ~/AGENTS.md
 
   # Claude Code: base settings + agents + skills + statusline.
   # On work, sync-agent-configs.sh replaces settings.json with a generated file.
@@ -380,6 +385,7 @@ verify() {
   local unlinked=()
   for link in ~/.claude/skills/explain-diff-html ~/.agents/skills/explain-diff-html \
               ~/.claude/statusline-command.sh ~/.claude/CLAUDE.md ~/.codex/AGENTS.md \
+              ~/AGENTS.md \
               ~/.codex/keybindings.json ~/bin/browser ~/bin/python ~/bin/pip; do
     if [[ ! -L "$link" ]]; then
       unlinked+=("$link")

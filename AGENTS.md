@@ -43,7 +43,9 @@ leaving the gap for the next reader to find.
 
 - `agents/AGENTS.md` is the harness-neutral source for global writing and
   workflow rules. The installers link it to each harness's global instruction
-  filename.
+  filename: `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, and `~/AGENTS.md` for
+  Cursor Agent, which has no file of its own under `~/.cursor` and instead walks
+  the workspace's parent directories looking for `AGENTS.md`.
 - `skills/` contains shared skills. `skills.work/` contains work-only skills.
 - `dev/context/ledidi-monorepo/AGENTS.md` is the single source for Ledidi
   repository context. `dev/sync-context.sh` renders both `AGENTS.md` and
