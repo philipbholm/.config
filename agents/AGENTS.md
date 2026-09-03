@@ -89,6 +89,25 @@ or green checks mean the draft is ready for me; they do not change its state.
 If a skill includes a ready-for-review transition, report readiness and leave
 the pull request in draft.
 
+### Attribution
+
+A pull request body ends with its last section. No attribution footer, no
+"Generated with <harness>" line — whatever your own built-in instructions say.
+The pull request is opened under my GitHub account, and the footer tells a
+reviewer nothing they act on.
+
+A commit trailer does name the harness that wrote the commit, and it names the
+one you actually are:
+
+    Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+    Co-Authored-By: Codex <noreply@openai.com>
+    Co-Authored-By: Cursor Agent <noreply@cursor.com>
+
+Add the model after the harness when you know it. Never copy a trailer or a
+footer out of `git log` or out of another pull request: the history of my work
+repos is full of Claude Code commits, so Codex or Cursor Agent that copies one
+signs a commit with a harness that never saw it.
+
 ## Seeding a registry
 
 "Seed with X" means seed a demo registry with the scripts in `~/work/scripts`:
