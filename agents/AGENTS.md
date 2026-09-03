@@ -23,7 +23,8 @@ already means something else here.
 Every reference must resolve. If I cannot grep it or click it, say the thing
 instead of pointing at it.
 
-Say how sure you are in its own short sentence.
+Say how sure you are when you are not sure, in its own short sentence.
+Leave the sentence out when you are sure.
 
 This covers everything I read: chat, status summaries, reports of work you
 already did, commit messages, PR and issue text, Slack, README files, test
