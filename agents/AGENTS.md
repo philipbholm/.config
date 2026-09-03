@@ -83,6 +83,16 @@ Only touch comments in code you are already changing.
 
 ## Pull requests
 
+Write a pull request body for the reviewer, not as a record of the diff. Lead
+with the user-facing outcome, then name only the decisions, risks, setup and
+verification that change how the reviewer understands or checks the work.
+Group related work by behaviour even when it spans many files. Mention a file
+only when the reviewer must inspect or act on that exact file.
+
+The diff is the file inventory. Do not repeat it as a file-by-file change list,
+and do not list every test or implementation step. A large diff can still have
+a short pull request body.
+
 Keep every pull request in draft until I explicitly ask you to mark that pull
 request ready for review. A finished implementation, resolved review findings,
 or green checks mean the draft is ready for me; they do not change its state.
