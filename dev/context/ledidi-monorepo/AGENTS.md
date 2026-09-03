@@ -53,9 +53,10 @@ design needs.
 
 1. **Spec.** Larger efforts get a spec at `.scratch/<slug>/spec.md` before
    implementation; judge the size yourself. A smaller change gets no spec file:
-   its design, and the alternative you discarded, go in the PR's `## Why`.
-   Effort files always live in the main checkout's `.scratch/`, reached by
-   absolute path — a worktree has none of its own.
+   its design, the alternative you discarded and anything you left for later go
+   in step 9's report, not in the PR body. Effort files always live in the main
+   checkout's `.scratch/`, reached by absolute path — a worktree has none of its
+   own.
 
 2. **Worktree.** Uncommitted changes where you are standing mean stop and ask;
    they may be the work I mean. A feature branch with commits in the main
@@ -79,7 +80,11 @@ design needs.
    yet, so those fixes land as ordinary commits.
 
 7. **Open it.** `gh pr create --draft`, gitmoji title, `risk:standard` label,
-   `## Why` and `## What` sections, then open its URL in my browser. A
+   `## Why` and `## What` sections, then open its URL in my browser. `## Why` is
+   three or four sentences: what was wrong, and what the change does now.
+   `## What` is one bullet per file changed, with the new user-facing strings
+   quoted. Nothing else — no third section, no attribution footer, and no
+   account of a draft you discarded or a follow-up you see coming. A
    product-code PR updates the story-map data under
    `services/registries/docs/story-map/src/data/` when user-visible behavior
    changes; otherwise tick the **Story map reviewed** checkbox added by the bot.
