@@ -81,15 +81,22 @@ Committing and pushing don't need approval.
 
 ### Verification and push policy
 
-Verify the workspaces required by the branch's changes, including affected
-dependencies and consumers. A "full suite" means the full suites for those
-workspaces, not the whole monorepo. Run E2E when the user asks for it or browser
-verification requires it; "red/green TDD" requires unit and relevant E2E tests.
+Before running checks or investigating a hook failure, identify the required
+workspaces from `git diff --name-only origin/master...HEAD` and their affected
+dependencies and consumers. Hook path filters do not cover every dependency;
+inspect schema and generation inputs before excluding a consumer with no
+direct file changes. Run required checks even when the hook does not select
+them. A hook selecting a workspace is not itself a reason to prepare it.
+
+A "full suite" means the full suites for those workspaces, not the whole
+monorepo. Run E2E when the user asks for it or browser verification requires
+it; "red/green TDD" requires unit and relevant E2E tests.
 
 Creating or entering a worktree, rebasing, committing, and pushing do not by
 themselves require dependency setup or service startup. When verification
 needs setup, load `dev-stack` and prepare only the required workspaces and
-services.
+services. For checks that consume generated types, follow the preparation
+steps in `dev-stack` before running them.
 
 Classify failures from evidence, not from whether master is green:
 

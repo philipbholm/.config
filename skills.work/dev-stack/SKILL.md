@@ -14,17 +14,22 @@ reach another stack's ports.
 For setup scope and failure handling, follow "Verification and push policy"
 in the repository's `AGENTS.md` or `CLAUDE.local.md`.
 
-Run `dev workspace prepare <workspace> [workspace ...]` for those workspaces.
+When package dependencies need installation, run
+`dev workspace prepare <workspace> [workspace ...]` for those workspaces.
 Use `dev workspace prepare --help` for the command's behavior and workspace
 definition. Service startup is a separate step below.
 
-When required checks report missing generated fields or exports, inspect the
-workspace's generation configuration and its schema and operation inputs.
-Refresh the affected generated files with the workspace's package script,
-then rerun the failed check before treating the error as a source defect.
-Stale generated files alone do not need `dev workspace prepare`, which also
-reinstalls dependencies. If generation fails, report that failure under the
-repository's verification and push policy.
+Before a required type check, inspect its package script and generation
+inputs. If the check consumes generated types but does not generate them,
+run the workspace's generation script first when the inputs changed or the
+generated files' freshness is unknown. For example, shell needs
+`npm run generate` before `npm run tsc` in `apps/shell`.
+
+Missing generated fields or exports can mean stale output, not a source
+defect. Refresh that output and rerun the failed check before changing source.
+Refreshing generated types from local schema files needs no dependency
+reinstallation or service startup. If generation fails, report that failure
+under the repository's verification and push policy.
 
 ## Start only what the task needs
 
@@ -55,7 +60,7 @@ suite run and every suite the active stack could not support.
 - Generated code never reloads automatically. Run the matching workflow below.
 - Services run in Docker. Do not run `npm run dev` or `npm start`.
 
-| Change | Workflow |
+| Change to a running stack | Workflow |
 |--------|----------|
 | Backend `.graphql` schema | Run `npm run generate` in `services/registries`, `./compose-supergraph.sh` in `services/apollo-router`, and `npm run generate` in `apps/registries-frontend`; restart registries, frontend, and router |
 | `.proto` | Run `npm run generate-proto` in the owner, generate in every consumer, then restart affected services |
