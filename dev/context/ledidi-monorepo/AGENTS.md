@@ -49,7 +49,7 @@ Load the matching shared skill before acting:
 |---------|-------|
 | Create or open a pull request | `create-pr` |
 | Create, enter, or remove a worktree | `worktree` |
-| Start, operate, or diagnose the development stack; verify in a browser | `dev-stack` |
+| Prepare workspace dependencies; start, operate, or diagnose the development stack; verify in a browser | `dev-stack` |
 | Seed a demo registry | `seed-registry` |
 
 ### Commands
@@ -87,9 +87,6 @@ absent from `git diff --name-only origin/master...HEAD`. If that workspace is
 the only reason pre-push fails and the branch's own checks passed, use
 `git push --force-with-lease --no-verify`. The pull request checks cover the
 incoming changes.
-
-Install dependencies only for workspaces the task changes. A hook failure for
-an unrelated workspace is not a reason to expand setup.
 
 ### Failing Builds and Tests
 

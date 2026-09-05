@@ -1,6 +1,6 @@
 ---
 name: dev-stack
-description: Operate and diagnose the Ledidi Docker development stack. Use when starting services, preparing backend or E2E tests, verifying in a browser, or changing generated dependencies.
+description: Prepare dependencies and operate the Ledidi development stack. Use when installing workspace dependencies, starting services, preparing backend or E2E tests, verifying in a browser, or changing generated dependencies.
 ---
 
 # Ledidi development stack
@@ -8,6 +8,21 @@ description: Operate and diagnose the Ledidi Docker development stack. Use when 
 Use `dev` instead of `docker compose`. Each worktree owns the ports rendered in
 its `AGENTS.md` and `CLAUDE.local.md`; never edit configuration to reach another
 stack's ports.
+
+## Prepare dependencies when needed
+
+Creating or entering a worktree, rebasing, committing, and pushing need no
+dependency setup by themselves. Prepare dependencies only when the task's
+implementation or verification needs them.
+
+Run `setup-stack <workspace> [workspace ...]` for the required workspaces,
+including a dependency workspace only when the task needs it. A workspace is
+a directory with its own `package.json`, such as `services/registries`.
+Use `setup-stack --help` for the command's behavior. Service startup is a
+separate step below.
+
+For unrelated workspace failures after a history rewrite, follow the
+rebased-push rule in the repository's `AGENTS.md`.
 
 ## Start only what the task needs
 
@@ -30,10 +45,6 @@ Run suites directly in each workspace. `--changed origin/master` narrows
 Vitest in `services/registries` and `apps/registries-frontend` through the
 import graph. `services/codelist` uses Jest and has no equivalent. Report every
 suite run and every suite the active stack could not support.
-
-Install dependencies only for workspaces the task changes. When a history
-rewrite makes pre-push select an unrelated workspace, follow the rebased-push
-rule in the repository's `AGENTS.md`; keep setup scoped to the task.
 
 ## Operate the stack
 

@@ -21,9 +21,9 @@ Use the harness-neutral scripts. Worktrees live at
    `wt-up <name> <branch>`. For new work, run `git fetch origin` and use
    `wt-up <name> <branch> origin/master`; `wt-up` does not fetch and the
    current `HEAD` may be unrelated.
-4. Continue from the path printed by `wt-up`, then run `setup-stack`, naming
-   any extra workspace the task touches. `setup-stack` installs dependencies
-   and generates types; it starts no containers.
+4. Continue from the path printed by `wt-up`. It also writes the Ledidi agent
+   context. For dependency preparation or service startup, load `dev-stack`
+   and follow its setup policy.
 
 Report the worktree name, path, and branch after creation.
 

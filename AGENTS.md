@@ -10,7 +10,7 @@ Use the repo from `~/.config`.
 
 - `./install.sh work|personal` picks a profile and execs `install-<profile>.sh`; both source `install-common.sh`, which installs brew dependencies, creates expected directories, and refreshes symlinks. With no profile the dispatcher only prints usage and exits 1.
 - `zsh -lc 'source zsh/.zshrc'` smoke-tests shell config syntax and startup.
-- `bash dev/wt-up.sh <name> <branch> [start-point]` creates a harness-agnostic worktree under `<repo>/.worktrees/`; `bash dev/setup-stack.sh` bootstraps it and `bash dev/wt-down.sh` tears it down.
+- `bash dev/wt-up.sh <name> <branch> [start-point]` creates a harness-agnostic worktree under `<repo>/.worktrees/` and writes Ledidi agent context. `bash dev/setup-stack.sh <workspace> ...` prepares named workspaces; `bash dev/wt-down.sh` tears down the worktree.
 - `bash dev/dev.sh status` shows active dev stacks; `bash dev/dev.sh up` starts the current stack when run inside a supported repo.
 - `bash -n dev/<script>.sh` syntax-checks a script without running it; every script in `dev/` is Bash.
 - This repo wraps no monorepo lint/build/test runner. The Ledidi monorepo's own `lefthook.yml` gates all six workspaces on commit; for ad-hoc runs, call the underlying commands (`npm run build-ts`, `npx vitest run`, `npx biome check`) from the workspace you changed.

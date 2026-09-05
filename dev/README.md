@@ -8,7 +8,7 @@ Development utility scripts for the monorepo.
 |---------|-------------|
 | `dev` | Smart docker compose wrapper — auto-detects main vs worktree |
 | `tunnel` | Start cloudflared tunnels for remote access |
-| `setup-stack` | Prepare a worktree: npm install, backend + frontend type generation, supergraph. Starts no containers |
+| `setup-stack <workspace> ...` | Install dependencies and run the optional `generate` script in named workspaces. Starts no containers |
 | `wt-up` | Create a named worktree under `<repo>/.worktrees/` for any agent harness |
 | `sync-context` | Render `CLAUDE.local.md` and `AGENTS.md` from one template in the main checkout and every worktree, using that stack's real ports |
 | `wt-down` | Tear down the worktree you're standing in: nuke its stack, remove the directory, re-sync context. Leaves the branch alone |
@@ -18,11 +18,16 @@ Development utility scripts for the monorepo.
 
 There is no lint/build/test wrapper here. The monorepo's own `lefthook.yml` gates all six workspaces (services/registries, services/patient-bff, apps/registries-frontend, apps/patient-frontend, apps/shell, packages/components) on commit; for ad-hoc runs, call the underlying commands (`npm run build-ts`, `npx vitest run`, `npx biome check`) from the workspace you changed.
 
-There is no codegen wrapper either. The generated monorepo `AGENTS.md` and
-`CLAUDE.local.md` carry the ordered recipes for GraphQL, proto, Prisma, and
-dependency changes. Both files come from
-`context/ledidi-monorepo/AGENTS.md`; `CLAUDE.local.md` only gets a different
-heading for Claude Code.
+The [dev-stack skill](../skills.work/dev-stack/SKILL.md) owns the setup policy
+and the recipes for GraphQL, proto, Prisma, and dependency changes. `wt-up`
+writes agent context separately from dependency preparation. `setup-stack`
+requires at least one workspace; `setup-stack --help` shows usage.
+
+Validate setup scope without installing dependencies or starting services:
+
+```bash
+node --test dev/tests/setup-stack.test.mjs
+```
 
 ## `dev` — Unified Dev Stack Manager
 

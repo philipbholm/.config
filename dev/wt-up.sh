@@ -67,4 +67,4 @@ fi
 
 echo
 echo "Created $worktree_path"
-echo "Continue in that directory, then run setup-stack."
+echo "Continue in that directory."
