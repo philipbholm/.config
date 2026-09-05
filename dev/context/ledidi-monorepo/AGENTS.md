@@ -44,6 +44,10 @@ files, or configs to reach a service breaks the worktree instead of fixing it.
 ## Workflow skills
 
 Use `dev --help` to discover development commands and their scope.
+Use `dev context show` to inspect the current checkout and instruction paths,
+and `dev context check` to detect stale context or broken skill links.
+Use `dev session search --help` to find earlier Claude Code or Codex conversations
+for this repository.
 
 Load the matching shared skill before acting:
 
@@ -51,6 +55,9 @@ Load the matching shared skill before acting:
 |---------|-------|
 | Create or open a pull request | `create-pr` |
 | Make a PR green; keep fixing and monitoring PR checks | `finish-pr` |
+| Restack dependent PRs or change a PR's base branch | `restack-pr` |
+| Assess review feedback or implement its fixes | `address-feedback` |
+| Preview or deploy a registries production release | `registry-release` |
 | Clean up stale worktrees, dev stacks, or leftover Docker resources | `cleanup-dev` |
 | Run checks, investigate check or hook failures, commit, or push | `verify-change` |
 | Change or review code | `coding-standards` |
@@ -86,6 +93,12 @@ Committing and pushing don't need approval.
 
 Creating or entering a worktree, rebasing, committing, and pushing do not by
 themselves require dependency setup or service startup.
+
+### Feature flags
+
+When a feature is missing despite an enabled flag, read
+[Feature-flag diagnosis](/Users/philip/.config/dev/context/ledidi-monorepo/feature-flags.md)
+before changing code.
 
 ### Datadog
 

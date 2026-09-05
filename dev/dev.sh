@@ -27,7 +27,7 @@ esac
 subject=$1
 shift
 case "$subject" in
-    worktree|workspace|stack|context|agent-config|browser) ;;
+    worktree|workspace|stack|context|session|agent-config|browser) ;;
     *) dev_cli_error "unknown command group: $subject" ;;
 esac
 if [[ $# -eq 0 || "$1" == --help || "$1" == -h || "$1" == help ]]; then
@@ -43,6 +43,8 @@ case "$subject $action" in
     'stack expose') script=stack-expose ;;
     'stack '*) exec bash "$SCRIPT_DIR/stack.sh" "$action" "$@" ;;
     'context render') script=context-render ;;
+    'context show'|'context check') exec bash "$SCRIPT_DIR/context-inspect.sh" "$action" "$@" ;;
+    'session search') script=session-search ;;
     'agent-config apply') script=agent-config-apply ;;
     'browser launch-debug') script=browser-launch-debug ;;
     *) dev_cli_error "unknown command: $subject $action" ;;

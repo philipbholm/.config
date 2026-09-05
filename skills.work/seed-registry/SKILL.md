@@ -42,3 +42,9 @@ Ask which registry the user means when the phrase matches none of the rows.
 
 The seeder deletes and rebuilds an existing registry with the same name. Run it
 only against the local development stack, never a test or production endpoint.
+Inspect an existing registry without reseeding it unless rebuilding its data is
+part of the request.
+
+After seeding, confirm the registry is visible to the browser's current user in
+the active workspace and return its URL. When verifying a feature, follow
+[Browser verification](../dev-stack/references/browser-verification.md).

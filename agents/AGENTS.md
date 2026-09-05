@@ -84,6 +84,14 @@ Only touch comments in code you are already changing.
 // broadcasts down to every form entry inside it.
 ```
 
+## Requests
+
+Requests to explain, evaluate, compare, or show what a change would look like
+call for inspection and recommendations. Edit only when the conversation also
+authorizes implementation. Agreement on a design question settles that question;
+it does not by itself authorize building the feature. Continue already-authorized
+work without asking for permission again.
+
 ## Commits and pull requests
 
 Before creating or amending a commit, drafting a commit message, or reviewing

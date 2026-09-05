@@ -84,3 +84,7 @@ connection failure means container state, not port configuration.
 usually a service needing a restart, an unrun migration, or missing
 dependencies. Establish the Docker-side cause before changing application
 code.
+
+For verification against a seeded registry, read
+[Browser verification](references/browser-verification.md). Use it to prove the
+requested interaction, including persistence after reload and relevant layouts.

@@ -1,14 +1,40 @@
 ---
 name: address-feedback
-description: Use when addressing code review feedback — either reviewer comments on a GitHub pull request, or a pasted list of issues to work through. Skip when the user only wants the feedback assessed or the fixes made without committing — this skill commits per issue and pushes.
-argument-hint: "[pr number | url | branch | list of issues]"
+description: Assess or address code review feedback from a PR or pasted list. Use assess mode for relevance checks and suggested replies; fix mode verifies, commits, and pushes corrections. Skip fix mode when the user asks for edits without committing.
+argument-hint: "[assess|fix] [pr number | url | branch | list of issues]"
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
 # Address review feedback
 
+Choose the mode from the user's request. “Evaluate”, “is this still relevant”,
+and requests for suggested fixes or replies use **assess** mode. Requests to
+address or implement feedback use **fix** mode unless the user excludes commits.
+Keep one outcome record per finding throughout the task.
+
+## Assess without changing the branch
+
+Read repository context, `coding-standards`, and
+[Review quality](/Users/philip/.config/skills/code-review/references/review-quality.md).
+For GitHub feedback, read [GitHub feedback](references/github.md) to collect the
+full threads. Pin the PR's current head SHA and inspect that revision without
+switching a dirty checkout. Read the surrounding code, tests, and intervening
+commits; a stale comment can still describe a current defect.
+
+Return one of **Relevant**, **Already fixed**, **Disagree**, or **Needs
+investigation**, with evidence at the pinned revision. For a relevant finding,
+show the smallest suggested correction and a short draft reply. Link an existing
+fix when one exists. Recheck the PR head before reporting; reassess affected
+findings if it changed.
+
+Assessment makes no source edits, commits, pushes, replies, or thread-state
+changes. A request to assess stops after reporting. Continue to fix mode when
+implementation is already authorized by the conversation.
+
+## Fix the findings
+
 Assess each finding, verify and commit each fix separately, then push and
-deliver the responses. Keep one outcome record per finding throughout the task.
+deliver the responses under the following steps.
 
 ## Locate the work and feedback
 

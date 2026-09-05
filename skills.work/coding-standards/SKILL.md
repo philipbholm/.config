@@ -54,6 +54,12 @@ Before planning PR scope or reviewing PR titles and descriptions, load
 
 ## Design baseline
 
+Before recommending a use-case shape, name, migration, test helper, or UI
+interaction, inspect two or three comparable examples in the affected service
+when available. Show the closest example and explain any proposed departure.
+If no comparable example exists, say so. Compare with another service, such as
+studies, when the task calls for that comparison.
+
 - Prefer concrete code until at least two real cases establish a shared shape.
   Remove middle layers that only rename or delegate a call.
 - Place behavior and data with the domain concept that owns them. Keep display

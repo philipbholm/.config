@@ -8,12 +8,12 @@ import { fileURLToPath } from "node:url";
 
 const source = fileURLToPath(new URL("..", import.meta.url));
 const scripts = ["dev", "stack", "worktree-create", "worktree-destroy", "workspace-prepare",
-  "stack-expose", "context-render", "agent-config-apply", "browser-launch-debug"];
+  "stack-expose", "context-render", "context-inspect", "session-search", "agent-config-apply", "browser-launch-debug"];
 
 function fixture(t) {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "dev-cli-test-")));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  const tools = join(directory, "tools");
+  const tools = join(directory, "dev");
   const bin = join(directory, "bin");
   const repo = join(directory, "repo");
   const log = join(directory, "calls.jsonl");
@@ -61,17 +61,18 @@ if (args.includes("--services")) process.stdout.write("postgres\\nregistries\\n"
   };
 }
 
-const commands = [[], ["worktree"], ["workspace"], ["stack"], ["context"], ["agent-config"], ["browser"],
+const commands = [[], ["worktree"], ["workspace"], ["stack"], ["context"], ["session"], ["agent-config"], ["browser"],
   ["worktree", "create"], ["worktree", "destroy"], ["workspace", "prepare"],
   ...["up", "down", "destroy", "list", "expose", "logs", "exec", "ps", "build", "stop", "restart"].map(action => ["stack", action]),
-  ["context", "render"], ["agent-config", "apply"], ["browser", "launch-debug"]];
+  ["context", "render"], ["context", "show"], ["context", "check"], ["session", "search"],
+  ["agent-config", "apply"], ["browser", "launch-debug"]];
 
 for (const args of commands) {
   test(`Show help for dev ${args.join(" ")} without side effects`, (t) => {
     const f = fixture(t);
     const result = f.run([...args, "--help"]);
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /Usage: dev/);
+    assert.match(result.stdout, /[Uu]sage: dev/);
     assert.deepEqual(f.calls(), []);
     assert.equal(existsSync(f.effect), false);
     assert.equal(existsSync(f.env.DEV_STACKS_DIR), false);
@@ -81,6 +82,7 @@ for (const args of commands) {
 for (const args of [["unknown"], ["worktree", "delete"], ["worktree", "destroy", "--force"],
   ["stack", "unknown"], ["stack", "start"], ["stack", "destroy", "--force"], ["stack", "list", "--all"],
   ["stack", "expose", "--unknown"], ["context", "render", "--unknown"],
+  ["context", "show", "--unknown"], ["context", "check", "--unknown"], ["session", "search", "--unknown"],
   ["agent-config", "apply"], ["agent-config", "apply", "--profile", "personal"],
   ["browser", "launch-debug", "--unknown"]]) {
   test(`Reject dev ${args.join(" ")} before side effects`, (t) => {
@@ -136,6 +138,74 @@ test("Create a Ledidi worktree with context but without preparing dependencies",
   assert.match(readFileSync(join(worktree, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
   assert.match(readFileSync(join(worktree, "CLAUDE.local.md"), "utf8"), /^# CLAUDE.local.md/);
   assert.deepEqual(f.calls(), []);
+});
+
+test("Detect stale rendered context without changing either checkout file", (t) => {
+  const f = fixture(t);
+  const worktree = join(f.directory, "feature-context");
+  f.git("worktree", "add", "-b", "feature-context", worktree);
+  assert.equal(f.run(["context", "render"], worktree).status, 0);
+  const agents = join(worktree, "AGENTS.md");
+  const claude = join(worktree, "CLAUDE.local.md");
+  const originalClaude = readFileSync(claude, "utf8");
+  writeFileSync(agents, "Stale instructions\n");
+  const result = spawnSync("bash", [join(f.tools, "context-render.sh"), "--check"], {
+    cwd: worktree, env: f.env, encoding: "utf8",
+  });
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stdout, /Stale or missing context:.*AGENTS.md/);
+  assert.equal(readFileSync(agents, "utf8"), "Stale instructions\n");
+  assert.equal(readFileSync(claude, "utf8"), originalClaude);
+  assert.deepEqual(f.calls(), []);
+});
+
+test("Show the actual worktree and saved endpoints without starting services", (t) => {
+  const f = fixture(t);
+  const worktree = join(f.directory, "port-context");
+  f.git("worktree", "add", "-b", "port-context", worktree);
+  mkdirSync(join(f.env.DEV_STACKS_DIR, "port-context"), { recursive: true });
+  writeFileSync(join(f.env.DEV_STACKS_DIR, "port-context/worktree-slot"), "3\n");
+  assert.equal(f.run(["context", "render"], worktree).status, 0);
+  f.env.DEV_CONTEXT_HOME = join(f.directory, "home");
+  const result = f.run(["context", "show", "--json"], worktree);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.checkout, worktree);
+  assert.equal(report.main_checkout, f.repo);
+  assert.equal(report.branch, "port-context");
+  assert.equal(report.slot, "3");
+  assert.ok(report.rendered_urls.includes("http://localhost:3303/en/registries"));
+  assert.deepEqual(f.calls(), []);
+});
+
+test("Check shared skill wiring and fail on a broken link", (t) => {
+  const f = fixture(t);
+  f.env.DEV_TEST_DOCKER = "allow";
+  const home = join(f.directory, "home");
+  const skill = join(f.directory, "skills/example");
+  const globalSource = join(f.directory, "agents/AGENTS.md");
+  f.env.DEV_CONTEXT_HOME = home;
+  for (const path of [skill, join(f.directory, "agents"), join(home, ".claude/skills"),
+    join(home, ".agents/skills"), join(home, ".codex")]) mkdirSync(path, { recursive: true });
+  writeFileSync(globalSource, "Shared rules\n");
+  writeFileSync(join(skill, "SKILL.md"), "---\nname: example\ndescription: Example\n---\n");
+  for (const target of [join(home, ".claude/CLAUDE.md"), join(home, ".codex/AGENTS.md"), join(home, "AGENTS.md")])
+    symlinkSync(globalSource, target);
+  for (const target of [join(home, ".claude/skills/example"), join(home, ".agents/skills/example")])
+    symlinkSync(skill, target);
+  writeFileSync(join(f.tools, "context/ledidi-monorepo/AGENTS.md"), "# AGENTS.md\n\n| Request | Skill |\n| Example | `example` |\n");
+  assert.equal(f.run(["context", "render"], f.repo).status, 0);
+  let result = f.run(["context", "check"], f.repo);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  rmSync(join(home, ".claude/skills/example"));
+  symlinkSync(join(f.directory, "missing"), join(home, ".claude/skills/example"));
+  result = f.run(["context", "check"], f.repo);
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stdout, /Missing Claude Code skill: example/);
+  writeFileSync(join(skill, "SKILL.md"), "---\nname: example\ndescription: Example\n---\nLoad `missing-skill` before working.\n");
+  result = f.run(["context", "check"], f.repo);
+  assert.match(result.stdout, /Missing referenced skill missing-skill/);
+  assert.ok(f.calls().every(call => call.command === "docker" && call.args[0] === "ps"));
 });
 
 test("Keep a worktree intact when destruction receives help or unknown arguments", (t) => {

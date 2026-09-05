@@ -5,11 +5,14 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 . "$SCRIPT_DIR/lib/cli.sh"
 dev_help_if_requested context-render "$@"
 all_worktrees=false
-if [[ $# -gt 0 ]]; then
-  [[ $# -eq 1 && "$1" == --all-worktrees ]] ||
-    dev_cli_error "use dev context render [--all-worktrees]"
-  all_worktrees=true
-fi
+check_only=false
+for argument in "$@"; do
+  case "$argument" in
+    --all-worktrees) all_worktrees=true ;;
+    --check) check_only=true ;;
+    *) dev_cli_error "use dev context render [--all-worktrees]" ;;
+  esac
+done
 . "$SCRIPT_DIR/lib/checkout.sh"
 
 CONTEXT_DIR="$SCRIPT_DIR/context/ledidi-monorepo"
@@ -148,7 +151,13 @@ fi
 # the labels that mode stamps on the containers.
 main_repo_slot() {
   local containers
-  containers="$(docker ps -q --filter "label=${DEV_SLOT_LABEL}=0" 2>/dev/null || true)"
+  if ! containers="$(docker ps -q --filter "label=${DEV_SLOT_LABEL}=0" 2>/dev/null)"; then
+    if [[ "$check_only" == true ]]; then
+      echo "Cannot check main-checkout context: Docker stack state is unavailable." >&2
+      return 1
+    fi
+    containers=""
+  fi
 
   if [[ -n "$containers" ]]; then
     printf '0\n'
@@ -166,7 +175,9 @@ add_target() {
   local target=$1
   local slot_file
   if [[ "$target" == "$MAIN_REPO" ]]; then
-    targets+=("$target:$(main_repo_slot)")
+    local main_slot
+    main_slot=$(main_repo_slot) || exit 1
+    targets+=("$target:$main_slot")
   else
     slot_file="$(dev_slot_file_for_repo "$target")"
     if [[ -f "$slot_file" ]]; then
@@ -225,11 +236,14 @@ if [[ "$duplicate_found" == true ]]; then
 fi
 
 count=0
+result=0
+preview_dir=$(mktemp -d)
+trap 'rm -rf "$preview_dir"' EXIT
 for entry in "${targets[@]}"; do
   target="${entry%%:*}"
   slot="${entry##*:}"
-  claude_dest="$target/CLAUDE.local.md"
-  agents_dest="$target/AGENTS.md"
+  claude_dest="$preview_dir/CLAUDE.local.md"
+  agents_dest="$preview_dir/AGENTS.md"
 
   cp "$CONTEXT_TEMPLATE" "$agents_dest"
   sed '1s/^# AGENTS\.md$/# CLAUDE.local.md/' "$CONTEXT_TEMPLATE" > "$claude_dest"
@@ -246,7 +260,9 @@ for entry in "${targets[@]}"; do
       dev_apply_context_ports "$dest" 0
     done
 
-    if [[ "$slot" == "$NO_STACK" ]]; then
+    if [[ "$check_only" == true ]]; then
+      :
+    elif [[ "$slot" == "$NO_STACK" ]]; then
       echo "  ✓ ${target##*/} (main, no stack)"
     else
       echo "  ✓ ${target##*/} (main, slot 0)"
@@ -254,14 +270,31 @@ for entry in "${targets[@]}"; do
   elif [[ "$slot" == "$NO_STACK" ]]; then
     replace_port_section "$claude_dest"
     replace_port_section "$agents_dest"
-    echo "  ✓ ${target##*/} (no stack)"
+    [[ "$check_only" == true ]] || echo "  ✓ ${target##*/} (no stack)"
   else
     dev_apply_context_ports "$claude_dest" "$slot"
     dev_apply_context_ports "$agents_dest" "$slot"
-    echo "  ✓ ${target##*/} (slot $slot)"
+    [[ "$check_only" == true ]] || echo "  ✓ ${target##*/} (slot $slot)"
   fi
+
+  for name in AGENTS.md CLAUDE.local.md; do
+    if [[ "$check_only" == true ]]; then
+      if ! cmp -s "$preview_dir/$name" "$target/$name"; then
+        echo "Stale or missing context: $target/$name"
+        result=1
+      fi
+    else
+      cp "$preview_dir/$name" "$target/$name"
+    fi
+  done
 
   count=$(( count + 1 ))
 done
 
-echo "Rendered context for $count checkout(s)"
+if [[ "$check_only" == true ]]; then
+  [[ "$duplicate_found" == false ]] || result=1
+  [[ "$result" != 0 ]] || echo "Rendered context is current for $count checkout(s)"
+else
+  echo "Rendered context for $count checkout(s)"
+fi
+exit "$result"

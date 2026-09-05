@@ -33,6 +33,9 @@ Usage: dev <thing> <action> [arguments]
   stack list                                  List running stacks across checkouts
   stack expose                                Publish this stack through public tunnels
   context render [--all-worktrees]             Render this checkout's agent instructions
+  context show                               Show checkout, ports and agent instruction paths
+  context check                              Check rendered context and shared skill links
+  session search [text] [--repo path]          Search local Claude Code and Codex user messages
   agent-config apply --profile work           Apply work configuration to installed agents
   browser launch-debug                        Launch the separate debug browser on :9222
 
@@ -100,10 +103,27 @@ HELP
         context|context-render)
             cat <<'HELP'
 Usage: dev context render [--all-worktrees]
+       dev context show [--json]
+       dev context check
 
 Render AGENTS.md and CLAUDE.local.md from the Ledidi template with stack ports.
 By default, update only the current Ledidi checkout. --all-worktrees updates
 the main checkout and all registered Ledidi worktrees. Starts no services.
+Show reports the command's actual checkout and installed instruction/skill paths.
+Check reports stale rendered files and broken shared links; exit 1 means a problem.
+Show and check do not rewrite context, install skills, or start services.
+HELP
+            ;;
+        session)
+            cat <<'HELP'
+Usage: dev session search [text] [--repo path] [--branch name] [--ticket id]
+                          [--since YYYY-MM-DD] [--until YYYY-MM-DD]
+                          [--harness all|claude|codex] [--limit N] [--json]
+
+Search local user messages for the current repository, including worktrees and
+archived Codex sessions. No network access. Use search --help for filter details.
+The command runs from Claude Code, Codex, Cursor Agent, or a terminal; it reads
+Claude Code and Codex transcript formats only.
 HELP
             ;;
         agent-config|agent-config-apply)

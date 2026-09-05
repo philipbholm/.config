@@ -31,3 +31,7 @@
 - Tests of conditional narrowing fail when the expected type is absent; they do
   not silently skip the assertion.
 - Test files use deterministic dates and seeded random data.
+- In registries application-error tests, assert the meaningful error message.
+  Avoid an empty `toThrow()` or a second test that checks only the error class
+  when the message assertion already proves the case. Test the class separately
+  when a distinct public contract depends on that type.
