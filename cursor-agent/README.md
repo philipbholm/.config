@@ -14,7 +14,7 @@ from the Cursor GUI editor settings in `../cursor/` (which symlink into
 | `cli-config.json` | `~/.cursor/cli-config.json` | **copy only** (see below) |
 
 On a personal machine `install-common.sh` symlinks `mcp.json` (chrome-devtools
-only). On a work machine `sync-agent-configs.sh` replaces that symlink with a
+only). On a work machine `dev agent-config apply --profile work` replaces that symlink with a
 real file: base + `mcp.work.json` (adds Datadog). Do not re-symlink the base on
 a work machine — that drops Datadog.
 
@@ -52,7 +52,7 @@ chmod +x ~/.config/cursor-agent/statusline.sh ~/.config/dev/cursor-notify.sh
 
 # mcp.json — pick one. Do not run both.
 # Personal: ln -sf ~/.config/cursor-agent/mcp.json ~/.cursor/mcp.json
-# Work:     bash ~/.config/dev/sync-agent-configs.sh
+# Work:     dev agent-config apply --profile work
 
 # 4. Skills: the installer links the shared set into ~/.agents/skills, which the
 #    Cursor CLI reads — nothing to install by hand.

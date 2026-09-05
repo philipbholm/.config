@@ -9,6 +9,12 @@
 # dev/claude-notify.sh and dev/codex-notify.sh.
 set -u
 
+if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
+  echo "Usage: cursor-notify.sh (hook JSON on stdin)"
+  echo "Posts a macOS notification for a completed Cursor turn."
+  exit 0
+fi
+
 log_file="${CURSOR_NOTIFY_LOG:-$HOME/.cursor/notify.log}"
 log() {
   mkdir -p "$(dirname "$log_file")" 2>/dev/null || true

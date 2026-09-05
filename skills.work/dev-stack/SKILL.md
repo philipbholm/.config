@@ -5,39 +5,33 @@ description: Prepare dependencies and operate the Ledidi development stack. Use 
 
 # Ledidi development stack
 
-Use `dev` instead of `docker compose`. Each worktree owns the ports rendered in
-its `AGENTS.md` and `CLAUDE.local.md`; never edit configuration to reach another
-stack's ports.
+Use `dev stack` instead of `docker compose`. Each worktree owns the ports
+rendered in its `AGENTS.md` and `CLAUDE.local.md`; never edit configuration to
+reach another stack's ports.
 
 ## Prepare dependencies when needed
 
-Creating or entering a worktree, rebasing, committing, and pushing need no
-dependency setup by themselves. Prepare dependencies only when the task's
-implementation or verification needs them.
+For setup scope and failure handling, follow "Verification and push policy"
+in the repository's `AGENTS.md` or `CLAUDE.local.md`.
 
-Run `setup-stack <workspace> [workspace ...]` for the required workspaces,
-including a dependency workspace only when the task needs it. A workspace is
-a directory with its own `package.json`, such as `services/registries`.
-Use `setup-stack --help` for the command's behavior. Service startup is a
-separate step below.
-
-For unrelated workspace failures after a history rewrite, follow the
-rebased-push rule in the repository's `AGENTS.md`.
+Run `dev workspace prepare <workspace> [workspace ...]` for those workspaces.
+Use `dev workspace prepare --help` for the command's behavior and workspace
+definition. Service startup is a separate step below.
 
 ## Start only what the task needs
 
 | Task | Command |
 |------|---------|
 | TypeScript, Biome, frontend unit tests | No containers |
-| Registries backend suite | `dev up postgres -d` |
-| Playwright E2E or browser verification | `dev up` |
+| Registries backend suite | `dev stack up postgres -d` |
+| Playwright E2E or browser verification | `dev stack up` |
 
-Run `dev status` before a full `dev up`. Three stacks can run at once; ask
-before starting a fourth.
+Run `dev stack list` before a full `dev stack up`. Three stacks can run at
+once; ask before starting a fourth.
 
 PostgreSQL alone supports the registries suite. Its Vitest setup generates and
-resets `registries-test` through `POSTGRES_URL`. After `dev up postgres`, pass
-the worktree's `POSTGRES_URL` on the command line. A full `dev up` writes
+resets `registries-test` through `POSTGRES_URL`. After `dev stack up postgres`, pass
+the worktree's `POSTGRES_URL` on the command line. A full `dev stack up` writes
 `services/registries/.env.test.local`, so the backend suite then runs with a
 plain `npm run test`.
 
@@ -58,7 +52,7 @@ suite run and every suite the active stack could not support.
 | Backend `.graphql` schema | Run `npm run generate` in `services/registries`, `./compose-supergraph.sh` in `services/apollo-router`, and `npm run generate` in `apps/registries-frontend`; restart registries, frontend, and router |
 | `.proto` | Run `npm run generate-proto` in the owner, generate in every consumer, then restart affected services |
 | `prisma/schema.prisma` | Create and inspect the migration, apply it, run `npm run generate`, then restart the service; pass this worktree's `POSTGRES_URL` to every database command |
-| `package.json` | Run `npm install`, then `dev up --build <service> -d`; a restart does not install dependencies |
+| `package.json` | Run `npm install`, then `dev stack up --build <service> -d`; a restart does not install dependencies |
 
 When upgrading a service Docker image for a vulnerability, check whether its
 migrator uses the same image.

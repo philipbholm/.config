@@ -165,7 +165,7 @@ link_core() {
   ln -sf "$DOTFILES/cursor/keybindings.json" ~/.cursor/keybindings.json
 
   # Cursor Agent (CLI): base mcp.json + statusline + notify hook.
-  # On work, sync-agent-configs.sh replaces mcp.json with a generated file.
+  # On work, dev agent-config apply --profile work replaces mcp.json with a generated file.
   # hooks.json fires dev/cursor-notify.sh (macOS banner) on the CLI `stop` event.
   ln -sfn "$DOTFILES/cursor-agent/mcp.json" ~/.cursor/mcp.json
   ln -sf "$DOTFILES/cursor-agent/statusline.sh" ~/.cursor/statusline.sh
@@ -177,7 +177,7 @@ link_core() {
   ln -sfn "$DOTFILES/agents/AGENTS.md" ~/AGENTS.md
 
   # Claude Code: base settings + agents + skills + statusline.
-  # On work, sync-agent-configs.sh replaces settings.json with a generated file.
+  # On work, dev agent-config apply --profile work replaces settings.json with a generated file.
   ln -sf "$DOTFILES/claude/settings.json" ~/.claude/settings.json
   ln -sf "$DOTFILES/agents/AGENTS.md" ~/.claude/CLAUDE.md
   ln -sf "$DOTFILES/claude/statusline-command.sh" ~/.claude/statusline-command.sh
@@ -194,13 +194,13 @@ link_core() {
   # claude-notify: macOS notification on/off switch + Stop/Notification hook handler.
   ln -sf "$DOTFILES/dev/claude-notify.sh" ~/bin/claude-notify
 
-  # browser: launch the Chromium (Chrome/Brave) that chrome-devtools-mcp attaches
-  # to on :9222. Core, since all three agents use that MCP on both profiles.
+  # Both profiles use dev browser launch-debug. The browser alias is kept for terminals.
+  ln -sf "$DOTFILES/dev/dev.sh" ~/bin/dev
   ln -sf "$DOTFILES/dev/browser.sh" ~/bin/browser
 
   # Codex: config + rules symlinked. Skills come from ~/.agents/skills (linked
   # above), which Codex reads and symlink-follows — no separate copy anymore. On
-  # work, sync-agent-configs.sh replaces config.toml with a generated file.
+  # work, dev agent-config apply --profile work replaces config.toml with a generated file.
   ln -sfn "$DOTFILES/codex/config.toml" ~/.codex/config.toml
   ln -sfn "$DOTFILES/codex/keybindings.json" ~/.codex/keybindings.json
   # Codex calls its global instruction file AGENTS.md. Share the same personal
@@ -318,7 +318,7 @@ cleanup_stale() {
     echo "Removing stale ~/.tmux.conf symlink..."
     rm ~/.tmux.conf
   fi
-  # gwc/gwd were retired in favour of native worktrees + wt-down
+  # gwc/gwd were retired in favour of the shared worktree commands.
   local retired
   for retired in ~/bin/gwc ~/bin/gwd; do
     if [[ -L "$retired" ]]; then
@@ -386,7 +386,7 @@ verify() {
   for link in ~/.claude/skills/explain-diff-html ~/.agents/skills/explain-diff-html \
               ~/.claude/statusline-command.sh ~/.claude/CLAUDE.md ~/.codex/AGENTS.md \
               ~/AGENTS.md \
-              ~/.codex/keybindings.json ~/bin/browser ~/bin/python ~/bin/pip; do
+              ~/.codex/keybindings.json ~/bin/dev ~/bin/browser ~/bin/python ~/bin/pip; do
     if [[ ! -L "$link" ]]; then
       unlinked+=("$link")
     elif [[ ! -e "$link" ]]; then

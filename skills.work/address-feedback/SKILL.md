@@ -13,7 +13,7 @@ fix on its own, push once, then answer the threads.
 
 You do the work yourself, in order — collect the items, then for each one:
 triage, fix or draft a rebuttal, verify the code you touched, commit that one
-item. When every item is done you push, run the full suite, and post the
+item. When every item is done you run the full suite, push, and post the
 answers. Nothing is posted to the PR until the fixes are pushed.
 
 ## Settle where the work happens, first
@@ -39,14 +39,11 @@ directory:
    *tracked* files, stop and ask: you commit by staging named files, and those
    changes would be swept into someone else's commit.
 
-**If the PR touches backend integration tests, bring up the database before you
-start** — `dev up postgres -d` in that worktree. Verification runs `vitest`, and
-an integration test with no database fails in a way that looks exactly like a
-broken fix.
-
 Read the repository's `AGENTS.md` or `CLAUDE.local.md` and
 `/Users/philip/.config/dev/context/CODING_STANDARDS.md` before changing code.
-Repository context may add stricter rules to the shared standards.
+Follow "Verification and push policy" in that repository context for check
+scope, setup, failure handling, and hook exceptions. Load `dev-stack` when the
+required checks need setup.
 
 ## Collect the feedback
 
@@ -154,10 +151,10 @@ Take the items in order. For each one:
    be answered in the log, and then it's `already-fixed`, not work.
 2. **Decide the outcome:** `fix`, `already-fixed`, `disagree`, or `unclear`.
 3. **If it's a fix**, make the change. Then **verify the code you touched** —
-   build and lint it, and run `vitest` over the tests that cover it. Do not
-   move on from a red fix.
+   build and lint it, and run the tests that cover it using workspace scripts.
+   Classify failures under the repository's verification and push policy.
 4. **Commit that one item on its own.** Stage only the files this item touched,
-   let the pre-commit hook run, and never `--no-verify`. One commit per issue,
+   following the repository's verification and push policy. One commit per issue,
    so each answer can link to the commit that resolved it.
 5. **If it's a disagreement**, write the rebuttal now, while you have the whole
    picture — the positive case with file:line. Don't commit anything.
@@ -171,20 +168,19 @@ If a fix can't be made green and you can't see why, leave it in the tree, mark
 it `attempted and dropped`, and keep going — say so at the end rather than
 reverting silently.
 
-## Push, then check
+## Check, then push
 
 Once every item is worked:
 
-1. **Run the full suite**, not just the per-item tests. Per-item verification
-   only ran the tests each fix touched; this is the first chance an untouched
-   test has to fail.
-2. **If it's green, push.** Push before posting any answer — every answer to a
-   fixed finding links to its commit, and an unpushed SHA 404s.
-3. **If it's red, do not push and do not post.** Report what failed. Automated
+1. **Run the full suite** within the repository's verification scope, not just
+   the per-item tests.
+2. **Push when the repository's verification and push policy permits it.**
+   Push before posting any answer — every answer to a fixed finding links to
+   its commit, and an unpushed SHA 404s.
+3. **If pushing is blocked, report why and hold the answers.** Automated
    answers carrying commit links are held rather than posted with dead links.
 
-Pass on pushing only if the user asked you not to, and then hold the automated
-answers too.
+If the user asked you not to push, hold the automated answers too.
 
 ## Answer the threads
 
@@ -252,7 +248,7 @@ Waiting on you — N human items:
   <absolute path to the written file>
   c26 refuted · c68 fixed in 596fcddbe · …
 
-Full suite: <green | RED: what failed>
+Required suites: <scope and results>
 Push: <pushed e9495317b..27cbdf66f | not pushed: reason>
 ```
 
@@ -265,16 +261,16 @@ Then `git diff <baseSha>..HEAD --stat` for the cumulative picture.
 
 Surface these rather than bury them, because each means something is unfinished:
 
-- **the full suite is red at the tip** even though the commits landed — nothing
-  was pushed and nothing was answered.
+- **required checks are unresolved at the tip** — report the failing command,
+  the evidence for its cause, and whether it blocked the push.
 - **commits are in "Fixed" but the push didn't happen** — the work is local and
   invisible on the PR, and the automated answers are held with it. Say what
   stopped it.
 - **uncommitted changes beyond the untracked scratch you started with** — list
   the files. This is deliberate when a fix couldn't be made green, but the user
   has to decide what to do with it.
-- **the branch was already red before any fix** — nothing should have been
-  attempted on top; that's the thing to fix first.
+- **the branch was already red before any fix** — report that evidence and
+  how the repository's verification and push policy applies.
 - **an answer posted as a literal file path instead of its text** — post reply
   bodies with `-F` from a file, never `-f body=@…`, which sends the path. Read
   the thread back to confirm the text landed.

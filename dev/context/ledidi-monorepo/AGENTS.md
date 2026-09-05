@@ -43,6 +43,8 @@ files, or configs to reach a service breaks the worktree instead of fixing it.
 
 ## Workflow skills
 
+Use `dev --help` to discover development commands and their scope.
+
 Load the matching shared skill before acting:
 
 | Request | Skill |
@@ -72,30 +74,42 @@ npx jest
 
 | When user says | What it means |
 |----------------|---------------|
-| "red/green TDD" | Run both unit tests and relevant E2E tests |
-| "commit" | Pre-commit hook must pass |
-| "push" | Pre-push hook must pass |
+| "commit" or "push" | Follow the verification and push policy below |
 | "save to vault" | Write a markdown file to `/Users/philip/vaults/work/dev` |
 
 Committing and pushing don't need approval.
 
-### Rebased pushes
+### Verification and push policy
+
+Verify the workspaces required by the branch's changes, including affected
+dependencies and consumers. A "full suite" means the full suites for those
+workspaces, not the whole monorepo. Run E2E when the user asks for it or browser
+verification requires it; "red/green TDD" requires unit and relevant E2E tests.
+
+Creating or entering a worktree, rebasing, committing, and pushing do not by
+themselves require dependency setup or service startup. When verification
+needs setup, load `dev-stack` and prepare only the required workspaces and
+services.
+
+Classify failures from evidence, not from whether master is green:
+
+| Cause | Action |
+|-------|--------|
+| The branch caused the failure | Fix it and rerun the required checks. |
+| Required setup is missing | Prepare only what the branch's verification needs, then rerun. |
+| A history rewrite made a hook select an unrelated workspace | Apply the narrow pre-push exception below. |
+| Another pre-existing failure, or an unexplained failure | Report the failing command and evidence. Ask before expanding the task; do not bypass the failure. |
+
+Pre-commit hooks must pass; do not bypass them. Before pushing, required
+branch checks and pre-push hooks must pass, with this single exception:
 
 After a rebase or another history rewrite, Lefthook can select a workspace
 changed only by incoming base-branch commits. Confirm that the workspace is
-absent from `git diff --name-only origin/master...HEAD`. If that workspace is
-the only reason pre-push fails and the branch's own checks passed, use
-`git push --force-with-lease --no-verify`. The pull request checks cover the
-incoming changes.
-
-### Failing Builds and Tests
-
-Fix pre-existing lint or type errors first and commit that fix before starting
-new work.
-
-While master is green, a failing build, tool, or test comes from this branch.
-Those are yours to fix and stay on, including the ones that look unrelated to
-what you changed.
+absent from `git diff --name-only origin/master...HEAD` and is not an affected
+dependency or consumer of the branch's changes. If that workspace is the only
+reason pre-push fails and the branch's required checks passed, use
+`git push --force-with-lease --no-verify` instead of preparing and checking that
+workspace locally. The pull request checks cover the incoming changes.
 
 ### Datadog
 

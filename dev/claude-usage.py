@@ -3,13 +3,9 @@
 
 import json
 import os
-import sys
+import argparse
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
-from matplotlib.patches import Patch
 
 PROJECTS_DIR = os.path.expanduser("~/.claude/projects")
 
@@ -109,6 +105,10 @@ def fmt_tok(n: int) -> str:
 
 
 def plot(daily: dict, days: int) -> None:
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as mticker
+    from matplotlib.patches import Patch
+
     # Fill every day in range (even empty ones)
     today = date.today()
     cutoff = today - timedelta(days=days - 1)
@@ -203,10 +203,12 @@ def plot(daily: dict, days: int) -> None:
 
 
 def main() -> None:
-    args = sys.argv[1:]
-    days = 30
-    if args and args[0].lstrip("-").isdigit():
-        days = abs(int(args[0]))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("days", nargs="?", type=int, default=30,
+                        help="Number of days to display (default: 30)")
+    days = parser.parse_args().days
+    if days < 1:
+        parser.error("days must be positive")
 
     print(f"Scanning session files for last {days} days…", flush=True)
     daily = collect(days)

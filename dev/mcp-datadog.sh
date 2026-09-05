@@ -10,6 +10,13 @@
 # Each agent points its "datadog" MCP server at this script as the command.
 set -euo pipefail
 
+if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
+  echo "Usage: mcp-datadog.sh"
+  echo "Starts the Datadog MCP server with credentials from the local agent environment."
+  exit 0
+fi
+[[ $# -eq 0 ]] || { echo "Error: unexpected arguments. See mcp-datadog.sh --help." >&2; exit 2; }
+
 SECRETS_FILE="${DATADOG_SECRETS_FILE:-$HOME/.config/zsh/.zsh_secrets}"
 
 load_secret() {

@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Codex notify hook - posts a macOS notification when Codex is idle.
 
+if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
+  echo "Usage: codex-notify.sh '<hook JSON>'"
+  echo "Posts a macOS notification for a completed Codex turn."
+  exit 0
+fi
+
 payload="${1:-}"
 cwd="${PWD:-unknown}"
 log_file="${CODEX_NOTIFY_LOG:-$HOME/.codex/notify.log}"

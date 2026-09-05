@@ -1,7 +1,8 @@
 #!/bin/bash
 
 DEV_SLOT_LABEL="com.ledidi.dev-slot"
-DEV_WORKSPACE_LABEL="com.ledidi.dev-workspace"
+# Existing containers keep this label so a command rename preserves stack ownership.
+DEV_CHECKOUT_LABEL="com.ledidi.dev-workspace"
 
 # New worktrees live inside the repo at <repo>/.worktrees. The location belongs
 # to the repository workflow, not to any one agent harness. WORKTREE_BASE
@@ -43,6 +44,7 @@ dev_slugify() {
     if [ -n "$slug" ]; then
         printf '%s\n' "$slug"
     else
+        # Existing stack directories use this fallback for names without ASCII letters.
         printf '%s\n' "workspace"
     fi
 }
@@ -87,7 +89,7 @@ dev_worktree_raw_key_for_repo() {
     basename "$repo_root"
 }
 
-dev_workspace_id_for_repo() {
+dev_checkout_id_for_repo() {
     local repo_root=$1
 
     if dev_is_worktree_repo "$repo_root"; then
@@ -102,7 +104,7 @@ dev_workspace_id_for_repo() {
 
 dev_stack_dir_for_repo() {
     local repo_root=$1
-    printf '%s/%s\n' "$(dev_stacks_dir)" "$(dev_workspace_id_for_repo "$repo_root")"
+    printf '%s/%s\n' "$(dev_stacks_dir)" "$(dev_checkout_id_for_repo "$repo_root")"
 }
 
 dev_slot_file_for_repo() {
@@ -120,19 +122,19 @@ dev_list_slot_files() {
 }
 
 dev_prune_stale_slot_files() {
-    # Removes slot files whose workspace has no matching containers in Docker.
+    # Removes slot files whose checkout has no matching containers in Docker.
     # No-op if the Docker daemon is unreachable, to avoid wiping valid state.
     if ! docker info >/dev/null 2>&1; then
         return 0
     fi
 
-    local slot_file workspace slot containers
+    local slot_file checkout slot containers
 
     while IFS= read -r slot_file; do
         [ -n "$slot_file" ] || continue
         [ -f "$slot_file" ] || continue
 
-        workspace=$(basename "$(dirname "$slot_file")")
+        checkout=$(basename "$(dirname "$slot_file")")
         slot=$(tr -d '[:space:]' < "$slot_file" 2>/dev/null || true)
 
         if [ -z "$slot" ]; then
@@ -141,7 +143,7 @@ dev_prune_stale_slot_files() {
         fi
 
         containers=$(docker ps -aq \
-            --filter "label=${DEV_WORKSPACE_LABEL}=${workspace}" \
+            --filter "label=${DEV_CHECKOUT_LABEL}=${checkout}" \
             --filter "label=${DEV_SLOT_LABEL}=${slot}" 2>/dev/null)
 
         if [ -z "$containers" ]; then
@@ -229,8 +231,8 @@ DEV_AGENT_BASE_PORT=4007
 DEV_POSTGRES_BASE_PORT=5432
 
 # Fill the {{...PORT}} placeholders in a copied context file with the ports a
-# slot publishes. dev.sh calls this for the single worktree it just started;
-# sync-context.sh calls it for every workspace it rewrites.
+# slot publishes. stack.sh calls this for the single worktree it just started;
+# context-render.sh calls it for every checkout it rewrites.
 #
 #   dev_apply_context_ports <file> <slot>
 #

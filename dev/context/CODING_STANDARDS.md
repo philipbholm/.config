@@ -316,9 +316,6 @@ It supports code review and does not establish legal compliance.
   `has`.
 - Prefer early returns and a flat main path. Extract a branch when its body hides
   the high-level flow.
-- Default to no code comments. A comment that remains explains a hidden
-  constraint, invariant, or workaround in a complete sentence. It does not
-  restate code or point at the current task or a GitHub issue.
 - New general files use kebab-case. Hooks and GraphQL operations follow their
   established repository naming conventions.
 - Use the repository path alias for deep imports. Import source modules directly
@@ -335,15 +332,6 @@ It supports code review and does not establish legal compliance.
 
 ## Commits and pull requests
 
-- Commit subjects use `<type>: <description>` with `feat`, `fix`, `refactor`,
-  `test`, `docs`, or `chore`. Use imperative mood, lowercase after the type, and
-  no trailing period. A body explains why, not what the diff already shows.
-- Commit hooks pass. Push hooks pass for workspaces changed by the branch. The
-  repository context defines the narrow exception for unrelated workspaces
-  selected after a history rewrite.
-
-- A PR title includes a gitmoji. The description explains why the change exists
-  under `## Why` and what it changes under `## What`.
 - Keep one concern per PR. Separate prerequisite fixes, formatting, security,
   and observability work when they can land independently.
 - Aim for fewer than 25 files and 1,500 changed lines. More than 40 files or

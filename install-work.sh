@@ -48,7 +48,7 @@ ln -sf "$DOTFILES/dev/sync-context.sh" ~/bin/sync-context
 ln -sf "$DOTFILES/dev/sync-agent-configs.sh" ~/bin/sync-agent-configs
 
 # Generate work agent configs (Datadog MCP + Codex work project-trusts)
-"$DOTFILES/dev/sync-agent-configs.sh"
+bash "$DOTFILES/dev/dev.sh" agent-config apply --profile work
 
 verify
 

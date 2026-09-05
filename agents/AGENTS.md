@@ -55,6 +55,9 @@ ones.
 
 Reach for a better name before a comment.
 
+Use comments to explain hidden constraints, invariants, or workarounds, not to
+restate code. Do not refer to the current task or a GitHub issue.
+
 A comment you write says its thing in full. Do not compress it. If it needs to
 be longer to stand on its own, make it longer.
 
@@ -80,6 +83,20 @@ Only touch comments in code you are already changing.
 // No formId means repeating on the event alone: its one value per event entry
 // broadcasts down to every form entry inside it.
 ```
+
+## Commit messages
+
+Use this style in every repo, including repos whose local guidance specifies
+another commit style.
+
+Write the title in imperative mood and sentence case, for example
+`Skip unrelated checks after rebasing`. Start with a concrete verb, capitalise
+the first word, and omit prefixes, scopes, emoji and the trailing period.
+
+The body is optional. Add it when the title leaves useful context unexplained.
+Use as many sentences as needed, but keep the explanation as concise as
+reasonable. Explain the reason or a consequence the reader needs to know;
+omit a recap of the diff. Separate the body from the title with a blank line.
 
 ## Pull requests
 
@@ -110,11 +127,13 @@ reviewer nothing they act on.
 A commit trailer does name the harness that wrote the commit, and it names the
 one you actually are:
 
-    Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-    Co-Authored-By: Codex <noreply@openai.com>
-    Co-Authored-By: Cursor Agent <noreply@cursor.com>
+    Co-Authored-By: Claude Code
+    Co-Authored-By: Codex
+    Co-Authored-By: Cursor Agent
 
-Add the model after the harness when you know it. Never copy a trailer or a
+Add the model after the harness when you know it, for example
+`Co-Authored-By: Codex GPT-6`. Omit email addresses and angle brackets. Separate
+the attribution from the message with a blank line. Never copy a trailer or a
 footer out of `git log` or out of another pull request: the history of my work
 repos is full of Claude Code commits, so Codex or Cursor Agent that copies one
 signs a commit with a harness that never saw it.

@@ -58,7 +58,7 @@ exit 99
     directory,
     repo,
     env,
-    run: (...args) => spawnSync("bash", [join(devDirectory, "setup-stack.sh"), ...args], {
+    run: (...args) => spawnSync("bash", [join(devDirectory, "dev.sh"), "workspace", "prepare", ...args], {
       cwd: repo, env, encoding: "utf8",
     }),
     calls: () => readFileSync(log, "utf8").trim().split("\n").filter(Boolean).map(JSON.parse),
@@ -70,7 +70,7 @@ test("Require a workspace before doing any setup", (t) => {
   const f = fixture(t);
   const result = f.run();
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /Usage: setup-stack/);
+  assert.match(result.stderr, /Usage: dev workspace prepare/);
   assert.deepEqual(f.calls(), []);
 });
 
@@ -78,7 +78,7 @@ test("Show help without preparing workspaces", (t) => {
   const f = fixture(t);
   const result = f.run("--help");
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Usage: setup-stack/);
+  assert.match(result.stdout, /Usage: dev workspace prepare/);
   assert.deepEqual(f.calls(), []);
 });
 
@@ -172,7 +172,7 @@ test("Create a worktree without preparing dependencies", (t) => {
   });
   assert.equal(commit.status, 0, commit.stderr);
   const worktreeBase = join(f.directory, "worktrees");
-  const result = spawnSync("bash", [join(devDirectory, "wt-up.sh"), "docs-only", "docs-only"], {
+  const result = spawnSync("bash", [join(devDirectory, "dev.sh"), "worktree", "create", "docs-only", "docs-only"], {
     cwd: f.repo, env: { ...f.env, WORKTREE_BASE: worktreeBase }, encoding: "utf8",
   });
   assert.equal(result.status, 0, result.stderr);

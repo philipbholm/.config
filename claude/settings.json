@@ -46,7 +46,9 @@
       "Bash(AWS_PROFILE=production aws sso login:*)"
     ],
     "ask": [
-      "Bash(dev nuke:*)"
+      "Bash(dev nuke:*)",
+      "Bash(dev stack destroy:*)",
+      "Bash(dev worktree destroy:*)"
     ],
     "defaultMode": "auto"
   },

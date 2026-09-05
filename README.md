@@ -14,7 +14,7 @@ This repo currently manages:
 - Tmux config in [tmux/tmux.conf](/Users/philip/.config/tmux/tmux.conf) — Omarchy-style bindings (Ctrl+Space prefix, vim pane nav, Alt window/session nav, vi copy mode, vim-tmux-navigator, blue status bar)
 - Neovim config in [nvim/](/Users/philip/.config/nvim/) — LazyVim with Tokyo Night theme and vim-tmux-navigator
 - Cursor config in [cursor/settings.json](/Users/philip/.config/cursor/settings.json) and [cursor/keybindings.json](/Users/philip/.config/cursor/keybindings.json)
-- Claude/Codex config under `claude/`, `codex/`, and `.claude/`. The base files hold only shared content; work-only bits (Datadog MCP, Codex `~/work` project-trusts) live in `*.work.*` overlays and are merged into the live files on work machines by [dev/sync-agent-configs.sh](/Users/philip/.config/dev/sync-agent-configs.sh)
+- Claude/Codex config under `claude/`, `codex/`, and `.claude/`. The base files hold only shared content; work-only bits (Datadog MCP, Codex `~/work` project-trusts) live in `*.work.*` overlays and are merged into the live files on work machines by [dev agent-config apply --profile work](/Users/philip/.config/dev/agent-config-apply.sh)
 - Utility scripts under [dev](/Users/philip/.config/dev)
 - Profile-based bootstrap: [install.sh](/Users/philip/.config/install.sh) `work|personal` dispatches to `install-work.sh` / `install-personal.sh`, both sourcing the shared `install-common.sh`
 
@@ -85,7 +85,7 @@ Notes:
 
 - `~/.config` contains this repo and the managed local configuration
 - `~/work` contains main working repositories such as `ledidi-monorepo`, `legacy`, and related work repos
-- Git worktrees live inside each repo at `<repo>/.worktrees/<name>`, created with the harness-agnostic `wt-up` helper and torn down with `wt-down`
+- Git worktrees live inside each repo at `<repo>/.worktrees/<name>`, created with the harness-agnostic `dev worktree create` helper and torn down with `dev worktree destroy`
 - `~/work/.dev-stacks` is used by the local `dev` tooling for generated Docker Compose stack files
 - `~/private` contains private/personal repositories
 - `~/vaults` contains Obsidian or other note vaults
@@ -119,7 +119,7 @@ git clone <repo-url> ~/.config
 ~/.config/install.sh work       # full Ledidi dev environment
 ```
 
-Both profiles share a common core via `install-common.sh`: Homebrew packages, directory creation, symlinks, stale symlink cleanup, neovim cache prep, and zsh-autosuggestions. The `work` profile additionally installs the Ledidi/dev tooling ([Brewfile.work](/Users/philip/.config/Brewfile.work)), links the `dev`/`wt-down`/`setup-stack`/etc. scripts into `~/bin`, creates `~/work`, and runs `dev/sync-agent-configs.sh` to merge the Datadog MCP + Codex `~/work` project-trusts into the live agent configs; `personal` adds only [Brewfile.personal](/Users/philip/.config/Brewfile.personal). See [install.sh](/Users/philip/.config/install.sh) for details.
+Both profiles share a common core via `install-common.sh`: Homebrew packages, directory creation, symlinks, stale symlink cleanup, neovim cache prep, and zsh-autosuggestions. The `work` profile additionally installs the Ledidi/dev tooling ([Brewfile.work](/Users/philip/.config/Brewfile.work)), links terminal compatibility aliases into `~/bin`, creates `~/work`, and runs `dev agent-config apply --profile work` to merge the Datadog MCP + Codex `~/work` project-trusts into the live agent configs; `personal` adds only [Brewfile.personal](/Users/philip/.config/Brewfile.personal). See [install.sh](/Users/philip/.config/install.sh) for details.
 
 Note: tmux reads its config directly from `~/.config/tmux/tmux.conf` (XDG support since tmux 3.1). No `~/.tmux.conf` symlink is needed.
 
@@ -204,7 +204,7 @@ uv --version
 # Work profile only
 brew bundle check --file ~/.config/Brewfile.work
 zsh -lc 'command -v watchman lefthook'
-zsh -lc 'command -v dev check tests tunnel setup-stack wt-down sync-context fix'
+zsh -lc 'dev --help'
 
 # Personal profile only
 brew bundle check --file ~/.config/Brewfile.personal
