@@ -25,8 +25,7 @@ does not consume the request; start this flow when the user confirms the work.
    with `gh pr create --draft`, using the title and body rules from `write-pr`.
    Add `risk:standard`; labels beyond that require approval. Open the pull
    request URL in the browser.
-7. Run `gh pr checks <number>`. Investigate a red `pr-checks` under the
-   `verify-change` policy; it blocks master. Report every other failing check.
+7. Load `finish-pr` and complete its monitoring and repair loop.
 8. Report the worktree path, branch, running containers and ports, suites run,
    suites the stack could not support, review outcome, pull request URL, and
    check state.
@@ -38,6 +37,7 @@ For product code, update
 behavior changes. Otherwise tick the **Story map reviewed** checkbox added by
 the bot.
 
-If a step fails, stop there. Name the failed step and the state of the
-worktree. Leave the worktree and stack standing so a later session keeps the
-completed setup.
+Recover check failures under `verify-change` before the PR exists and under
+`finish-pr` after it exists. If progress requires user input or external
+action, report the blocker and the state of the worktree. Leave the worktree
+and stack standing so a later session keeps the completed setup.

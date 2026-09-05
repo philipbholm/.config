@@ -50,6 +50,7 @@ Load the matching shared skill before acting:
 | Request | Skill |
 |---------|-------|
 | Create or open a pull request | `create-pr` |
+| Make a PR green; keep fixing and monitoring PR checks | `finish-pr` |
 | Run checks, investigate check or hook failures, commit, or push | `verify-change` |
 | Change or review code | `coding-standards` |
 | Create, enter, or remove a worktree | `worktree` |
