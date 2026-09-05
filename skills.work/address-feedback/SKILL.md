@@ -39,11 +39,11 @@ directory:
    *tracked* files, stop and ask: you commit by staging named files, and those
    changes would be swept into someone else's commit.
 
-Read the repository's `AGENTS.md` or `CLAUDE.local.md` and
-`/Users/philip/.config/dev/context/CODING_STANDARDS.md` before changing code.
-Follow "Verification and push policy" in that repository context for check
-scope, setup, failure handling, and hook exceptions. Load `dev-stack` when the
-required checks need setup.
+Read the repository's `AGENTS.md` or `CLAUDE.local.md` and load
+`coding-standards` before changing code. In Ledidi, load `verify-change` for
+check scope, setup, failure handling, and hook exceptions; elsewhere follow
+the repository's verification instructions. Load `write-commit` before
+committing a fix.
 
 ## Collect the feedback
 
@@ -152,10 +152,10 @@ Take the items in order. For each one:
 2. **Decide the outcome:** `fix`, `already-fixed`, `disagree`, or `unclear`.
 3. **If it's a fix**, make the change. Then **verify the code you touched** —
    build and lint it, and run the tests that cover it using workspace scripts.
-   Classify failures under the repository's verification and push policy.
+   Classify failures under the verification instructions selected above.
 4. **Commit that one item on its own.** Stage only the files this item touched,
-   following the repository's verification and push policy. One commit per issue,
-   so each answer can link to the commit that resolved it.
+   following those verification instructions. One commit per issue, so each
+   answer can link to the commit that resolved it.
 5. **If it's a disagreement**, write the rebuttal now, while you have the whole
    picture — the positive case with file:line. Don't commit anything.
 
@@ -172,9 +172,9 @@ reverting silently.
 
 Once every item is worked:
 
-1. **Run the full suite** within the repository's verification scope, not just
-   the per-item tests.
-2. **Push when the repository's verification and push policy permits it.**
+1. **Run the full suite** within the selected verification scope, not just the
+   per-item tests.
+2. **Push when the selected verification instructions permit it.**
    Push before posting any answer — every answer to a fixed finding links to
    its commit, and an unpushed SHA 404s.
 3. **If pushing is blocked, report why and hold the answers.** Automated
@@ -270,7 +270,7 @@ Surface these rather than bury them, because each means something is unfinished:
   the files. This is deliberate when a fix couldn't be made green, but the user
   has to decide what to do with it.
 - **the branch was already red before any fix** — report that evidence and
-  how the repository's verification and push policy applies.
+  how the selected verification instructions apply.
 - **an answer posted as a literal file path instead of its text** — post reply
   bodies with `-F` from a file, never `-f body=@…`, which sends the path. Read
   the thread back to confirm the text landed.

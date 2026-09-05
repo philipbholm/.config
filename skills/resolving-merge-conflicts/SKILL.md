@@ -9,6 +9,6 @@ description: "Use when you need to resolve an in-progress git merge/rebase confl
 
 3. **Resolve each hunk.** Preserve both intents where possible. Where incompatible, pick the one matching the merge's stated goal and note the trade-off. Do **not** invent new behaviour. Always resolve; never `--abort`.
 
-4. Discover the project's **automated checks** and run them — typically typecheck, then tests, then format. Fix anything the merge broke.
+4. Follow the repository's verification instructions to select and run the **automated checks**. In Ledidi, load `verify-change` before running checks or investigating hook failures. Fix anything the merge broke.
 
-5. **Finish the merge/rebase.** Stage everything and commit. If rebasing, continue the rebase process until all commits are rebased.
+5. **Finish the merge/rebase.** Load `write-commit` when writing a new commit message. Stage everything and commit. If rebasing, continue the rebase process until all commits are rebased.

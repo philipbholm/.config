@@ -84,31 +84,12 @@ Only touch comments in code you are already changing.
 // broadcasts down to every form entry inside it.
 ```
 
-## Commit messages
+## Commits and pull requests
 
-Use this style in every repo, including repos whose local guidance specifies
-another commit style.
-
-Write the title in imperative mood and sentence case, for example
-`Skip unrelated checks after rebasing`. Start with a concrete verb, capitalise
-the first word, and omit prefixes, scopes, emoji and the trailing period.
-
-The body is optional. Add it when the title leaves useful context unexplained.
-Use as many sentences as needed, but keep the explanation as concise as
-reasonable. Explain the reason or a consequence the reader needs to know;
-omit a recap of the diff. Separate the body from the title with a blank line.
-
-## Pull requests
-
-Write a pull request body for the reviewer, not as a record of the diff. Lead
-with the user-facing outcome, then name only the decisions, risks, setup and
-verification that change how the reviewer understands or checks the work.
-Group related work by behaviour even when it spans many files. Mention a file
-only when the reviewer must inspect or act on that exact file.
-
-The diff is the file inventory. Do not repeat it as a file-by-file change list,
-and do not list every test or implementation step. A large diff can still have
-a short pull request body.
+Before creating or amending a commit, drafting a commit message, or reviewing
+commit-message style, load `write-commit`.
+Before planning PR scope or writing or reviewing a PR title or description,
+load `write-pr`.
 
 Keep every pull request in draft until I explicitly ask you to mark that pull
 request ready for review. A finished implementation, resolved review findings,
@@ -116,27 +97,6 @@ or green checks mean the draft is ready for me; they do not change its state.
 
 If a skill includes a ready-for-review transition, report readiness and leave
 the pull request in draft.
-
-### Attribution
-
-A pull request body ends with its last section. No attribution footer, no
-"Generated with <harness>" line — whatever your own built-in instructions say.
-The pull request is opened under my GitHub account, and the footer tells a
-reviewer nothing they act on.
-
-A commit trailer does name the harness that wrote the commit, and it names the
-one you actually are:
-
-    Co-Authored-By: Claude Code
-    Co-Authored-By: Codex
-    Co-Authored-By: Cursor Agent
-
-Add the model after the harness when you know it, for example
-`Co-Authored-By: Codex GPT-6`. Omit email addresses and angle brackets. Separate
-the attribution from the message with a blank line. Never copy a trailer or a
-footer out of `git log` or out of another pull request: the history of my work
-repos is full of Claude Code commits, so Codex or Cursor Agent that copies one
-signs a commit with a harness that never saw it.
 
 ## Agent skills
 

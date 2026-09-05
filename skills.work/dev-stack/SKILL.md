@@ -11,8 +11,8 @@ reach another stack's ports.
 
 ## Prepare dependencies when needed
 
-For setup scope and failure handling, follow "Verification and push policy"
-in the repository's `AGENTS.md` or `CLAUDE.local.md`.
+When setup is needed for checks or a check fails, load `verify-change` for
+scope and failure handling.
 
 When package dependencies need installation, run
 `dev workspace prepare <workspace> [workspace ...]` for those workspaces.
@@ -29,7 +29,7 @@ Missing generated fields or exports can mean stale output, not a source
 defect. Refresh that output and rerun the failed check before changing source.
 Refreshing generated types from local schema files needs no dependency
 reinstallation or service startup. If generation fails, report that failure
-under the repository's verification and push policy.
+under `verify-change`.
 
 ## Start only what the task needs
 

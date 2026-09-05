@@ -50,6 +50,8 @@ Load the matching shared skill before acting:
 | Request | Skill |
 |---------|-------|
 | Create or open a pull request | `create-pr` |
+| Run checks, investigate check or hook failures, commit, or push | `verify-change` |
+| Change or review code | `coding-standards` |
 | Create, enter, or remove a worktree | `worktree` |
 | Prepare workspace dependencies; start, operate, or diagnose the development stack; verify in a browser | `dev-stack` |
 | Seed a demo registry | `seed-registry` |
@@ -74,60 +76,17 @@ npx jest
 
 | When user says | What it means |
 |----------------|---------------|
-| "commit" or "push" | Follow the verification and push policy below |
 | "save to vault" | Write a markdown file to `/Users/philip/vaults/work/dev` |
 
 Committing and pushing don't need approval.
 
-### Verification and push policy
-
-Before running checks or investigating a hook failure, identify the required
-workspaces from `git diff --name-only origin/master...HEAD` and their affected
-dependencies and consumers. Hook path filters do not cover every dependency;
-inspect schema and generation inputs before excluding a consumer with no
-direct file changes. Run required checks even when the hook does not select
-them. A hook selecting a workspace is not itself a reason to prepare it.
-
-A "full suite" means the full suites for those workspaces, not the whole
-monorepo. Run E2E when the user asks for it or browser verification requires
-it; "red/green TDD" requires unit and relevant E2E tests.
+### Service setup
 
 Creating or entering a worktree, rebasing, committing, and pushing do not by
-themselves require dependency setup or service startup. When verification
-needs setup, load `dev-stack` and prepare only the required workspaces and
-services. For checks that consume generated types, follow the preparation
-steps in `dev-stack` before running them.
-
-Classify failures from evidence, not from whether master is green:
-
-| Cause | Action |
-|-------|--------|
-| The branch caused the failure | Fix it and rerun the required checks. |
-| Required setup is missing | Prepare only what the branch's verification needs, then rerun. |
-| A history rewrite made a hook select an unrelated workspace | Apply the narrow pre-push exception below. |
-| Another pre-existing failure, or an unexplained failure | Report the failing command and evidence. Ask before expanding the task; do not bypass the failure. |
-
-Pre-commit hooks must pass; do not bypass them. Before pushing, required
-branch checks and pre-push hooks must pass, with this single exception:
-
-After a rebase or another history rewrite, Lefthook can select a workspace
-changed only by incoming base-branch commits. Confirm that the workspace is
-absent from `git diff --name-only origin/master...HEAD` and is not an affected
-dependency or consumer of the branch's changes. If that workspace is the only
-reason pre-push fails and the branch's required checks passed, use
-`git push --force-with-lease --no-verify` instead of preparing and checking that
-workspace locally. The pull request checks cover the incoming changes.
+themselves require dependency setup or service startup.
 
 ### Datadog
 
 Open a Datadog link and confirm it returns results before putting it in a
 comment, PR, or report. These URLs are easy to construct plausibly and wrong; a
 link showing nothing costs more than no link.
-
-## Coding Standards
-
-Read
-[CODING_STANDARDS.md](/Users/philip/.config/dev/context/CODING_STANDARDS.md)
-before changing or reviewing code. The file is the shared authority for
-engineering, security, privacy, reliability, and testing rules. This repository
-context adds operational detail but does not duplicate those rules.

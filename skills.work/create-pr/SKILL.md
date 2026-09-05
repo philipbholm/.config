@@ -9,34 +9,29 @@ Run the whole flow for “create a PR that …”. For a bare “create PR”, r
 the first unmet precondition. A preceding grilling or specification session
 does not consume the request; start this flow when the user confirms the work.
 
-1. For a larger effort, write `.scratch/<slug>/spec.md` in the main checkout.
+1. Load `write-pr` for PR scope and message rules. For a larger effort, write
+   `.scratch/<slug>/spec.md` in the main checkout.
    A smaller change needs no spec file. Keep discarded alternatives and future
    work for the final report, not the pull request body.
 2. Load the `worktree` skill and create and prepare the branch and worktree.
    Effort files remain in the main checkout's `.scratch/`; reach them by
    absolute path.
-3. Read "Verification and push policy" in the repository's `AGENTS.md` or
-   `CLAUDE.local.md`. Load `dev-stack` if the required checks need setup.
-4. Implement the change and verify it under that policy.
+3. Load `verify-change` for check scope and failure handling, and
+   `coding-standards` before changing code. Load `dev-stack` if checks need setup.
+4. Implement the change and verify it under `verify-change`.
 5. Run the `code-review` skill before opening the pull request. Fix its findings
    as ordinary commits.
-6. Commit, push, and open a draft with `gh pr create --draft`. Use a gitmoji
-   title and add `risk:standard`; labels beyond that require approval. Open the
-   pull request URL in the browser.
+6. Load `write-commit`, commit, and push under `verify-change`. Open a draft
+   with `gh pr create --draft`, using the title and body rules from `write-pr`.
+   Add `risk:standard`; labels beyond that require approval. Open the pull
+   request URL in the browser.
 7. Run `gh pr checks <number>`. Investigate a red `pr-checks` under the
-   repository's verification and push policy; it blocks master. Report every
-   other failing check.
+   `verify-change` policy; it blocks master. Report every other failing check.
 8. Report the worktree path, branch, running containers and ports, suites run,
    suites the stack could not support, review outcome, pull request URL, and
    check state.
 
-## Pull request body
-
-Use `## Why` and `## What` as the only sections and apply the global pull
-request writing rules.
-
-`## Why` explains the problem and the outcome. `## What` explains the change.
-Quote new user-facing strings when the wording matters to review.
+## Product behavior
 
 For product code, update
 `services/registries/docs/story-map/src/data/story-map.json` when user-visible

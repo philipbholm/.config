@@ -36,13 +36,10 @@ range.
 
 Fail here when the PR cannot be resolved or the pinned diff is empty.
 
-Read:
-
-- `/Users/philip/.config/dev/context/CODING_STANDARDS.md`
-- the repository's `AGENTS.md` or `CLAUDE.local.md`, when present
-
-The shared standards are authoritative. Repository context may add stricter
-rules. Do not load `/Users/philip/.config/dev/feedback/SYNTHESIZED_LEARNINGS.md`.
+Read the repository's `AGENTS.md` or `CLAUDE.local.md`, when present, and load
+`coding-standards`. Use its isolated-review routing: the coordinator loads
+reference bodies when verifying findings, not all topics before dispatch.
+Do not load `/Users/philip/.config/dev/feedback/SYNTHESIZED_LEARNINGS.md`.
 
 Read the PR description, the complete pinned diff, and the surrounding code in
 every changed area. A diff hunk alone cannot prove that authorization, tests,
@@ -53,7 +50,8 @@ callers, or compatibility handling are complete.
 Spawn all three subagents in parallel. Give each subagent:
 
 - the PR metadata, pinned SHAs, diff command, and commit list
-- its named pass and only the standards sections relevant to that pass
+- its named pass, the `coding-standards` skill path, and the reference paths
+  relevant to that pass
 - permission to inspect the full changed files, callers, tests, migrations,
   schemas, and configuration needed to verify a candidate
 - this output contract for every candidate: severity, file and line, evidence,
@@ -62,20 +60,23 @@ Spawn all three subagents in parallel. Give each subagent:
 - this guard: `Do not invoke review-pr and do not spawn other agents. Perform
   this pass directly.`
 
-The Coding Standards pass applies every relevant documented rule, including PR
-title and description rules. It skips checks already enforced by repository
-tooling.
+The Coding Standards pass applies the baseline and every relevant language,
+backend, frontend, testing, and infrastructure reference. It loads `write-pr`
+for PR title and description rules, and `write-commit` when assessing commit
+messages. It skips checks already enforced by repository tooling.
 
-The Security and Privacy pass traces sensitive data across trust boundaries.
+The Security and Privacy pass reads the security and testing references and
+traces sensitive data across trust boundaries.
 It checks authorization and scope, tenant isolation, frontend and API exposure,
 logs and errors, audit logging, data minimization and retention, destructive
 operations, configuration, dependencies, and third-party data sharing. It
 reports technical risks and makes no claim of legal or regulatory compliance.
 
-The Correctness and Reliability pass checks observable behavior and data
-integrity. It follows mutations, migrations, events, projections, imports,
-exports, retries, concurrent operations, external calls, and failure paths. It
-checks whether tests cover the important behavior and boundaries.
+The Correctness and Reliability pass reads the correctness and testing
+references and checks observable behavior and data integrity. It follows
+mutations, migrations, events, projections, imports, exports, retries,
+concurrent operations, external calls, and failure paths. It checks whether
+tests cover the important behavior and boundaries.
 
 ## Verify the candidates
 
