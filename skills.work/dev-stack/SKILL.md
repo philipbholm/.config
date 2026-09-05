@@ -18,6 +18,14 @@ Run `dev workspace prepare <workspace> [workspace ...]` for those workspaces.
 Use `dev workspace prepare --help` for the command's behavior and workspace
 definition. Service startup is a separate step below.
 
+When required checks report missing generated fields or exports, inspect the
+workspace's generation configuration and its schema and operation inputs.
+Refresh the affected generated files with the workspace's package script,
+then rerun the failed check before treating the error as a source defect.
+Stale generated files alone do not need `dev workspace prepare`, which also
+reinstalls dependencies. If generation fails, report that failure under the
+repository's verification and push policy.
+
 ## Start only what the task needs
 
 | Task | Command |
