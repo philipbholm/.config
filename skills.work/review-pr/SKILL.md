@@ -4,99 +4,50 @@ description: Review a GitHub pull request through isolated Coding Standards, Sec
 argument-hint: "[pr number] [report|post]"
 ---
 
-Review one GitHub pull request. The default `report` mode is read-only. Use
-`post` mode only when the user explicitly asks to publish the findings.
+# Review a pull request
 
-This review has three required, isolated passes:
+Use the supplied PR number; ask if it is missing. Default to read-only
+`report` mode. Use `post` only when the user explicitly asks to publish findings.
 
-1. **Coding Standards** — compliance with the documented work standards and
-   repository-specific additions.
-2. **Security and Privacy** — authorization, isolation, sensitive-data flows,
-   auditability, and abuse paths.
-3. **Correctness and Reliability** — wrong results, corrupt or inconsistent
-   data, unsafe failures, concurrency, compatibility, and missing tests for
-   those risks.
-
-Each pass requires its own subagent. If the current harness cannot create three
-isolated subagents, stop and report that the review contract cannot be met.
+Read [Review quality](/Users/philip/.config/skills/code-review/references/review-quality.md).
+It owns the finding criteria, evidence requirements, severity definitions,
+and coordination of isolated passes.
 
 ## Pin the review
 
-Use the supplied PR number. Ask for one when it is missing. Do not use
-this skill for a local branch or an arbitrary diff.
+Fetch the PR repository, number, URL, title, body, author, changed files, and
+base and head SHAs. Confirm both SHAs resolve locally, fetching the PR ref if
+needed. Capture one three-dot comparison and its commit list using those SHAs.
 
-Default to `report` mode. Use `post` mode only when the user passes `post` as
-an argument or asks in plain words to publish the findings to GitHub.
-
-Fetch the PR metadata, including its repository, number, URL, title, body,
-author, files, base SHA, and head SHA. Confirm both SHAs resolve locally,
-fetching the PR ref when needed. Define one three-dot comparison against those
-exact SHAs and use it throughout the review. Also capture the commits in that
-range.
-
-Fail here when the PR cannot be resolved or the pinned diff is empty.
-
+Stop if the PR cannot be resolved; report no changes when the diff is empty.
 Read the repository's `AGENTS.md` or `CLAUDE.local.md`, when present, and load
-`coding-standards`. Use its isolated-review routing: the coordinator loads
-reference bodies when verifying findings, not all topics before dispatch.
-Do not load `/Users/philip/.config/dev/feedback/SYNTHESIZED_LEARNINGS.md`.
-
-Read the PR description, the complete pinned diff, and the surrounding code in
-every changed area. A diff hunk alone cannot prove that authorization, tests,
-callers, or compatibility handling are complete.
+`coding-standards`. Do not load
+`/Users/philip/.config/dev/feedback/SYNTHESIZED_LEARNINGS.md`.
 
 ## Run the isolated passes
 
-Spawn all three subagents in parallel. Give each subagent:
+Each pass requires its own subagent. Spawn all three in parallel. If the
+harness cannot provide three isolated subagents, stop and report that the
+review contract cannot be met.
 
-- the PR metadata, pinned SHAs, diff command, and commit list
-- its named pass, the `coding-standards` skill path, and the reference paths
-  relevant to that pass
-- permission to inspect the full changed files, callers, tests, migrations,
-  schemas, and configuration needed to verify a candidate
-- this output contract for every candidate: severity, file and line, evidence,
-  consequence, violated rule when applicable, suggested correction, and what
-  remains uncertain
-- this guard: `Do not invoke review-pr and do not spawn other agents. Perform
-  this pass directly.`
+Give each reviewer the PR metadata and description, pinned comparison,
+commit list, Review quality reference, `coding-standards` skill path, and
+references for its assigned pass:
 
-The Coding Standards pass applies the baseline and every relevant language,
-backend, frontend, testing, and infrastructure reference. It loads `write-pr`
-for PR title and description rules, and `write-commit` when assessing commit
-messages. It skips checks already enforced by repository tooling.
+| Pass | Sources |
+|------|---------|
+| Coding Standards | Relevant language, backend, frontend, testing, and infrastructure references; `write-pr` for PR text and `write-commit` when assessing commit messages |
+| Security and Privacy | Security and testing references |
+| Correctness and Reliability | Correctness and testing references |
 
-The Security and Privacy pass reads the security and testing references and
-traces sensitive data across trust boundaries.
-It checks authorization and scope, tenant isolation, frontend and API exposure,
-logs and errors, audit logging, data minimization and retention, destructive
-operations, configuration, dependencies, and third-party data sharing. It
-reports technical risks and makes no claim of legal or regulatory compliance.
+Each pass applies the standards baseline and expands its references when the
+evidence requires it. Tell each reviewer: "Perform only your assigned pass.
+Do not invoke review-pr or spawn other agents."
 
-The Correctness and Reliability pass reads the correctness and testing
-references and checks observable behavior and data integrity. It follows
-mutations, migrations, events, projections, imports, exports, retries,
-concurrent operations, external calls, and failure paths. It checks whether
-tests cover the important behavior and boundaries.
+## Verify and deliver
 
-## Verify the candidates
+Verify candidates under Review quality. Merge duplicate findings across
+passes while retaining their pass labels. Rank findings by severity without
+a count limit.
 
-Subagent output is evidence to investigate, not finished findings. Verify every
-candidate against the pinned diff, surrounding code, relevant standard, and
-tests. Remove guesses, taste, duplicates, and findings already enforced by
-tooling.
-
-Use these severities:
-
-- **Critical** — a credible security, privacy, destructive-data, or severe
-  availability risk that can cause substantial harm.
-- **Major** — a confirmed problem the author should fix before merge.
-- **Minor** — a worthwhile improvement that does not need to block the merge.
-
-Merge duplicate candidates into one finding and retain every pass label that
-found it. Put plausible risks that cannot be confirmed under **Needs
-investigation**, with the missing evidence stated plainly. Include at most ten
-Minor findings.
-
-Once every retained finding is verified, read
-[`references/delivery.md`](references/delivery.md) and deliver the result in the
-selected mode.
+Read [Review delivery](references/delivery.md) and deliver in the selected mode.

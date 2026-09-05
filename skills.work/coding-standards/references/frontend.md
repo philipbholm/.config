@@ -3,10 +3,6 @@
 - Use the existing design-system component before creating a custom primitive.
 - Render all user-visible text through translation keys in Norwegian and
   English. Compare logic with language-independent values.
-- Show a useful error when any query or mutation fails. Report unexpected
-  client errors through the configured monitoring service.
-- Await async operations that determine visible state. The UI does not advance
-  before a required mutation succeeds.
 - Compute derived values during render. Use `useEffect` only for synchronization
   with an external system, with cleanup when applicable.
 - Instantiate hooks close to where their result is used. Prefer cohesive
@@ -30,5 +26,3 @@
 - Use static Tailwind class names, the shared spacing scale, and `cn`/`clsx` for
   conditional classes. Portals protect popovers, menus, and tooltips inside
   stacking contexts.
-- Keep `DICTIONARY` and Zod schemas at the bottom of the file in which they are
-  used.

@@ -21,12 +21,10 @@
 
 ### Atomicity, concurrency, and distributed work
 
-- Operations described as all-or-nothing use one transaction or complete
-  pre-validation before writing.
-- Multiple domain events from one action and multi-table writes that form one
-  result succeed or fail together.
+- Operations described as all-or-nothing use one transaction. Multiple domain
+  events and multi-table writes that form one result succeed or fail together.
 - Preserve write-once audit fields such as creator and creation time during
-  updates and upserts.
+  updates. Put them in the create branch of an upsert, never the update branch.
 - External calls followed by local mutation, retryable commands, gRPC mutations,
   and asynchronous consumers require an idempotency strategy.
 - Event-driven flows define duplicate, out-of-order, missing, and failed-event
@@ -35,11 +33,12 @@
   boundary responsible for reporting and recovery.
 - A security, audit, persistence, or external-service failure must not leave the
   UI claiming success or the domain in an unacknowledged partial state.
+  Await operations that determine visible state before advancing the UI.
 
 ### Compatibility and migrations
 
-- Never edit an applied migration. Use a descriptive migration and keep one
-  coherent migration per PR, squashed before merge.
+- Never edit an applied migration. Use descriptive names and a coherent
+  migration sequence, including separate steps when staged changes require them.
 - Adding a constraint to existing data includes a verified cleanup or migration
   path before the constraint is applied.
 - Schema relationship changes update constraints, application queries,
@@ -52,10 +51,9 @@
 
 ### Operability
 
-- Unexpected failures reach monitoring with enough non-sensitive context to
-  diagnose the affected action and entity.
-- Expected errors produce useful user feedback. Unexpected errors produce user
-  feedback and monitoring without exposing internals.
+- Expected and unexpected client and server errors produce useful user feedback
+  without exposing internals. Unexpected errors also reach monitoring with
+  enough non-sensitive context to diagnose the affected action and entity.
 - Log and handle an error locally, or throw it for a higher boundary to log.
   Never do both.
 - Use an error level that reaches the required alerting path. A warning is not a

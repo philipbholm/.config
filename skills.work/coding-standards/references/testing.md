@@ -19,16 +19,15 @@
 - External-service failures test rollback, retry, or graceful degradation.
 - Tests are isolated and pass in random order. They do not depend on another
   test's database state, time, random output, or assigned port.
-- Never use arbitrary timeouts. Increasing a timeout is a reliability finding,
-  not a fix for a race.
-- Keep setup close to the assertion. `buildTestApplication`,
-  `registryTestBuilder`, and established application builders are the shared
-  exceptions; avoid local wrappers, field accessors, custom assertions, and
-  single-use builder methods.
+- Require evidence for timeout increases. Wait for observable conditions;
+  reject longer delays that merely hide a race.
+- Keep setup close to the assertion and use established application builders.
+  Flag helpers, wrappers, and custom assertions when they hide the test's intent.
 - A test states one unique intent in imperative plain English. Delete a test
   that adds no distinct behavioral coverage.
-- Assert exact meaningful results and persisted state. Avoid subset matchers
-  that can pass with unexpected extra data.
+- Assert meaningful results and persisted state. Require exact assertions when
+  unexpected extra results would be a defect; subset matchers are appropriate
+  when omitted fields are irrelevant to the behavior under test.
 - Tests of conditional narrowing fail when the expected type is absent; they do
   not silently skip the assertion.
 - Test files use deterministic dates and seeded random data.

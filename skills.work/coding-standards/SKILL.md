@@ -7,16 +7,18 @@ description: Apply work-repository coding standards before changing or reviewing
 
 These are the shared engineering and review standards for work repositories.
 They are authoritative; repository context may add stricter rules or explain
-how a rule applies. Tooling owns deterministic lint, type, formatting, and
-build checks; review should not repeat their output.
+how a rule applies.
+
+Before reviewing code, read
+[Review quality](/Users/philip/.config/skills/code-review/references/review-quality.md).
 
 ## Select the references
 
-Apply the baseline below to every code change. Before changing or reviewing
-code, read every reference whose condition matches the behavior, inputs, or
-affected consumers, not just the edited paths. Include test-only changes and
-revisit the selection when the scope changes. Inspect callers and data flow
-before excluding a topic whose relevance is unclear.
+Apply the baseline below to every code change. Before changing code or
+performing a review pass, read every reference whose condition matches the
+behavior, inputs, or affected consumers, not just the edited paths. Include
+test-only changes and revisit the selection when the scope changes. Inspect
+callers and data flow before excluding a topic whose relevance is unclear.
 
 | Condition | Reference |
 |-----------|-----------|
@@ -31,27 +33,13 @@ before excluding a topic whose relevance is unclear.
 Before planning PR scope or reviewing PR titles and descriptions, load
 `write-pr`. Before reviewing commit-message style, load `write-commit`.
 
-When coordinating isolated review passes, give each reviewer this skill and
-the reference paths relevant to its assigned pass. The coordinator reads
-reference bodies when verifying findings, rather than loading all topics up
-front. Each reviewer applies the baseline and expands its reference selection
-when the evidence requires it.
+## Engineering baseline
 
-## Review bar
-
-- Raise a finding only when the changed code contains a concrete problem or a
-  specific improvement worth the author's time.
 - Security, privacy, test coverage, and test quality do not bend for incomplete
   features. Put incomplete work behind a feature flag.
-- Prefer subtraction. Flag unnecessary code, speculative abstraction, and
-  complexity that makes the changed behavior harder to verify.
 - Fix the root cause and strengthen the test, type, lint rule, or harness that
   could have caught the failure. Do not normalize flaky tests, recurring errors,
   or known anti-patterns as background noise.
-- Treat baseline code smells as prompts to investigate, not violations by
-  themselves. Repository conventions win over generic advice.
-- Review the surrounding code, callers, tests, schemas, and configuration needed
-  to establish the consequence. A diff hunk alone is not enough evidence.
 
 ## Security and data baseline
 
@@ -89,7 +77,7 @@ when the evidence requires it.
   scaffolding before review.
 - Do not add a helper, interface, wrapper, dependency, or abstraction for one
   hypothetical consumer.
-- Put helpers and supporting components below the main exported function.
+- Follow nearby conventions for the order of declarations within a file.
 - Inline a props type unless it is shared, semantically meaningful, or too large
   to read at the function boundary.
 - A file that becomes difficult to navigate should split along cohesive

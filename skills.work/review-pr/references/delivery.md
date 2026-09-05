@@ -1,8 +1,10 @@
 # Review delivery
 
-Generate the HTML report in both modes before any GitHub write.
+Report mode produces HTML. In post mode, generate an additional HTML report
+only when the user asks for one. Reuse the same finding text in either output;
+separate paste-ready versions are unnecessary.
 
-## HTML report
+## When producing HTML
 
 Create a unique directory with `mktemp -d` under the operating system's
 temporary directory. Write one self-contained `review-pr-<number>.html` inside
@@ -16,11 +18,8 @@ The report contains:
 - counts by severity and pass
 - separate Coding Standards, Security and Privacy, and Correctness and
   Reliability sections, each ranked Critical, Major, then Minor
-- one card per finding with its pass labels, severity, file and line, stable
-  permalink at the pinned head SHA, evidence, consequence, and suggested
-  correction
-- a short paste-ready comment for each Critical and Major finding, written in
-  the user's plain first-person voice without agent attribution
+- one card per finding using the Review quality fields, with its pass labels,
+  severity, and stable permalink at the pinned head SHA
 - Needs investigation, PR structure, Minor, and Unchecked sections when they
   have content
 
@@ -44,9 +43,8 @@ instead of attaching stale findings to changed code.
 Submit one neutral GitHub review with event `COMMENT`. Post every Critical,
 Major and Minor finding inline on the relevant changed line when GitHub accepts
 that location. Put PR-structure findings and findings without a valid inline
-location in the review body. Keep Needs investigation findings in the HTML
-report only: they are unconfirmed, and the report is where a person weighs
-them.
+location in the review body. Keep Needs investigation findings out of GitHub;
+return them to the user in the HTML report when requested, or in chat otherwise.
 
 Start each inline comment with the existing machine-readable finding header:
 
@@ -74,4 +72,4 @@ Do not approve or request changes unless the user separately and explicitly
 asks for that review event.
 
 After GitHub accepts the review, list the posted findings and open the submitted
-review URL with `open`. Keep the HTML report path in the final response.
+review URL with `open`. Include the HTML report path when one was generated.

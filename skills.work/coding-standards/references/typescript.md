@@ -15,4 +15,3 @@
   defaults and parsing edge cases.
 - Prefer required fields. Guard genuinely impossible missing values with a typed
   invariant error rather than a non-null assertion.
-- Declare a type after the types on which it depends.

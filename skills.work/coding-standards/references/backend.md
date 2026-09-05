@@ -32,6 +32,4 @@
 - Guard queries whose `in` input may be empty.
 - Route record-scoped queries by the exact record and tenant identifiers. Do not
   return namespace-wide events or rows when the caller requested one record.
-- Keep creator and creation time in the create branch of an upsert, never the
-  update branch.
 - Prisma relation fields start with a lowercase letter.
