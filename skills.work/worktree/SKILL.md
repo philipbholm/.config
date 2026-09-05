@@ -29,20 +29,9 @@ Report the worktree name, path, and branch after creation.
 
 ## Teardown
 
-Keep a pull request's worktree and stack until the pull request is merged. A
-green suite or the end of a session is not a teardown condition. Do not run
-`dev stack down`, `dev stack destroy`, or `dev worktree destroy` before merge
-on your own initiative.
+Load `cleanup-dev` before removing a worktree or its stack, including after a
+PR merges. That skill owns eligibility, numbered approval for other candidates,
+safe teardown, and leftover Docker resources. For a single-worktree teardown,
+keep its inventory scoped to that worktree and its resources.
 
-After merge, run `dev worktree destroy` from inside the worktree. The command
-removes the worktree and its stack but leaves the branch. Do not use a
-harness-native remove action, because it can delete the branch and orphan the
-Docker stack.
-
-The main checkout has no worktree directory, so `dev worktree destroy` refuses
-to run there. Never run `dev stack down` or `dev stack destroy` in the main
-checkout on your own initiative.
-
-`dev stack restart <service>` and `dev stack up --build <service>` are
-maintenance, not teardown. When a session ends with containers running, report
-the stack and ports.
+When a session ends with containers running, report the stack and ports.
