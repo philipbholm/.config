@@ -31,6 +31,10 @@ Vitest in `services/registries` and `apps/registries-frontend` through the
 import graph. `services/codelist` uses Jest and has no equivalent. Report every
 suite run and every suite the active stack could not support.
 
+Install dependencies only for workspaces the task changes. When a history
+rewrite makes pre-push select an unrelated workspace, follow the rebased-push
+rule in the repository's `AGENTS.md`; keep setup scoped to the task.
+
 ## Operate the stack
 
 - Backend TypeScript reloads through nodemon and the frontend reloads through

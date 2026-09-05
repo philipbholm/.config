@@ -79,6 +79,18 @@ npx jest
 
 Committing and pushing don't need approval.
 
+### Rebased pushes
+
+After a rebase or another history rewrite, Lefthook can select a workspace
+changed only by incoming base-branch commits. Confirm that the workspace is
+absent from `git diff --name-only origin/master...HEAD`. If that workspace is
+the only reason pre-push fails and the branch's own checks passed, use
+`git push --force-with-lease --no-verify`. The pull request checks cover the
+incoming changes.
+
+Install dependencies only for workspaces the task changes. A hook failure for
+an unrelated workspace is not a reason to expand setup.
+
 ### Failing Builds and Tests
 
 Fix pre-existing lint or type errors first and commit that fix before starting

@@ -13,15 +13,7 @@ cd "$REPO_ROOT"
 ###
 ### Usage:
 ###   setup-stack                    Install the workspaces the dev stack builds
-###   setup-stack --all              Also install every workspace lefthook gates
 ###   setup-stack apps/shell         Also install the named workspaces
-###
-### Flags:
-###   --all              Install every workspace listed in lefthook.yml's
-###                      `extends:` as well, so a branch touching one of them
-###                      has the node_modules its pre-commit and pre-push hooks
-###                      need. Slower and several GB heavier per worktree, which
-###                      is why it is opt-in.
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -105,15 +97,10 @@ install_workspace() {
     fi
 }
 
-install_all=false
 extra_workspaces=()
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        --all)
-            install_all=true
-            shift
-            ;;
         -*)
             fail "unknown flag: $1 (see the header of $0)"
             ;;
@@ -135,18 +122,6 @@ fi
 
 # The dev stack and the codegen steps below need exactly these three.
 install_workspaces=(apps/registries-frontend services/codelist services/registries)
-
-if [ "$install_all" = true ]; then
-    gated_count=0
-    while IFS= read -r ws; do
-        gated_count=$(( gated_count + 1 ))
-        add_workspace "$ws"
-    done < <(lefthook_gated_workspaces)
-
-    if [ "$gated_count" -eq 0 ]; then
-        warn "--all found no workspaces in $REPO_ROOT/lefthook.yml's extends: list"
-    fi
-fi
 
 for ws in ${extra_workspaces[@]+"${extra_workspaces[@]}"}; do
     [ -d "$REPO_ROOT/${ws%/}" ] || fail "no such workspace in this checkout: $ws"
@@ -221,7 +196,7 @@ if [ "${#uninstalled_gated[@]}" -gt 0 ]; then
     echo ""
     warn "lefthook also gates ${uninstalled_gated[*]}, which have no node_modules."
     echo "  Their pre-commit and pre-push commands fail there until you run"
-    echo "  'setup-stack ${uninstalled_gated[*]}' (or 'setup-stack --all')."
+    echo "  'setup-stack ${uninstalled_gated[*]}'."
 fi
 
 echo ""

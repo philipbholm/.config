@@ -338,8 +338,9 @@ It supports code review and does not establish legal compliance.
 - Commit subjects use `<type>: <description>` with `feat`, `fix`, `refactor`,
   `test`, `docs`, or `chore`. Use imperative mood, lowercase after the type, and
   no trailing period. A body explains why, not what the diff already shows.
-- Commit and push hooks pass. Fix hook failures instead of bypassing them with
-  `--no-verify`.
+- Commit hooks pass. Push hooks pass for workspaces changed by the branch. The
+  repository context defines the narrow exception for unrelated workspaces
+  selected after a history rewrite.
 
 - A PR title includes a gitmoji. The description explains why the change exists
   under `## Why` and what it changes under `## What`.
