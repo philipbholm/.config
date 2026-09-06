@@ -6,8 +6,10 @@ description: Apply work-repository coding standards before changing or reviewing
 # Apply coding standards
 
 These are the shared engineering and review standards for work repositories.
-They are authoritative; repository context may add stricter rules or explain
-how a rule applies.
+They define shared requirements. Repository context selects each service's
+architecture, APIs, and local conventions; registries-specific mechanisms
+below apply only to registries. A conflict in a security or data invariant
+needs resolution, not an exemption inferred from nearby code.
 
 Before reviewing code, read
 [Review quality](/Users/philip/.config/skills/code-review/references/review-quality.md).
@@ -29,6 +31,8 @@ callers and data flow before excluding a topic whose relevance is unclear.
 | Application behavior, data formats, mutations, failures, concurrency, migrations, compatibility, or shutdown | [Correctness and reliability](references/correctness-and-reliability.md) |
 | Application behavior or test changes, including assessing missing coverage | [Testing](references/testing.md) |
 | CI, deployment, infrastructure, scripts, or source-processing services | [Infrastructure](references/infrastructure.md) |
+| Registry analysis definitions, datasets, aggregates, or dashboard result rendering | [Registry analytics](references/registry-analytics.md) |
+| AI prompts, tool schemas, tool execution, or model conversation history | [Agent tools](references/agent-tools.md) |
 
 Before planning PR scope or reviewing PR titles and descriptions, load
 `write-pr`. Before reviewing commit-message style, load `write-commit`.
@@ -69,10 +73,14 @@ studies, when the task calls for that comparison.
 
 - Choose descriptive domain names. Avoid generic `data`, `info`, and `item`, and
   spell words out instead of inventing abbreviations.
+- Use named arguments when adjacent identifiers or options are easy to swap.
+- Name lookup maps `valueByKey`, using the domain nouns. Keep an operation's
+  name consistent across layers unless a real domain distinction requires a
+  different name.
 - Name functions for their result or action: `get` guarantees a result, `find`
   may return none, `resolve` transforms, and `check` answers a boolean.
-- Name conversion functions `sourceToTarget`. Boolean props start with `is` or
-  `has`.
+- Name conversion functions `sourceToTarget`. New application-owned boolean
+  props start with `is` or `has`; preserve library and generated API names.
 - Prefer early returns and a flat main path. Extract a branch when its body hides
   the high-level flow.
 - New general files use kebab-case. Hooks and GraphQL operations follow their

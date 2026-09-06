@@ -8,9 +8,11 @@ description: Scope Ledidi checks and handle failures before verification, commit
 Follow the repository context's service-setup safeguard. This skill governs
 check scope and push gates; `dev-stack` owns setup commands.
 
-Before running checks or investigating a hook failure, identify the required
-workspaces from `git diff --name-only origin/master...HEAD` and their affected
-dependencies and consumers. Hook path filters do not cover every dependency;
+Before running checks or investigating a hook failure, identify the comparison
+base: the PR's actual base branch, including a parent PR in a stack, or the
+intended target branch for unpublished work. Use its current fetched revision.
+Identify required workspaces from `git diff --name-only <base>...HEAD` and
+their affected dependencies and consumers. Hook path filters do not cover every dependency;
 inspect schema and generation inputs before excluding a consumer with no
 direct file changes. Run required checks even when the hook does not select
 them. A hook selecting a workspace is not itself a reason to prepare it.
@@ -19,8 +21,9 @@ Include staged, unstaged, and relevant untracked files when verifying
 uncommitted work.
 
 A "full suite" means the full suites for those workspaces, not the whole
-monorepo. Run E2E when the user asks for it or browser verification requires
-it; "red/green TDD" requires unit and relevant E2E tests.
+monorepo. Run E2E when the user asks, the applicable repository/domain context
+requires it, or the changed critical user flow needs it. Use integration tests
+for individual UI states; TDD chooses the level that proves the behavior.
 
 When verification needs setup, load `dev-stack` and prepare only the required
 workspaces and services. For checks that consume generated types, follow the
@@ -40,7 +43,7 @@ branch checks and pre-push hooks must pass, with this single exception:
 
 After a rebase or another history rewrite, Lefthook can select a workspace
 changed only by incoming base-branch commits. Confirm that the workspace is
-absent from `git diff --name-only origin/master...HEAD` and is not an affected
+absent from `git diff --name-only <base>...HEAD` and is not an affected
 dependency or consumer of the branch's changes. If that workspace is the only
 reason pre-push fails and the branch's required checks passed, use
 `git push --force-with-lease --no-verify` instead of preparing and checking that

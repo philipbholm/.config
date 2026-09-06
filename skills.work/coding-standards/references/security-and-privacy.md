@@ -12,19 +12,28 @@ It supports code review and does not establish legal compliance.
 
 ### Authorization and isolation
 
-- Every backend handler calls `authorize()` before data access. Use
-  `buildAuthorizedUseCase` so authorization cannot be skipped before `run`.
-- Put authorization logic in the use case's `authorize` phase. Handlers extract
-  authentication context but do not decide permissions.
+- Every protected entry point completes authorization before data access or
+  side effects. In registries, call `authorize()` on `buildAuthorizedUseCase`
+  before `run`; other services use their documented authorization mechanism.
+- Put permission decisions in the application's authorization phase. Handlers
+  extract authentication context but do not decide permissions.
 - Supply every available scope identifier, including site, registry,
   organization, patient, and record identifiers. Check the specific entity and
   the correct read or write action.
 - Enforce permissions on both sides of an operation that reads one entity and
   writes or copies data to another.
+- Give an endpoint a clear permission contract. Unrelated read/write grants
+  are not interchangeable alternatives. A composed workflow may require both;
+  test each missing permission with otherwise valid state.
 - Verify object-level and property-level authorization. A caller allowed to see
   one record must not gain access to sibling records or hidden fields.
 - Keep tenant and namespace filters in every query, mutation, batch operation,
   background job, cache key, event consumer, and export path.
+- Before inserting a child, verify that its referenced parent belongs to the
+  authorized tenant. Row-level security does not establish foreign-key tenant
+  ownership by itself.
+- Verify raw SQL receives the required tenant transaction context. A Prisma
+  model extension does not automatically cover every raw query.
 - gRPC service-token calls validate the required scope, not only the presence of
   a token.
 - Use separate context types for authenticated and unauthenticated flows.
@@ -37,6 +46,8 @@ It supports code review and does not establish legal compliance.
   the operation. New collection or storage of personal data is opt-in.
 - Keep security enforcement, audit logging, and sensitive-data masking on the
   server. Do not send hidden sensitive values to the client.
+- Removing an enforcement path also removes or disables the privacy setting
+  that promised that protection. A visible control must still enforce its claim.
 - Treat third-party services as trust boundaries. Document which data leaves the
   system, why it is required, and the failure and retention behavior.
 - Validate and minimize mutation responses, GraphQL selections, DTOs, event
@@ -50,9 +61,10 @@ It supports code review and does not establish legal compliance.
 
 ### Auditability and failure safety
 
-- Reading patient data requires server-side audit logging. When compliance
-  requires a successful audit record, the read or visible state change depends
-  on that audit write succeeding.
+- Preserve the domain's server-side audit contract for patient-data reads.
+  Establish the audit boundary when adding an independently callable read,
+  including aggregate APIs. When the read requires a successful audit record,
+  the read or visible state change depends on that audit write succeeding.
 - Await every security-critical mutation. Fire-and-forget and catch-and-continue
   behavior around authorization, audit, masking, session, or security state is a
   defect.

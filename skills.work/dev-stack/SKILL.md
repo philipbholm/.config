@@ -48,7 +48,8 @@ the worktree's `POSTGRES_URL` on the command line. A full `dev stack up` writes
 `services/registries/.env.test.local`, so the backend suite then runs with a
 plain `npm run test`.
 
-Run suites directly in each workspace. `--changed origin/master` narrows
+Run suites directly in each workspace. `--changed <base>` uses the comparison
+base selected by `verify-change` and narrows
 Vitest in `services/registries` and `apps/registries-frontend` through the
 import graph. `services/codelist` uses Jest and has no equivalent. Report every
 suite run and every suite the active stack could not support.

@@ -14,13 +14,14 @@ Medical registry platform. Each service/app has its own `package.json`.
 | `packages/` | Shared libraries (@ledidi-as scope) |
 
 Default focus is `services/registries` and `apps/registries-frontend` unless I
-say otherwise. The sibling apps — `analysis-room-frontend`, `legacy-frontend`,
-`patient-frontend`, `shell` — are in scope only when I name one.
+say otherwise. Include affected consumers when inspecting, regenerating,
+fixing compatibility, and verifying a shared change. Unrelated product changes
+in sibling apps need their own task.
 
 ### Terminology
 
-- **Trials** and **studies** are the same thing in this repo, interchangeable.
-  Studies use the shell app as their frontend.
+- **Ledidi Trials** is the product; **study/studies** names its domain objects
+  and backend service. Trials uses the shell app as its frontend.
 - **John** is the AI agent that analyses tenders for Ledidi.
 
 ## Ports (Worktree-Specific)
@@ -40,6 +41,23 @@ These ports belong to this worktree alone, and they are correct as listed. When
 one doesn't respond, the Docker stack is what needs attention — the standard
 ports (5432, 3000, 4000) belong to other stacks, and editing hardcoded URLs, env
 files, or configs to reach a service breaks the worktree instead of fixing it.
+
+## Read the applicable context
+
+Before exploring code, read `.scratch/agents/domain.md` and follow its domain
+documentation pointers when present. Before editing or reviewing an affected
+path, read the `AGENTS.md` and `CLAUDE.md` files along that path, including their
+conditional references. These filenames carry shared project guidance for
+Claude Code, Codex, and Cursor; read a referenced local skill by file path when
+the harness does not discover it automatically.
+
+Load `coding-standards` before implementation or review, select its references
+by behavior and affected consumers, and revisit them when scope changes. Before
+handing off, check the final diff against those rules and the selected checks.
+
+For setup commands or workflow instructions in nested context, read
+[Context precedence](/Users/philip/.config/dev/context/ledidi-monorepo/context-precedence.md).
+It identifies legacy instructions superseded by the shared workflows.
 
 ## Workflow skills
 
@@ -67,19 +85,11 @@ Load the matching shared skill before acting:
 
 ### Commands
 
-**Always use package.json scripts.** Never run tools directly:
-
-```bash
-# Correct
-npm run generate
-npm run migrate
-npm run test
-
-# Wrong
-npx prisma generate
-npx prisma migrate dev
-npx jest
-```
+Use the maintained `package.json` script for generation, migrations, builds,
+and tests; pass supported arguments through that script. Read the script in
+the affected workspace instead of copying a tool command from old context.
+Use `dev` commands for worktrees and local stacks. When no package script
+exists for an operation, follow the owning workflow's command.
 
 ### User Instructions
 
