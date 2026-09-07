@@ -97,18 +97,20 @@ make_core_dirs() {
     ~/.cursor \
     ~/.claude \
     ~/.codex/rules \
-    ~/.codex/skills \
+    ~/.agents/skills \
     ~/.ssh \
     ~/.zsh
 }
 
-# Populate a ~/.claude subdirectory with one symlink per entry of the given
-# source dirs:  link_claude_dir <dest> <src_dir>...
+# Populate a directory with one symlink per entry of the given source dirs:
+#   link_entries <dest> <src_dir>...
 # Per-entry rather than one symlink for the whole directory, so the work-only
-# sets (claude/skills.work, claude/agents.work) can be layered on by
-# install-work.sh and stay off personal machines. Each run is a full reset of
-# the links this function manages; machine-local entries are left as they are.
-link_claude_dir() {
+# sets (skills.work, claude/agents.work) can be layered on by install-work.sh
+# and stay off personal machines, and so one source set can be fanned into more
+# than one dest (skills go into both ~/.claude/skills and ~/.agents/skills).
+# Each run is a full reset of the links this function manages; machine-local
+# entries are left as they are.
+link_entries() {
   local dest="$1"
   shift
 
@@ -119,11 +121,11 @@ link_claude_dir() {
   mkdir -p "$dest"
 
   # Drop links made by a previous run (a work skill/agent left behind after a
-  # personal reinstall would otherwise linger). Anything else is machine-local
-  # and is left alone.
+  # personal reinstall would otherwise linger). Anything pointing outside the
+  # dotfiles repo is machine-local and is left alone.
   local link
   for link in "$dest"/*; do
-    if [[ -L "$link" && "$(readlink "$link")" == "$DOTFILES/claude/"* ]]; then
+    if [[ -L "$link" && "$(readlink "$link")" == "$DOTFILES/"* ]]; then
       rm "$link"
     fi
   done
@@ -146,13 +148,6 @@ link_claude_dir() {
   done
 }
 
-# Matt Pocock's skills ship as a plugin and are enabled as one in
-# claude/settings.json, so they load from the plugin cache under its namespace
-# (mattpocock-skills:tdd) and survive `/plugin update` without a reinstall.
-# Nothing here links them; cleanup_stale only clears links an earlier local
-# setup left in ~/.claude/skills, and verify says so when the plugin is absent.
-MATTPOCOCK_CACHE="$HOME/.claude/plugins/cache/claude-plugins-official/mattpocock-skills"
-
 link_core() {
   echo "Creating core symlinks..."
 
@@ -169,33 +164,49 @@ link_core() {
   ln -sf "$DOTFILES/cursor/settings.json" ~/.cursor/settings.json
   ln -sf "$DOTFILES/cursor/keybindings.json" ~/.cursor/keybindings.json
 
-  # Cursor agent (CLI): base mcp.json + statusline.
-  # On work, sync-agent-configs.sh replaces mcp.json with a generated file.
+  # Cursor Agent (CLI): base mcp.json + statusline + notify hook.
+  # On work, dev agent-config apply --profile work replaces mcp.json with a generated file.
+  # hooks.json fires dev/cursor-notify.sh (macOS banner) on the CLI `stop` event.
   ln -sfn "$DOTFILES/cursor-agent/mcp.json" ~/.cursor/mcp.json
   ln -sf "$DOTFILES/cursor-agent/statusline.sh" ~/.cursor/statusline.sh
+  ln -sfn "$DOTFILES/cursor-agent/hooks.json" ~/.cursor/hooks.json
+
+  # Cursor Agent has no global instruction file under ~/.cursor. It walks every
+  # parent directory of the workspace looking for AGENTS.md, so ~/AGENTS.md is
+  # where the global rules reach it — my repos all live under ~/work.
+  ln -sfn "$DOTFILES/agents/AGENTS.md" ~/AGENTS.md
 
   # Claude Code: base settings + agents + skills + statusline.
-  # On work, sync-agent-configs.sh replaces settings.json with a generated file.
+  # On work, dev agent-config apply --profile work replaces settings.json with a generated file.
   ln -sf "$DOTFILES/claude/settings.json" ~/.claude/settings.json
+  ln -sf "$DOTFILES/agents/AGENTS.md" ~/.claude/CLAUDE.md
   ln -sf "$DOTFILES/claude/statusline-command.sh" ~/.claude/statusline-command.sh
 
-  # Shared skills/agents only. install-work.sh re-links with the .work sets
-  # added; both claude/skills and claude/agents are currently empty (every skill
-  # and agent of our own is Ledidi-specific).
-  link_claude_dir ~/.claude/skills "$DOTFILES/claude/skills"
-  link_claude_dir ~/.claude/agents "$DOTFILES/claude/agents"
+  # General skills, fanned into both roots: Claude reads only ~/.claude/skills,
+  # while Codex and Cursor read ~/.agents/skills. One source, two link targets —
+  # the unified replacement for the old symlink/rsync/nothing split.
+  # install-work.sh re-links with skills.work added. claude/agents is Claude-only
+  # and currently empty.
+  link_entries ~/.claude/skills "$DOTFILES/skills"
+  link_entries ~/.agents/skills "$DOTFILES/skills"
+  link_entries ~/.claude/agents "$DOTFILES/claude/agents"
 
   # claude-notify: macOS notification on/off switch + Stop/Notification hook handler.
   ln -sf "$DOTFILES/dev/claude-notify.sh" ~/bin/claude-notify
 
-  # Codex: config + rules symlinked; skills copied (Codex's loader doesn't
-  # follow symlinked skill dirs reliably). On work, sync-agent-configs.sh
-  # replaces config.toml with a generated file.
+  # Both profiles use dev browser launch-debug. The browser alias is kept for terminals.
+  ln -sf "$DOTFILES/dev/dev.sh" ~/bin/dev
+  ln -sf "$DOTFILES/dev/browser.sh" ~/bin/browser
+
+  # Codex: config + rules symlinked. Skills come from ~/.agents/skills (linked
+  # above), which Codex reads and symlink-follows — no separate copy anymore. On
+  # work, dev agent-config apply --profile work replaces config.toml with a generated file.
   ln -sfn "$DOTFILES/codex/config.toml" ~/.codex/config.toml
+  ln -sfn "$DOTFILES/codex/keybindings.json" ~/.codex/keybindings.json
+  # Codex calls its global instruction file AGENTS.md. Share the same personal
+  # writing and workflow rules Claude loads globally.
+  ln -sfn "$DOTFILES/agents/AGENTS.md" ~/.codex/AGENTS.md
   ln -sfn "$DOTFILES/codex/rules/default.rules" ~/.codex/rules/default.rules
-  for skill_dir in "$DOTFILES"/codex/skills/*/; do
-    rsync -a --delete "$skill_dir" ~/.codex/skills/"$(basename "$skill_dir")"/
-  done
 
   # python/pip → python3/pip3 (real commands, not just shell aliases)
   ln -sf /opt/homebrew/bin/python3 ~/bin/python
@@ -307,22 +318,12 @@ cleanup_stale() {
     echo "Removing stale ~/.tmux.conf symlink..."
     rm ~/.tmux.conf
   fi
-  # gwc/gwd were retired in favour of native worktrees + wt-down
+  # gwc/gwd were retired in favour of the shared worktree commands.
   local retired
   for retired in ~/bin/gwc ~/bin/gwd; do
     if [[ -L "$retired" ]]; then
       echo "Removing stale $retired symlink..."
       rm "$retired"
-    fi
-  done
-  # The mattpocock-skills plugin is enabled directly now; drop the flattened
-  # links an earlier setup put in ~/.claude/skills, or every skill is listed
-  # twice — once namespaced, once via a link that dangles after a plugin update.
-  local link
-  for link in ~/.claude/skills/*; do
-    if [[ -L "$link" && "$(readlink "$link")" == "$MATTPOCOCK_CACHE"/* ]]; then
-      echo "Removing stale plugin-skill symlink $link..."
-      rm "$link"
     fi
   done
   # If nvim data exists but isn't a LazyVim setup, clean for fresh bootstrap
@@ -370,7 +371,7 @@ verify() {
   # personal machine — plugin skills come from the plugin, not from links here.
   # settings.json / config.toml / mcp.json are real files on work machines.)
   local link
-  for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents ~/.claude/skills \
+  for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents ~/.agents/skills \
               ~/.codex/config.toml ~/.cursor/mcp.json ~/.ssh/allowed_signers; do
     if [[ ! -e "$link" ]]; then
       missing+=("$link")
@@ -379,24 +380,19 @@ verify() {
 
   # These must be links, not just present: a real file or directory in their
   # place resolves fine while shadowing the copy the installer meant to link
-  # (link_claude_dir leaves such an entry alone), and a link left by an older
+  # (link_entries leaves such an entry alone), and a link left by an older
   # install can dangle.
   local unlinked=()
-  for link in ~/.claude/statusline-command.sh ~/bin/python ~/bin/pip; do
+  for link in ~/.claude/skills/explain-diff-html ~/.agents/skills/explain-diff-html \
+              ~/.claude/statusline-command.sh ~/.claude/CLAUDE.md ~/.codex/AGENTS.md \
+              ~/AGENTS.md \
+              ~/.codex/keybindings.json ~/bin/dev ~/bin/browser ~/bin/python ~/bin/pip; do
     if [[ ! -L "$link" ]]; then
       unlinked+=("$link")
     elif [[ ! -e "$link" ]]; then
       missing+=("$link")
     fi
   done
-
-  # Plugins install through Claude Code's own manager, so the installer can only
-  # point out that this one is absent.
-  if [[ ! -d "$MATTPOCOCK_CACHE" ]]; then
-    echo ""
-    echo "  mattpocock-skills plugin is not installed — run"
-    echo "  '/plugin install mattpocock-skills@claude-plugins-official' in Claude Code."
-  fi
 
   if [[ ${#missing[@]} -gt 0 ]]; then
     echo ""

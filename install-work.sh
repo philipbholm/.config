@@ -13,7 +13,7 @@ brew_bundle "$DOTFILES/Brewfile.work"
 setup_macos_defaults
 
 # Work directories (also the marker that gates zsh/.zshrc.work).
-# Worktrees live inside each repo at <repo>/.claude/worktrees, not here.
+# Worktrees live inside each repo at <repo>/.worktrees, not here.
 echo "Creating work directory structure..."
 mkdir -p \
   ~/work/.dev-stacks
@@ -28,25 +28,27 @@ fi
 # generated ~/.ssh/allowed_signers instead of the tracked base.
 add_allowed_signer philip.holm@ledidi.no ~/.ssh/github_work.pub
 
-# Claude Code skills and agents: shared sets (both empty at present) plus the
-# work-only ones — every skill of our own is now work-only, and there are no
-# agents of our own at all. The plugin skills link_core linked are untouched:
-# link_claude_dir only prunes links that point into $DOTFILES/claude.
-echo "Linking work Claude skills and agents..."
-link_claude_dir ~/.claude/skills "$DOTFILES/claude/skills" "$DOTFILES/claude/skills.work"
-link_claude_dir ~/.claude/agents "$DOTFILES/claude/agents" "$DOTFILES/claude/agents.work"
+# Skills and agents: general sets plus the work-only ones. Skills are fanned
+# into both roots (~/.claude/skills for Claude, ~/.agents/skills for Codex and
+# Cursor). Work skills include Ledidi workflows, review-pr and
+# address-feedback. Agents: none yet.
+echo "Linking work skills and agents..."
+link_entries ~/.claude/skills "$DOTFILES/skills" "$DOTFILES/skills.work"
+link_entries ~/.agents/skills "$DOTFILES/skills" "$DOTFILES/skills.work"
+link_entries ~/.claude/agents "$DOTFILES/claude/agents" "$DOTFILES/claude/agents.work"
 
 # Dev script symlinks in ~/bin
 echo "Linking dev scripts..."
 ln -sf "$DOTFILES/dev/dev.sh" ~/bin/dev
 ln -sf "$DOTFILES/dev/tunnel.sh" ~/bin/tunnel
 ln -sf "$DOTFILES/dev/setup-stack.sh" ~/bin/setup-stack
+ln -sf "$DOTFILES/dev/wt-up.sh" ~/bin/wt-up
 ln -sf "$DOTFILES/dev/wt-down.sh" ~/bin/wt-down
 ln -sf "$DOTFILES/dev/sync-context.sh" ~/bin/sync-context
 ln -sf "$DOTFILES/dev/sync-agent-configs.sh" ~/bin/sync-agent-configs
 
 # Generate work agent configs (Datadog MCP + Codex work project-trusts)
-"$DOTFILES/dev/sync-agent-configs.sh"
+bash "$DOTFILES/dev/dev.sh" agent-config apply --profile work
 
 verify
 

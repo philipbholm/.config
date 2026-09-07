@@ -21,11 +21,27 @@ message GetWorkspacesForUserRequest {
     string user_id = 1;
 }
 
+message WorkspaceForUserItem {
+    string id = 1;
+    string name = 2;
+    string customer_id = 3;
+    bool pii_encryption_key_configured = 4;
+}
+
 message GetWorkspacesForUserResponse {
-    repeated WorkspacesListItem workspaces = 1;
+    repeated WorkspaceForUserItem workspaces = 1;
+}
+
+message GetWorkspacePiiEncryptionKeyRequest {
+    string workspace_id = 1;
+}
+
+message GetWorkspacePiiEncryptionKeyResponse {
+    optional string pii_encryption_key_id = 1;
 }
 
 service AdminWorkspaceService {
     rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
     rpc GetWorkspacesForUser(GetWorkspacesForUserRequest) returns (GetWorkspacesForUserResponse);
+    rpc GetWorkspacePiiEncryptionKey(GetWorkspacePiiEncryptionKeyRequest) returns (GetWorkspacePiiEncryptionKeyResponse);
 }

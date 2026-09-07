@@ -13,6 +13,12 @@
 
 set -u
 
+if [[ "${1:-}" == --help || "${1:-}" == -h ]]; then
+  echo "Usage: claude-notify on|off|toggle|status"
+  echo "Hook input: claude-notify stop|notification (JSON on stdin)"
+  exit 0
+fi
+
 STATE_FILE="${CLAUDE_NOTIFY_STATE:-$HOME/.claude/notify.state}"
 LOG_FILE="${CLAUDE_NOTIFY_LOG:-$HOME/.claude/notify.log}"
 

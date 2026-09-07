@@ -3,8 +3,14 @@
     "EDITOR": "cursor",
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_NO_FLICKER": "1",
-    "CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION": "2000",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8"
+    "CLAUDE_CODE_BASALT_COVE": "1",
+    "CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION": "2000"
+  },
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--browserUrl", "http://127.0.0.1:9222"]
+    }
   },
   "permissions": {
     "allow": [
@@ -45,11 +51,12 @@
       "Bash(AWS_PROFILE=production aws sso login:*)"
     ],
     "ask": [
-      "Bash(dev nuke:*)"
+      "Bash(dev nuke:*)",
+      "Bash(dev stack destroy:*)",
+      "Bash(dev worktree destroy:*)"
     ],
     "defaultMode": "auto"
   },
-  "model": "opus[1m]",
   "hooks": {
     "Stop": [
       {
@@ -81,11 +88,6 @@
     "type": "command",
     "command": "/Users/philip/.claude/statusline-command.sh"
   },
-  "enabledPlugins": {
-    "context7@claude-plugins-official": true,
-    "mattpocock-skills@claude-plugins-official": true
-  },
-  "effortLevel": "medium",
   "voice": {
     "enabled": true,
     "mode": "hold"
