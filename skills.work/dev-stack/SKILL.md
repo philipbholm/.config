@@ -37,10 +37,15 @@ under `verify-change`.
 |------|---------|
 | TypeScript, Biome, frontend unit tests | No containers |
 | Registries backend suite | `dev stack up postgres -d` |
-| Playwright E2E or browser verification | `dev stack up` |
+| Registries Playwright E2E or browser verification | `dev stack up` |
 
 Run `dev stack list` before a full `dev stack up`. Three stacks can run at
 once; ask before starting a fourth.
+
+For registries browser verification, `dev stack up` starts the registries
+services and their dependencies. The command already detaches and waits for
+readiness. Add `--include-patient` only when verifying patient flows. For
+other applications, name the services required by that browser journey.
 
 PostgreSQL alone supports the registries suite. Its Vitest setup generates and
 resets `registries-test` through `POSTGRES_URL`. After `dev stack up postgres`, pass
@@ -73,9 +78,9 @@ migrator uses the same image.
 
 ## Browser verification and diagnosis
 
-For “verify in browser,” start the full stack if needed, open the rendered
-frontend URL, and verify the behavior directly. After starting a new
-worktree's full stack, confirm the frontend renders.
+For “verify in browser,” start the services selected above if needed, open
+the rendered frontend URL, and verify the behavior directly. After starting
+a new worktree's browser services, confirm the frontend renders.
 
 Start diagnosis with `docker ps`, then read logs from containers carrying the
 current worktree name. Only those containers belong to this environment. A

@@ -923,6 +923,7 @@ case "$subcommand" in
         done < <(collect_compose_services "$@")
         if [ "${#requested_services[@]}" -eq 0 ]; then
             requested_services=(${default_services[@]+"${default_services[@]}"})
+            set -- "$@" ${requested_services[@]+"${requested_services[@]}"}
         fi
         require_services
 
@@ -956,11 +957,7 @@ case "$subcommand" in
             release_slot_lock
         fi
 
-        if [ "$#" -gt 0 ]; then
-            dc up "$@" -d --wait
-        else
-            dc up -d --wait "${requested_services[@]}"
-        fi
+        dc up -d --wait "$@"
 
         # Always sync context files so Claude has correct ports
         sync_context_files "$resolved_slot"

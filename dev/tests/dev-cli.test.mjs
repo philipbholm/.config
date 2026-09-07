@@ -30,7 +30,7 @@ const fs = require("node:fs");
 const args = process.argv.slice(2);
 fs.appendFileSync(process.env.DEV_TEST_LOG, JSON.stringify({ command: ${JSON.stringify(command)}, args }) + "\\n");
 if (${JSON.stringify(command)} !== "docker" || process.env.DEV_TEST_DOCKER !== "allow") process.exit(99);
-if (args.includes("--services")) process.stdout.write("postgres\\nregistries\\n");
+if (args.includes("--services")) process.stdout.write(process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n");
 `, { mode: 0o755 });
   }
   const env = {
@@ -243,6 +243,41 @@ test("Use the same startup workflow for stack up and the old start alias", (t) =
   assert.deepEqual(f.calls().slice(first.length), first);
   assert.equal(f.calls().some(call => call.command === "npm"), false);
 });
+
+for (const checkout of ["main", "worktree"]) {
+  for (const scenario of [
+    { name: "bare startup", args: [], options: [] },
+    { name: "detached startup", args: ["-d"], options: ["-d"] },
+    { name: "build with a wait timeout", args: ["--build", "--wait-timeout", "60"], options: ["--build", "--wait-timeout", "60"] },
+    { name: "PostgreSQL only", args: ["postgres", "-d"], options: ["postgres", "-d"], services: ["postgres"] },
+    { name: "patient opt-in", args: ["--include-patient", "-d"], options: ["-d"], patient: true },
+  ]) {
+    test(`Keep service selection for ${scenario.name} in the ${checkout} checkout`, (t) => {
+      const f = fixture(t);
+      f.env.DEV_TEST_DOCKER = "allow";
+      f.env.DEV_TEST_SERVICES = "registries-frontend\npostgres\ncodelist\nregistries\npatient-bff\npatient-frontend\nshell\nstudies\n";
+      const repo = checkout === "main" ? f.repo : join(f.directory, "startup-worktree");
+      if (checkout === "worktree") f.git("worktree", "add", "-b", "startup", repo);
+      writeFileSync(join(repo, "docker-compose.yml"), "services:\n" +
+        f.env.DEV_TEST_SERVICES.trim().split("\n").map(service => `  ${service}: {}\n`).join(""));
+      for (const workspace of ["services/registries", "services/patient-bff", "apps/patient-frontend"]) {
+        mkdirSync(join(repo, workspace), { recursive: true });
+        writeFileSync(join(repo, workspace, "Dockerfile.dev"), "FROM scratch\n");
+      }
+
+      const result = f.run(["stack", "up", ...scenario.args], repo);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      const services = scenario.services ?? ["registries-frontend", "postgres", "codelist", "registries",
+        ...(scenario.patient ? ["patient-bff", "patient-frontend"] : [])];
+      const startupCalls = f.calls().filter(call => call.command === "docker" &&
+        call.args[0] === "compose" && ["create", "up"].includes(call.args[5]));
+      assert.deepEqual(startupCalls.map(call => call.args.slice(5)), [
+        ...(checkout === "worktree" ? [["create", ...services]] : []),
+        ["up", "-d", "--wait", ...scenario.options, ...(scenario.services ? [] : services)],
+      ]);
+    });
+  }
+}
 
 test("Keep database volumes on down and remove them only on destroy", (t) => {
   const f = fixture(t);
