@@ -40,8 +40,22 @@ under `verify-change`.
 | Registries Playwright E2E | `dev test e2e -- [Playwright arguments]`; add `--shell` before `--` for shell coverage |
 | Direct browser verification | `dev stack up` |
 
-Run `dev stack list` before a full `dev stack up`. Three stacks can run at
-once; ask before starting a fourth.
+Only three full dev stacks can run at a time. A full stack runs application
+services and their dependencies; a database-only stack and the shared admin
+mock do not count. Run `dev stack list` before starting application services
+through `dev stack up` or `dev test e2e`.
+
+If starting this checkout would exceed the limit, stop the other stack most
+likely to be unused without asking. Compare recent session
+activity for its checkout, running tests or browser processes, and recent
+application requests. Prefer a stack whose session has ended and has no active
+tests or browser work. If the evidence is incomplete, choose the other stack
+with the least recent signs of use; container age alone is not enough.
+
+Run `dev stack stop` from the selected checkout to preserve its containers and
+database volumes. Keep the current task's stack running. Report which stack
+you stopped and the evidence for choosing it. Confirm it stopped and repeat
+if needed until there is room within the limit, then start the required stack.
 
 For registries browser verification, `dev stack up` starts the registries
 services and their dependencies. The command already detaches and waits for
