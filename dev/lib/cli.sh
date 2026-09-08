@@ -27,6 +27,7 @@ Usage: dev <thing> <action> [arguments]
   worktree create <name> <branch> [start-point]  Create a checkout and agent context
   worktree destroy                            Delete this worktree and its stack data
   workspace prepare <workspace> ...           Install dependencies and generate types
+  test e2e [--shell] -- [arguments]            Run registries E2E with this stack's URLs
   stack up [services...]                      Start this checkout's services
   stack down                                  Remove containers; keep database volumes
   stack destroy [--yes]                       Delete containers, volumes, images and slot
@@ -68,6 +69,20 @@ lockfile. Then run each selected workspace's generate script, if present.
 No containers are started. With no workspace arguments, nothing is prepared.
 HELP
             ;;
+        test)
+            cat <<'HELP'
+Usage: dev test e2e [--shell] -- [Playwright arguments]
+
+Start registries, codelist and their dependencies, rebuilding stale images.
+Check GraphQL readiness and run the registries package's test:e2e script.
+--shell selects test:e2e:shell. Arguments after -- go to Playwright unchanged.
+Browser requests and fixture setup use this checkout's API URL, overriding
+inherited URL variables. Preview ports are 3004 and (with --shell) 3010 plus
+the stack slot offset. Occupied preview ports fail before frontend startup.
+Prepare frontend dependencies first with dev workspace prepare; this command
+does not install packages. All three agent harnesses use the same command.
+HELP
+            ;;
         stack)
             cat <<'HELP'
 Usage: dev stack <action> [arguments]
@@ -77,6 +92,8 @@ Usage: dev stack <action> [arguments]
       codelist seeding and its test environment file. No services means the
       default registries stack. --slot selects worktree slot 1-9.
       --include-patient opts into patient services (shared host port 4010).
+      Rebuild stale or unverified local images before startup, including
+      dependencies. --no-build refuses stale images; --no-deps limits the check.
   down     Remove this stack's containers and network; keep database volumes.
   destroy [--yes]
       Delete this stack's containers, database volumes, local images and slot.

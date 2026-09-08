@@ -37,7 +37,8 @@ under `verify-change`.
 |------|---------|
 | TypeScript, Biome, frontend unit tests | No containers |
 | Registries backend suite | `dev stack up postgres -d` |
-| Registries Playwright E2E or browser verification | `dev stack up` |
+| Registries Playwright E2E | `dev test e2e -- [Playwright arguments]`; add `--shell` before `--` for shell coverage |
+| Direct browser verification | `dev stack up` |
 
 Run `dev stack list` before a full `dev stack up`. Three stacks can run at
 once; ask before starting a fourth.
@@ -46,6 +47,12 @@ For registries browser verification, `dev stack up` starts the registries
 services and their dependencies. The command already detaches and waits for
 readiness. Add `--include-patient` only when verifying patient flows. For
 other applications, name the services required by that browser journey.
+
+For Playwright, prepare the frontend workspace dependencies first, including
+`apps/shell` when using `--shell`. Run through `dev test e2e` so browser requests
+and fixture setup receive the same worktree API URL. The command starts the
+backend services and checks GraphQL before Playwright starts its frontend.
+Read `dev test --help` for preview ports and argument forwarding.
 
 PostgreSQL alone supports the registries suite. Its Vitest setup generates and
 resets `registries-test` through `POSTGRES_URL`. After `dev stack up postgres`, pass
@@ -63,18 +70,28 @@ suite run and every suite the active stack could not support.
 
 - Backend TypeScript reloads through nodemon and the frontend reloads through
   Vite HMR.
-- Generated code never reloads automatically. Run the matching workflow below.
+- Generation watchers vary by checkout. Run the matching workflow below after
+  schema or generation-input changes.
 - Services run in Docker. Do not run `npm run dev` or `npm start`.
 
 | Change to a running stack | Workflow |
 |--------|----------|
 | Backend `.graphql` schema | Run `npm run generate` in `services/registries`, `./compose-supergraph.sh` in `services/apollo-router`, and `npm run generate` in `apps/registries-frontend`; restart registries, frontend, and router |
 | `.proto` | Run `npm run generate-proto` in the owner, generate in every consumer, then restart affected services |
-| `prisma/schema.prisma` | Create and inspect the migration, apply it, run `npm run generate`, then restart the service; pass this worktree's `POSTGRES_URL` to every database command |
+| Prisma schema files | For new schema edits, create and inspect the migration. For incoming changes, apply the existing migrations. Run `dev stack up <service> -d` to refresh image inputs, then use the workspace's generation and migration scripts with this worktree's `POSTGRES_URL` as needed |
 | `package.json` | Run `npm install`, then `dev stack up --build <service> -d`; a restart does not install dependencies |
 
 When upgrading a service Docker image for a vulnerability, check whether its
 migrator uses the same image.
+
+Before browser verification after a rebase, merge, or branch switch, run
+`dev stack up` for the required services even when their containers exist.
+Startup checks image inputs against the checkout and rebuilds changed or
+unverified images. `dev test e2e` runs this check for its backend services.
+Configuration such as `prisma.config.ts` and generation scripts can remain in
+the image while schema directories are mounted from the checkout; restarting
+alone does not refresh those image files. Use `--build` for changed ignored
+build inputs or to request an explicit rebuild.
 
 ## Browser verification and diagnosis
 

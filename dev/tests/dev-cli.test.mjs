@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const source = fileURLToPath(new URL("..", import.meta.url));
 const scripts = ["dev", "stack", "worktree-create", "worktree-destroy", "workspace-prepare",
-  "stack-expose", "context-render", "context-inspect", "session-search", "agent-config-apply", "browser-launch-debug"];
+  "stack-expose", "context-render", "context-inspect", "session-search", "agent-config-apply", "browser-launch-debug", "test-e2e"];
 
 function fixture(t) {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "dev-cli-test-")));
@@ -31,6 +31,8 @@ const args = process.argv.slice(2);
 fs.appendFileSync(process.env.DEV_TEST_LOG, JSON.stringify({ command: ${JSON.stringify(command)}, args }) + "\\n");
 if (${JSON.stringify(command)} !== "docker" || process.env.DEV_TEST_DOCKER !== "allow") process.exit(99);
 if (args.includes("--services")) process.stdout.write(process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n");
+if (args.includes("--format") && args.includes("json")) process.stdout.write(process.env.DEV_TEST_CONFIG_JSON ?? JSON.stringify({name: "fixture", services: Object.fromEntries((process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n").trim().split("\\n").map(name => [name, {}]))}));
+if (args.includes("build") && process.env.DEV_TEST_BUILD_FAIL) process.exit(12);
 `, { mode: 0o755 });
   }
   const env = {
@@ -61,7 +63,7 @@ if (args.includes("--services")) process.stdout.write(process.env.DEV_TEST_SERVI
   };
 }
 
-const commands = [[], ["worktree"], ["workspace"], ["stack"], ["context"], ["session"], ["agent-config"], ["browser"],
+const commands = [[], ["worktree"], ["workspace"], ["stack"], ["context"], ["session"], ["agent-config"], ["browser"], ["test"], ["test", "e2e"],
   ["worktree", "create"], ["worktree", "destroy"], ["workspace", "prepare"],
   ...["up", "down", "destroy", "list", "expose", "logs", "exec", "ps", "build", "stop", "restart"].map(action => ["stack", action]),
   ["context", "render"], ["context", "show"], ["context", "check"], ["session", "search"],
@@ -242,6 +244,23 @@ test("Use the same startup workflow for stack up and the old start alias", (t) =
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(f.calls().slice(first.length), first);
   assert.equal(f.calls().some(call => call.command === "npm"), false);
+});
+
+test("Stop stack startup before creating containers when an image rebuild fails", (t) => {
+  const f = fixture(t);
+  f.env.DEV_TEST_DOCKER = "allow";
+  f.env.DEV_TEST_BUILD_FAIL = "1";
+  writeFileSync(join(f.repo, "docker-compose.yml"), "services:\n  registries: {}\n");
+  writeFileSync(join(f.repo, "Dockerfile"), "FROM scratch\n");
+  f.env.DEV_TEST_CONFIG_JSON = JSON.stringify({ name: "fixture", services: {
+    registries: { build: { context: f.repo, dockerfile: "Dockerfile" } },
+  } });
+  const result = f.run(["stack", "up", "registries"], f.repo);
+  assert.notEqual(result.status, 0);
+  assert.ok(f.calls().some(call => call.args.includes("build")));
+  assert.equal(f.calls().some(call => call.args[0] === "compose" &&
+    (call.args.includes("create") || call.args.includes("up"))), false);
+  assert.equal(existsSync(join(f.env.DEV_STACKS_DIR, "repo/image-inputs.json")), false);
 });
 
 for (const checkout of ["main", "worktree"]) {

@@ -57,9 +57,37 @@ Validate setup scope without installing dependencies or starting services:
 ```bash
 node --test dev/tests/*.test.mjs
 python3 -B dev/tests/session-search.test.py
+python3 -B dev/tests/stack-images.test.py
+python3 -B dev/tests/test-e2e.test.py
 ```
 
 ## `dev stack` — Unified Dev Stack Manager
+
+Run registries Playwright tests through `dev test e2e`:
+
+```bash
+dev test e2e --shell -- dashboard/dashboard.spec.tsx --workers=1
+dev test e2e -- --project=chromium
+```
+
+Prepare frontend dependencies first (`apps/registries-frontend`, and `apps/shell`
+for shell tests). The command starts the backend services, supplies matching API
+URLs to the browser and fixture setup, and checks GraphQL before frontend startup.
+Preview ports must be free; `dev test --help` lists their allocation.
+
+`dev stack up` checks local images for the selected services and their Compose
+dependencies before creating containers. It hashes Dockerfile COPY/ADD inputs
+from tracked and nonignored files, build configuration, and Docker ignore files.
+Changes to mounted source also trigger a rebuild on the next startup; this
+conservatively covers files used during the build as well as at runtime.
+Only the hash and resulting image ID are saved in the stack's `image-inputs.json`.
+An existing image without a matching record is rebuilt once. Failed builds never
+update the record. Docker's build cache remains available during rebuilds.
+
+Use `dev stack up --build <service>` for changes to ignored build inputs or an
+explicit rebuild. `--no-build` refuses stale or unverified images. Starting
+PostgreSQL alone does not build application images. Stack restarts do not check
+image freshness; use `up` before browser verification after changing branches.
 
 `dev stack` wraps `docker compose` with automatic environment detection. It determines whether you're in the main checkout or a git worktree, generates the correct compose override file (port offsets, networking, volumes), and forwards your command to `docker compose`.
 

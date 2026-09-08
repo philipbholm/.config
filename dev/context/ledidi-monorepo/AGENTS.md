@@ -80,7 +80,7 @@ Load the matching shared skill before acting:
 | Run checks, investigate check or hook failures, commit, or push | `verify-change` |
 | Change or review code | `coding-standards` |
 | Create, enter, or remove a worktree | `worktree` |
-| Prepare workspace dependencies; start, operate, or diagnose the development stack; verify in a browser | `dev-stack` |
+| Prepare dependencies; operate the stack; run Playwright or verify in a browser, including after a rebase | `dev-stack` |
 | Seed a demo registry | `seed-registry` |
 
 For PR titles, bodies, and risk labels, follow

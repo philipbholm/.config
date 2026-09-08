@@ -948,6 +948,18 @@ case "$subcommand" in
 
         generate_override "$resolved_slot"
 
+        image_options=()
+        for argument in "$@"; do
+            case "$argument" in
+                --no-build|--no-deps) image_options+=("$argument") ;;
+            esac
+        done
+        COMPOSE_PROJECT_NAME="$project_name" python3 "$SCRIPT_DIR/lib/stack-images.py" \
+            --state "$tmp_dir/image-inputs.json" \
+            --file "$repo_root/docker-compose.yml" \
+            --file "$tmp_dir/docker-compose.stack.yml" \
+            ${image_options[@]+"${image_options[@]}"} -- "${requested_services[@]}"
+
         # Materialize the containers — and with them the dev-slot label another
         # run reads to see this slot as taken — before releasing the slot lock.
         # `create` takes services only; the up-only flags in "$@" are not valid
