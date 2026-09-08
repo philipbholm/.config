@@ -16,10 +16,17 @@ Confirm the repository, PR number, head branch, and head commit. Use the
 checkout holding that branch before editing; preserve unrelated local work.
 If the target is ambiguous, ask which PR to finish.
 
-Load `verify-change` before investigating failures. Identify the `pr-checks`
-workflow and its runs for this PR using GitHub checks and workflow metadata.
-Here, `pr-checks` means that workflow, not every optional check on GitHub.
+Load `verify-change` before investigating failures. Identify every workflow
+with a `pr-checks` job and its runs for this PR using GitHub checks and workflow
+metadata. Here, `pr-checks` means those workflows, not every optional check on GitHub.
 Report other failing checks without expanding the repair scope unless asked.
+
+Inspect the workflow condition for every skipped suite. For E2E suites skipped
+because the PR is a draft, use `verify-change` to identify affected suites and
+run them locally before completion. Include affected consumers such as an app
+embedding the changed frontend; standalone browser checks do not cover that
+consumer. If a required local run is blocked, report the missing verification
+and the specific blocker. Keep the PR in draft under the global rule.
 
 ## Monitor and repair
 
@@ -38,9 +45,9 @@ Report other failing checks without expanding the repair scope unless asked.
    not blind reruns. Keep checks and assertions intact; repair the cause rather
    than disabling checks or accepting incorrect behavior to obtain green CI.
 5. Before declaring completion, fetch the PR head and check state again. If
-   the head changed, monitor the new head. Require a successful `pr-checks`
-   run with every applicable job successful. A skipped job is acceptable only
-   when its workflow condition makes it inapplicable, not when an upstream
+   the head changed, monitor the new head. Require successful runs for every
+   identified workflow with every applicable job successful. A skipped job is
+   acceptable only when its workflow condition makes it inapplicable, not when an upstream
    failure prevented it from running. Missing runs and cancelled jobs are not
    success; investigate the trigger or cancellation.
 
@@ -52,6 +59,10 @@ the PR as finished while the completion condition remains unmet.
 
 ## Report the result
 
-Report the PR URL, verified head commit, check result, and fixes made. Include
-any other failing checks or unresolved blocker. Follow the global draft-PR
+Report the PR URL, verified head commit, check result, and fixes made. Name
+every skipped suite, its skip condition, and the local result when required.
+When draft conditions skipped checks, say that draft checks passed and name
+the checks that will run when the PR leaves draft. Reserve an all-checks-green
+claim for checks that actually ran and passed. Include any other failing checks
+or unresolved blocker. Follow the global draft-PR
 rule; completing this skill does not authorize merging or changing PR state.

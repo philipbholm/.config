@@ -15,7 +15,9 @@
 
 ## Ledidi monorepo
 
-Use a gitmoji title. Use `## Why` and `## What` as the only body sections.
+Use a gitmoji title describing the change. Apply risk classification through
+GitHub labels such as `risk:standard`; keep risk labels out of the PR title.
+Use `## Why` and `## What` as the only body sections.
 `## Why` explains the problem and the outcome. `## What` explains the change.
 Quote new user-facing strings when the wording matters to review.
 Include material migration, compatibility, privacy, and rollout risks under

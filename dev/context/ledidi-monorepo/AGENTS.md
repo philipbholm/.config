@@ -83,6 +83,9 @@ Load the matching shared skill before acting:
 | Prepare workspace dependencies; start, operate, or diagnose the development stack; verify in a browser | `dev-stack` |
 | Seed a demo registry | `seed-registry` |
 
+For PR titles, bodies, and risk labels, follow
+[Work pull requests](/Users/philip/.config/skills/write-pr/references/work.md).
+
 ### Commands
 
 Use the maintained `package.json` script for generation, migrations, builds,

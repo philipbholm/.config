@@ -25,6 +25,10 @@ monorepo. Run E2E when the user asks, the applicable repository/domain context
 requires it, or the changed critical user flow needs it. Use integration tests
 for individual UI states; TDD chooses the level that proves the behavior.
 
+Inspect E2E coverage in affected consumers when changing routes, navigation,
+or user-facing content they embed. Run affected E2E suites locally when draft
+conditions skip them in CI; a skipped CI job does not verify those flows.
+
 When verification needs setup, load `dev-stack` and prepare only the required
 workspaces and services. For checks that consume generated types, follow the
 preparation steps in `dev-stack` before running them.
