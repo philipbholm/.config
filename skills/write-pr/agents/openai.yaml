@@ -1,0 +1,4 @@
+# Codex UI metadata. Claude Code and Cursor use SKILL.md.
+interface:
+  display_name: "Write PR"
+  short_description: "Plan PR scope and write titles and descriptions"

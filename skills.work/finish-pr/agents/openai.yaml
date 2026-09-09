@@ -1,0 +1,4 @@
+# Codex UI metadata. Claude Code and Cursor use SKILL.md.
+interface:
+  display_name: "Finish PR"
+  short_description: "Monitor and fix Ledidi PR checks until green"

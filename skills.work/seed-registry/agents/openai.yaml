@@ -1,0 +1,4 @@
+# Codex UI metadata. Claude Code and Cursor use SKILL.md.
+interface:
+  display_name: "Seed Registry"
+  short_description: "Seed a Ledidi demo registry with clinical data"

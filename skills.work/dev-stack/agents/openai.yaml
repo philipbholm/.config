@@ -1,0 +1,4 @@
+# Codex UI metadata. Claude Code and Cursor use SKILL.md.
+interface:
+  display_name: "Dev Stack"
+  short_description: "Prepare and operate the Ledidi dev stack"
