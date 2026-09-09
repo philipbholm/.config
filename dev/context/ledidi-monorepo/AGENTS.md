@@ -100,8 +100,6 @@ exists for an operation, follow the owning workflow's command.
 |----------------|---------------|
 | "save to vault" | Write a markdown file to `/Users/philip/vaults/work/dev` |
 
-Committing and pushing don't need approval.
-
 ### Service setup
 
 Creating or entering a worktree, rebasing, committing, and pushing do not by
