@@ -47,6 +47,12 @@ leaving the gap for the next reader to find.
   Cursor Agent, which has no file of its own under `~/.cursor` and instead walks
   the workspace's parent directories looking for `AGENTS.md`.
 - `skills/` contains shared skills. `skills.work/` contains work-only skills.
+- When creating or updating a skill, include `agents/openai.yaml` with
+  `interface.display_name`, `interface.short_description`, and
+  `interface.default_prompt`. Keep the metadata consistent with `SKILL.md`.
+  The default prompt must name the skill as `$skill-name`. Follow the
+  `skill-creator` metadata reference for field constraints, and preserve any
+  existing invocation policy and tool dependencies when updating the file.
 - `dev/context/ledidi-monorepo/AGENTS.md` is the single source for Ledidi
   repository context. `dev context render --all-worktrees` renders both `AGENTS.md` and
   `CLAUDE.local.md` into every Ledidi checkout.
