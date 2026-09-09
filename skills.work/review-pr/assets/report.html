@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PR #{{pr_number}} · {{harness}} review</title>
+<style>
+:root{color-scheme:light dark;--bg:#f5f6f8;--surface:#fff;--text:#202735;--muted:#606b7a;--line:#dce1e8;--link:#155bc0;--major:#a54412;--minor:#796000;--soft:#fff1e7;--critical:#bd2431}
+
+@media(prefers-color-scheme:dark){:root{--bg:#11151c;--surface:#1a202a;--text:#e5eaf2;--muted:#a9b3c2;--line:#354050;--link:#91bfff;--major:#ffaf7d;--minor:#e2c864;--soft:#39281f;--critical:#ff8a94}
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,sans-serif}
+main{max-width:1080px;margin:auto;padding:40px 28px 70px}
+a{color:var(--link);text-underline-offset:3px}
+h1,h2,h3{line-height:1.3}
+h1{font-size:30px;max-width:850px;margin:10px 0 20px}
+h2{font-size:21px;margin:0}
+h3{font-size:21px;margin:14px 0}
+p{margin:10px 0}
+.eyebrow,.muted,.finding-id{color:var(--muted)}
+.eyebrow{font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.verdict{background:var(--soft);border-left:4px solid var(--major);padding:15px 20px;border-radius:6px;margin:20px 0}
+.verdict strong{color:var(--major)}
+.metadata{display:flex;flex-wrap:wrap;gap:8px 28px;font-size:14px;color:var(--muted)}
+details{margin-top:14px}
+summary{cursor:pointer;color:var(--link);font-weight:500}
+code{font:13px/1.5 ui-monospace,monospace;overflow-wrap:anywhere}
+.revision{display:grid;grid-template-columns:65px 1fr;gap:5px 12px;font-size:14px}
+.revision dd{margin:0;overflow-wrap:anywhere}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
+td,th{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right}
+td:first-child,th:first-child{text-align:left}
+tbody tr:last-child{font-weight:650}
+.count-note{font-size:13px;color:var(--muted)}
+.toolbar{position:sticky;top:0;z-index:1;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:14px 18px;margin:30px 0 24px;box-shadow:0 3px 12px #00000008}
+.toolbar fieldset{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center}
+.toolbar fieldset + fieldset{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.toolbar legend{float:left;margin-right:20px;font-weight:650}
+.toolbar label{display:inline-flex;align-items:center;gap:7px}
+.toolbar input{width:17px;height:17px;accent-color:var(--link)}
+button{font:inherit;font-size:14px;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:7px 12px;color:var(--text);background:var(--surface)}
+button:hover{border-color:var(--link)}
+button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--link);outline-offset:3px}
+.toolbar-bottom{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.toolbar-bottom p{margin:0;font-size:14px;color:var(--muted)}
+.section{margin-top:30px}
+.section-heading{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:14px}
+.section-heading span{font-size:13px;color:var(--muted)}
+.finding,.investigation{padding:24px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--major);border-radius:9px;margin-bottom:20px;scroll-margin-top:240px}
+.investigation{border-left-color:var(--line)}.finding.critical{border-left-color:var(--critical)}
+.critical .severity{color:var(--critical);border-color:var(--critical)}
+.finding.minor{border-left-color:var(--minor)}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag,.severity{font-size:12px;border:1px solid var(--line);border-radius:5px;padding:2px 8px}
+.tag{color:var(--muted)}
+.severity{font-weight:700;color:var(--major);border-color:var(--major)}
+.minor .severity{color:var(--minor);border-color:var(--minor)}
+.finding-id{font-size:13px;white-space:nowrap}
+.location{font:12px/1.65 ui-monospace,monospace;overflow-wrap:anywhere}
+.location p{margin:0 0 20px}
+.fields{display:grid;grid-template-columns:105px minmax(0,1fr);gap:14px 20px;margin:0}
+.fields dt{font-size:13px;font-weight:650;color:var(--muted);padding-top:3px}
+.fields dd{margin:0;overflow-wrap:anywhere}
+.card-footer{display:flex;align-items:center;gap:12px;margin-top:22px}
+.copy-status{font-size:13px;color:var(--muted)}
+.quote summary{font-size:13px}
+.quote textarea{width:100%;height:240px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:5px;padding:12px;margin-top:10px;font:13px/1.5 ui-monospace,monospace}
+.coverage{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:22px;margin-top:30px}
+.coverage h3{font-size:16px;margin:20px 0 6px}
+.coverage p{font-size:14px}
+.endnote{font-size:13px;color:var(--muted);margin-top:24px}
+[hidden]{display:none!important}
+#empty{padding:24px;border:1px dashed var(--line);border-radius:9px}
+.preview{font-size:13px;color:var(--muted);margin-bottom:22px}
+
+@media(max-width:650px){main{padding:24px 16px}
+h1{font-size:25px}
+.finding,.investigation{padding:18px}
+.fields{grid-template-columns:1fr;gap:4px}
+.fields dd{margin-bottom:12px}
+.toolbar{position:static}
+.card-top{gap:8px}
+.revision{grid-template-columns:1fr}
+.section-heading{display:block}
+}
+
+@media print{.toolbar,.card-footer,.quote{display:none!important}
+.finding[hidden],.section[hidden]{display:block!important}
+body{background:white;color:black}
+main{padding:0}
+.finding{break-inside:avoid}
+.preview{display:none}
+}
+
+</style>
+</head>
+<body><main>
+<header>
+<div class="eyebrow">Pull request review · {{harness}} · PR #{{pr_number}}</div>
+<h1><a href="{{pr_url}}">{{pr_title}}</a></h1>
+<div class="metadata"><span>Author <strong>{{author}}</strong></span><span>Reviewed {{reviewed_at}}</span><span>{{diff_summary}}</span></div>
+<div class="verdict"><strong>{{verdict}}</strong><p>{{summary}}</p></div>
+<details><summary>Review revision and counts</summary>
+<dl class="revision"><dt>Base</dt><dd><code>{{base_sha}}</code></dd><dt>Head</dt><dd><code>{{head_sha}}</code></dd><dt>Diff</dt><dd>Pinned three-dot comparison</dd></dl>
+<div class="table-scroll">{{counts_table_html}}</div>
+<p class="count-note">Pass counts include shared findings. Unique totals count each finding once.</p>
+</details>
+<p><strong>{{severity_totals}}</strong></p>
+</header>
+<div class="toolbar" hidden><fieldset><legend>Severity</legend><label><input type="checkbox" name="severity" value="critical" checked>Critical</label><label><input type="checkbox" name="severity" value="major" checked>Major</label><label><input type="checkbox" name="severity" value="minor" checked>Minor</label></fieldset><fieldset><legend>Review pass</legend><label><input type="checkbox" name="pass" value="coding-standards" checked>Coding Standards</label><label><input type="checkbox" name="pass" value="security-privacy" checked>Security and Privacy</label><label><input type="checkbox" name="pass" value="correctness-reliability" checked>Correctness and Reliability</label></fieldset><div class="toolbar-bottom"><div><button id="major-only" type="button">Critical + Major</button> <button id="show-all" type="button">Show all</button></div><p id="visible-count" role="status">Showing {{finding_count}} of {{finding_count}} findings</p></div></div>
+<p id="empty" role="status" hidden>No findings match the selected filters.</p>
+{{finding_sections_html}}
+{{investigation_html}}
+<aside class="coverage"><h2>Review coverage</h2>{{coverage_html}}</aside>
+</main>
+<script>
+const cards = [...document.querySelectorAll('.finding')];
+const controls = [...document.querySelectorAll('input[name="severity"]')];
+const passControls = [...document.querySelectorAll('input[name="pass"]')];
+function filterFindings() {
+  const selected = new Set(controls.filter(input => input.checked).map(input => input.value));
+  const selectedPasses = new Set(passControls.filter(input => input.checked).map(input => input.value));
+  for (const card of cards) {
+    card.hidden = !selected.has(card.dataset.severity) || !card.dataset.passes.split(' ').some(pass => selectedPasses.has(pass));
+  }
+  for (const section of document.querySelectorAll('.section')) {
+    const visible = [...section.querySelectorAll('.finding')].filter(card => !card.hidden).length;
+    section.hidden = visible === 0;
+  }
+  const visible = cards.filter(card => !card.hidden).length;
+  document.querySelector('#visible-count').textContent = `Showing ${visible} of ${cards.length} findings`;
+  document.querySelector('#empty').hidden = visible !== 0;
+}
+for (const input of [...controls, ...passControls]) input.addEventListener('change', filterFindings);
+document.querySelector('#major-only').addEventListener('click', () => {
+  for (const input of controls) input.checked = input.value !== 'minor';
+  filterFindings();
+});
+document.querySelector('#show-all').addEventListener('click', () => {
+  for (const input of [...controls, ...passControls]) input.checked = true;
+  filterFindings();
+});
+for (const card of document.querySelectorAll('.finding, .investigation')) {
+  const button = card.querySelector('.copy');
+  const status = card.querySelector('.copy-status');
+  const field = card.querySelector('textarea');
+  button.hidden = false;
+  button.addEventListener('click', async () => {
+    status.textContent = '';
+    try {
+      await navigator.clipboard.writeText(field.value);
+      status.textContent = 'Copied';
+    } catch {
+      card.querySelector('.quote').open = true;
+      field.focus(); field.select();
+      status.textContent = 'Clipboard unavailable. Copy the selected Markdown below.';
+    }
+  });
+}
+document.querySelector('.toolbar').hidden = false;
+filterFindings();
+</script>
+</body>
+</html>

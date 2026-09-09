@@ -1,0 +1,8 @@
+<article id="{{finding_id}}" class="finding {{severity_slug}}" data-severity="{{severity_slug}}" data-passes="{{pass_slugs}}">
+<div class="card-top"><div class="tags"><span class="severity">{{severity}}</span>{{pass_badges_html}}</div><a class="finding-id" href="#{{finding_id}}">{{finding_number}}</a></div>
+<h3>{{title}}</h3>
+<div class="location">{{location_html}}</div>
+<dl class="fields">{{fields_html}}</dl>
+<footer class="card-footer"><button type="button" class="copy" hidden>Copy quote</button><span class="copy-status" role="status"></span></footer>
+<details class="quote"><summary>Quote Markdown</summary><textarea aria-label="Quote for {{title}}" readonly spellcheck="false">{{quote_markdown}}</textarea></details>
+</article>

@@ -10,40 +10,70 @@ Create a unique directory with `mktemp -d` under the operating system's
 temporary directory. Write one self-contained `review-pr-<number>.html` inside
 it. Do not write the report into the repository.
 
-The report contains:
+Use [the report template](../assets/report.html) and
+[the finding card template](../assets/finding.html) for every harness. Preserve
+their layout, CSS, and JavaScript; fill the content slots as described below.
+The templates own presentation and control behavior.
 
-- PR title, URL, author, and base and head SHAs
-- review timestamp and harness name
-- a verdict: approve, comment, or ask for changes
-- counts by severity and pass
-- separate Coding Standards, Security and Privacy, and Correctness and
-  Reliability sections, each ranked Critical, Major, then Minor
-- one card per finding using the Review quality fields, with its pass labels,
-  severity, and stable permalink at the pinned head SHA
-- Needs investigation, PR structure, Minor, and Unchecked sections when they
-  have content
+### Populate the templates
 
-HTML-escape all PR text, code, paths, and generated prose before inserting it.
-Use no remote scripts, fonts, styles, or other assets. Keep the document usable
-without JavaScript and readable in light and dark mode.
+Replace `{{name}}` slots in one pass so inserted content is never interpreted
+as another slot. HTML-escape text and attribute values, including quote
+Markdown. Slots ending in `_html` receive generated markup whose text and
+attributes have already been escaped. Keep code in `<code>` or `<pre><code>`
+and links as anchors. Use no remote assets.
 
-### Severity filters
+The report follows this order:
 
-Above the findings, add labeled checkboxes for Critical, Major, and Minor,
-plus “Critical + Major” and “Show all” buttons. Select all severities initially.
-Use inline JavaScript to filter finding cards across every report section.
-The controls must support keyboard use and expose their selected state.
+1. PR title and link; harness, author, review timestamp, and diff size.
+2. A prominent verdict: approve, comment, or ask for changes. Follow it with
+   a short summary of the confirmed consequences.
+3. Expandable “Review revision and counts” with full base and head SHAs and
+   a table of Critical, Major, and Minor counts for each pass and unique totals.
+   Keep the unique severity totals visible below the disclosure.
+4. The severity and review-pass toolbar, followed by finding cards.
+5. Needs investigation when present, then Review coverage with the scope of
+   each pass and any Unchecked areas. Distinguish no findings from no review.
 
-Show the visible finding count alongside the total. Hide section headings when
-all their content is filtered out, and show “No findings match the selected
-severities” when no cards match. Keep the verdict and overall severity and pass
-counts unchanged. Keep unclassified content, including Needs investigation and
-Unchecked notes, visible outside the severity filter.
+Render each confirmed finding once. Group cards by their primary pass in
+Coding Standards, Security and Privacy, then Correctness and Reliability order;
+put PR-structure findings in a final PR structure group. Within each group,
+rank Critical, Major, then Minor. Omit groups with no cards. Wrap each group in
+`<section class="section">` with a `section-heading` div and an `h2` title.
+Record every contributing pass on the card, including findings in PR structure.
 
-Include every finding in the HTML. Without JavaScript, show the full report and
-hide the filter controls. Before opening the report, verify that Critical +
-Major hides Minor cards, individual checkboxes work, Show all restores every
-card, and an empty selection shows the no-match message.
+For each card, use a stable `finding_id`, a visible number such as `F01`, a
+severity slug (`critical`, `major`, or `minor`), and space-separated pass slugs
+(`coding-standards`, `security-privacy`, `correctness-reliability`). Render pass
+names as `<span class="tag">` badges. Populate `location_html` with a paragraph
+containing the file and line permalink at the pinned head, or the PR metadata
+link when appropriate. Populate `fields_html` with `dt`/`dd` pairs for Evidence,
+Consequence, Correction, and Standard when applicable. Keep the prose concise.
+
+Needs investigation stays outside the confirmed finding counts and filters.
+Use the card template with `class="investigation"` instead of
+`class="finding {{severity_slug}}"`, show the investigation status, and state
+the missing evidence. Copy controls still apply. Review coverage also remains
+visible while findings are filtered.
+
+### Filters
+
+Start with every severity and pass selected. A card matches when its severity
+is selected and at least one contributing pass is selected. “Critical + Major”
+changes only severity; “Show all” resets both groups. Selecting no options in
+either group shows no confirmed findings. Shared findings count once in the
+visible total, regardless of how many selected passes match.
+
+Keep the verdict and overall counts unchanged while filtering. Hide groups
+with no visible cards and show “No findings match the selected filters” when
+none match. Without JavaScript, show all content and hide interactive controls.
+The manual quote fields remain available. Preserve the template's keyboard
+support, light and dark themes, responsive layout, and full-report printing.
+
+Before delivery, check combined severity and pass selections, a shared finding
+matching either pass, a pass with no findings, an empty selection, and Show all
+restoring every card. Check that the visible count and group visibility follow
+the selected filters while review coverage stays visible.
 
 ### Copy findings as quotes
 
