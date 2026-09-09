@@ -66,8 +66,6 @@ alternative would have done, not why your change is correct.
 
 Do not write "deliberately", "intentionally", "Note that", or capitalised NOT.
 
-Only touch comments in code you are already changing.
-
 ### Example
 
 **Weak:**

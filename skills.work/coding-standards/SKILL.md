@@ -64,7 +64,9 @@ when available. Show the closest example and explain any proposed departure.
 If no comparable example exists, say so. Compare with another service, such as
 studies, when the task calls for that comparison.
 
-- Prefer concrete code until at least two real cases establish a shared shape.
+- Prefer concrete code. Introduce a shared helper or abstraction only when at
+  least three real cases establish a shared shape and sharing it makes the code
+  easier to maintain. Three cases permit abstraction; they do not require it.
   Remove middle layers that only rename or delegate a call.
 - Place behavior and data with the domain concept that owns them. Keep display
   formatting and presentation sorting in the frontend.
