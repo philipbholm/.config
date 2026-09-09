@@ -27,6 +27,24 @@ HTML-escape all PR text, code, paths, and generated prose before inserting it.
 Use no remote scripts, fonts, styles, or other assets. Keep the document usable
 without JavaScript and readable in light and dark mode.
 
+### Severity filters
+
+Above the findings, add labeled checkboxes for Critical, Major, and Minor,
+plus “Critical + Major” and “Show all” buttons. Select all severities initially.
+Use inline JavaScript to filter finding cards across every report section.
+The controls must support keyboard use and expose their selected state.
+
+Show the visible finding count alongside the total. Hide section headings when
+all their content is filtered out, and show “No findings match the selected
+severities” when no cards match. Keep the verdict and overall severity and pass
+counts unchanged. Keep unclassified content, including Needs investigation and
+Unchecked notes, visible outside the severity filter.
+
+Include every finding in the HTML. Without JavaScript, show the full report and
+hide the filter controls. Before opening the report, verify that Critical +
+Major hides Minor cards, individual checkboxes work, Show all restores every
+card, and an empty selection shows the no-match message.
+
 Open the HTML file with `open` and return its absolute path.
 
 ## Report mode
