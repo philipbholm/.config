@@ -1,8 +1,8 @@
 # Review delivery
 
 Report mode produces HTML. In post mode, generate an additional HTML report
-only when the user asks for one. Reuse the same finding text in either output;
-separate paste-ready versions are unnecessary.
+only when the user asks for one. Reuse the same finding text in either output
+and in the report's copy controls.
 
 ## When producing HTML
 
@@ -45,7 +45,31 @@ hide the filter controls. Before opening the report, verify that Critical +
 Major hides Minor cards, individual checkboxes work, Show all restores every
 card, and an empty selection shows the no-match message.
 
-Open the HTML file with `open` and return its absolute path.
+### Copy findings as quotes
+
+Give every finding card a keyboard-accessible “Copy quote” button. Copy plain
+text containing a GitHub Markdown blockquote, ready to paste into a PR comment.
+Include the finding's title, severity or investigation status, pass labels,
+file and line permalink when available, evidence, consequence, and suggested
+correction. Preserve paragraphs, lists, inline code, and fenced code blocks;
+prefix every line, including blank lines and code fences, with `> `.
+
+Build the quote from the same finding content used to render the card, rather
+than copying the card's rendered text or HTML. Exclude buttons and other report
+controls. Preserve literal code characters and URLs through HTML escaping so
+the clipboard contains the original Markdown rather than HTML entities.
+
+Show “Copied” only after the clipboard write succeeds and announce the result
+to assistive technology. Provide an expandable “Quote Markdown” field with
+selectable, read-only text for manual copying, including when JavaScript is
+disabled or clipboard access fails from a local HTML file.
+
+Before delivery, check a copied quote containing multiple paragraphs, a link,
+and a fenced code sample with `<`, `>`, and `&`. Verify that the Markdown keeps
+the entire finding inside one blockquote and that manual copying also works.
+
+After checking the filters and copy controls, open the HTML file with `open`
+and return its absolute path.
 
 ## Report mode
 
