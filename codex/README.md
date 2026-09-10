@@ -29,16 +29,15 @@ Runtime files (history, logs, state DBs, sessions, auth, cache, etc.) stay in `~
 
 `switch-theme.sh` waits for Alacritty to load the theme, then queries each local
 Alacritty client attached to the default tmux server. This refreshes the colors
-tmux reports to applications. Named tmux servers and remote clients are outside
-this script's scope.
+tmux reports to applications. This color-query refresh does not cover named
+tmux servers or remote clients.
 
-Codex CLI 0.153.4 also caches terminal colors at startup. A running Codex session
-can therefore keep pale input and user-message backgrounds after the terminal
-switches to dark mode. Exit Codex when its work is finished, then run
-`codex resume` and select the same conversation. Restarting Codex is still needed
-after each terminal theme change; refreshing tmux fixes color detection for the
-next Codex process.
+Codex CLI 0.153.4 caches terminal colors at startup. The script therefore defers
+Alacritty theme changes while Codex, Claude Code, or Cursor CLI is running in a
+local terminal. macOS and borders still change on schedule. See
+[Terminal theme switching](../README.md#terminal-theme-switching) for timing
+and verification steps.
 
-To smoke-test a theme switch, run `./switch-theme.sh light` from this repo, start
-Codex inside tmux, and check that input and user messages are readable. Exit
-Codex, run `./switch-theme.sh dark`, and repeat. Finish on your preferred theme.
+A Codex session whose contrast was already broken before this guard was
+installed still needs one restart. Exit Codex when its work is finished, then
+run `codex resume` and select the same conversation.

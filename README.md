@@ -28,6 +28,27 @@ This repo does not fully manage:
 - Bun install state
 - private secrets in `~/.config/zsh/.zsh_secrets`
 
+## Terminal theme switching
+
+`switch-theme.sh` switches macOS and borders to light mode at 07:00 and dark
+mode at 18:00, using the local clock. Alacritty keeps its current theme while
+any local Codex, Claude Code, or Cursor CLI process has a terminal. Both
+`agent` and `cursor-agent` are covered. Desktop app servers without a terminal
+do not delay the switch.
+
+After the last terminal agent exits, Alacritty catches up to the scheduled
+theme on the next one-minute check. Explicit `./switch-theme.sh light` and
+`./switch-theme.sh dark` calls also defer Alacritty changes while an agent runs.
+This keeps the terminal palette stable for agents that cache colors at startup.
+The guard applies across local terminals and tmux servers because Alacritty's
+theme file is shared.
+
+Run `bash tests/switch-theme.sh` to check deferral and catch-up for all three
+agents in both theme directions. For a manual check, start an agent, request
+the opposite theme, and confirm that macOS changes while Alacritty stays the
+same. Exit all terminal agents and confirm that Alacritty returns to the
+scheduled theme within the next minute.
+
 ## Before Wiping The Mac
 
 Before erasing the machine, make sure the following are backed up or intentionally recoverable.
