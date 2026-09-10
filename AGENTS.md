@@ -58,3 +58,9 @@ leaving the gap for the next reader to find.
   `CLAUDE.local.md` into every Ledidi checkout.
 - "Update the context" means updating the Ledidi source template and any file
   that the template references.
+- After changing the Ledidi context template, its referenced context files, or
+  shared skills it names, run `dev context render --all-worktrees` once after
+  the final edit. Then run `dev context render --all-worktrees --check` to
+  confirm the main checkout and every registered worktree are current. Syncing
+  is part of completing the change and needs no separate request. Report any
+  checkout that could not be updated or verified.
