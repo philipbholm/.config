@@ -54,85 +54,60 @@ sys.exit(not all(actual[key] == value for key, value in expected.items()))
   done <<< "$CLIENTS"
 }
 
-terminal_agent_running() {
-  local PROCESSES
-  if ! PROCESSES=$(ps -U "$(id -u)" -o tty=,comm=); then
-    echo "Could not inspect terminal agents; keeping the current Alacritty theme." >&2
-    return 0
+MODE="${1:-}"
+if [ -z "$MODE" ]; then
+  HOUR=$(date +%-H)
+  if [ "$HOUR" -ge 18 ] || [ "$HOUR" -lt 7 ]; then
+    MODE=dark
+  else
+    MODE=light
   fi
+fi
 
-  # A terminal is required so desktop app servers do not hold the theme forever.
-  # Cursor's launchers use exec -a; some versions expose the bundled Node path.
-  awk '
-    $1 != "??" && $1 != "?" {
-      sub(/^[[:space:]]*[^[:space:]]+[[:space:]]+/, "")
-      if ($0 ~ /(^|\/)(codex|claude|agent|cursor-agent)$/ ||
-          $0 ~ /\/cursor-agent\/versions\/[^\/]+\/node$/)
-        found = 1
-    }
-    END { exit !found }
-  ' <<< "$PROCESSES"
-}
+case "$MODE" in
+  dark) DARK=true ;;
+  light) DARK=false ;;
+  *)
+    echo "Usage: switch-theme.sh [light|dark]" >&2
+    exit 1
+    ;;
+esac
 
-main() {
-  local MODE="${1:-}" HOUR DARK STYLE
-  if [ -z "$MODE" ]; then
-    HOUR=$(date +%-H)
-    if [ "$HOUR" -ge 18 ] || [ "$HOUR" -lt 7 ]; then
-      MODE=dark
-    else
-      MODE=light
-    fi
-  fi
-
-  case "$MODE" in
-    dark) DARK=true ;;
-    light) DARK=false ;;
-    *)
-      echo "Usage: switch-theme.sh [light|dark]" >&2
-      return 1
-      ;;
-  esac
-
+# Hourly no-arg runs (see launchd/com.philip.theme-watcher.plist) mean most
+# invocations need only a tmux color refresh: skip the apply steps when both the
+# appearance and theme file already match, so borders isn't restarted for no reason.
+# An explicit light/dark argument always applies (it doubles as a re-kick).
+if [ -z "${1:-}" ] && cmp -s "$THEME_DIR/$MODE.toml" "$ACTIVE_THEME" 2>/dev/null; then
   STYLE=$(defaults read -g AppleInterfaceStyle 2>/dev/null || echo Light)
-  if [ -n "${1:-}" ] ||
-     { [ "$MODE" = dark ] && [ "$STYLE" != Dark ]; } ||
-     { [ "$MODE" = light ] && [ "$STYLE" != Light ]; }; then
-    # The local clock owns the schedule, including after timezone changes.
-    defaults write -g AppleInterfaceStyleSwitchesAutomatically -bool false
-    osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to $DARK"
-
-    # borders is a foreground daemon managed by launchd. Restart its agent to
-    # apply the appearance without leaving another daemon running.
-    if ! launchctl kickstart -k "gui/$(id -u)/com.philip.borders" 2>/dev/null; then
-      "$HOME/.config/borders/bordersrc" "$MODE" &
-    fi
+  if { [ "$MODE" = dark ] && [ "$STYLE" = Dark ]; } ||
+     { [ "$MODE" = light ] && [ "$STYLE" = Light ]; }; then
+    refresh_tmux_colors
+    exit 0
   fi
+fi
 
-  if cmp -s "$THEME_DIR/$MODE.toml" "$ACTIVE_THEME"; then
-    # Explicit calls also repair tmux's cached colors when the theme matches.
-    if [ -n "${1:-}" ]; then
-      refresh_tmux_colors
-    fi
-    return 0
-  fi
+# Fixed schedule: keep macOS's own sunset/sunrise switching off so it can't
+# override us between our hourly runs.
+defaults write -g AppleInterfaceStyleSwitchesAutomatically -bool false
+osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to $DARK"
 
-  # Terminal agents can cache colors for their process lifetime. Preserve the
-  # palette until all local terminal agents exit; launchd retries every minute.
-  if [ -e "$ACTIVE_THEME" ] && terminal_agent_running; then
-    return 0
-  fi
+# Copy (never symlink) the theme: alacritty's live_config_reload canonicalizes
+# import paths and watches the resolved file, so a symlink swap emits no event.
+# rm first — cp/redirect onto an existing symlink would write through to the
+# theme file itself.
+rm -f "$ACTIVE_THEME"
+cp "$THEME_DIR/$MODE.toml" "$ACTIVE_THEME"
+touch "$HOME/.config/alacritty/alacritty.toml"
+refresh_tmux_colors
 
-  # Alacritty watches the resolved import path, so replace the file rather than
-  # swapping a symlink. Remove an existing symlink without writing through it.
-  if [ -e "$ACTIVE_THEME" ] || [ -L "$ACTIVE_THEME" ]; then
-    rm "$ACTIVE_THEME"
-  fi
-  cp "$THEME_DIR/$MODE.toml" "$ACTIVE_THEME"
-  touch "$HOME/.config/alacritty/alacritty.toml"
-  refresh_tmux_colors
-}
-
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  main "$@"
+# Reload borders so it picks up the appearance we just set (bordersrc with no
+# argument reads AppleInterfaceStyle).
+#
+# Do NOT call bordersrc directly: `borders` is a long-running daemon that runs
+# in the foreground (which is what com.philip.borders expects of it), so
+# invoking it here never returns — it hangs the caller and leaks a second
+# daemon. Restarting the launch agent applies the config and returns at once.
+if ! launchctl kickstart -k "gui/$(id -u)/com.philip.borders" 2>/dev/null; then
+  # Agent not loaded (e.g. first install before launch agents are set up).
+  "$HOME/.config/borders/bordersrc" "$MODE" &
 fi
