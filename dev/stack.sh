@@ -526,7 +526,7 @@ services:
       - default
       - admin-bridge
     environment:
-      - ALLOWED_ORIGINS=http://localhost:$(( DEV_FRONTEND_BASE_PORT + offset )),http://localhost:3010
+      - ALLOWED_ORIGINS=http://localhost:$(( DEV_FRONTEND_BASE_PORT + offset )),http://localhost:$(( DEV_FRONTEND_BASE_PORT + 1 + offset )),http://localhost:$(( 3010 + offset )),http://localhost:3010
       # Raise PROM endpoint rate limit (default 100/min) to the schema cap so
       # local seeders aren't throttled. See services/registries/src/env.ts.
       - PROM_RATE_LIMIT_MAX=10000
