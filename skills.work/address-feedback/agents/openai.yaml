@@ -2,3 +2,4 @@
 interface:
   display_name: "Address Feedback"
   short_description: "Assess and fix code review feedback"
+  default_prompt: "Use $address-feedback to assess these findings and batch the authorized fixes with scoped verification."

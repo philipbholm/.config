@@ -90,6 +90,15 @@ authorizes implementation. Agreement on a design question settles that question;
 it does not by itself authorize building the feature. Continue already-authorized
 work without asking for permission again.
 
+For a factual code question, inspect the named code and relevant callers. Load
+review workflows when assessing correctness, design, or coverage; explaining a
+line does not itself require a review or test run. Execute a check only when it
+resolves a specific uncertainty.
+
+Reuse applicable instructions already read in this session. Read them again
+when their files change, the scope changes, or their contents are no longer
+available in context.
+
 ## Commits and pull requests
 
 Before creating or amending a commit, drafting a commit message, or reviewing

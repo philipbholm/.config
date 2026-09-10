@@ -1,6 +1,6 @@
 ---
 name: finish-pr
-description: Monitor and fix Ledidi PR checks until green. Use for "make the PR green", "don't stop until all pr-checks are green", or after create-pr opens a PR.
+description: Monitor and fix Ledidi PR checks until green when requested. Creating, pushing, or restacking a PR alone does not invoke this skill.
 ---
 
 # Finish a Ledidi pull request
@@ -16,14 +16,16 @@ Confirm the repository, PR number, head branch, and head commit. Use the
 checkout holding that branch before editing; preserve unrelated local work.
 If the target is ambiguous, ask which PR to finish.
 
-Load `verify-change` before investigating failures. Identify every workflow
-with a `pr-checks` job and its runs for this PR using GitHub checks and workflow
+Load `verify-change` and select branch verification, reusing valid local results.
+Identify every workflow with a `pr-checks` job and its runs for this PR using
+GitHub checks and workflow
 metadata. Here, `pr-checks` means those workflows, not every optional check on GitHub.
 Report other failing checks without expanding the repair scope unless asked.
 
 Inspect the workflow condition for every skipped suite. For E2E suites skipped
-because the PR is a draft, use `verify-change` to identify affected suites and
-run them locally before completion. Include affected consumers such as an app
+because the PR is a draft or targets another branch, use `verify-change` to
+identify required affected journeys. Reuse valid local results or run missing
+checks before completion. Include affected consumers such as an app
 embedding the changed frontend; standalone browser checks do not cover that
 consumer. If a required local run is blocked, report the missing verification
 and the specific blocker. Keep the PR in draft under the global rule.
@@ -33,9 +35,11 @@ and the specific blocker. Keep the PR in draft under the global rule.
 1. Inspect the latest run and attempt for the PR's current head. Read failing
    job logs and the relevant workflow configuration before choosing a fix.
    A successful run for an older commit does not verify the current head.
-2. While checks are queued or running, use the harness's waiting or monitoring
-   mechanism and recheck. Pending checks are not a blocker. Keep the user
-   informed without ending the task merely because CI is still running.
+2. Record the head, workflow run IDs, and attempts. While checks are pending,
+   use one monitor or poll those runs at roughly 30–60 second intervals. Reuse
+   workflow conditions and logs already read for unchanged attempts; refresh
+   discovery when the head, attempt, or workflow changes. Pending checks are not
+   a blocker. Keep the user informed and continue until the requested result.
 3. Classify failures under `verify-change`. For an in-scope code fix, load
    `coding-standards`, make the fix, and run the required local checks. Load
    `write-commit`, commit only the fix, and push under `verify-change`.

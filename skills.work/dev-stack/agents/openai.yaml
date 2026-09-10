@@ -2,3 +2,4 @@
 interface:
   display_name: "Dev Stack"
   short_description: "Prepare and operate the Ledidi dev stack"
+  default_prompt: "Use $dev-stack to prepare only missing dependencies and run the required services or tests."

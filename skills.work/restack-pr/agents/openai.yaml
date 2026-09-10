@@ -2,3 +2,4 @@
 interface:
   display_name: "Restack PR"
   short_description: "Restack Ledidi PRs after upstream changes"
+  default_prompt: "Use $restack-pr to update the requested PR stack, verify affected changes, and push without waiting for CI."

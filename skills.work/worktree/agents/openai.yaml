@@ -2,3 +2,4 @@
 interface:
   display_name: "Worktree"
   short_description: "Create, enter, or remove a Ledidi worktree"
+  default_prompt: "Use $worktree to find or create the branch checkout and coordinate with any active writer."

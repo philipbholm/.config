@@ -100,6 +100,15 @@ exists for an operation, follow the owning workflow's command.
 |----------------|---------------|
 | "save to vault" | Write a markdown file to `/Users/philip/vaults/work/dev` |
 
+### Verification and delivery
+
+`verify-change` distinguishes follow-up edits from branch verification and owns
+reuse of check results and push-hook exceptions. `coding-standards` selects
+self-review or independent review by the affected behavior. `worktree` owns
+coordination with other sessions writing the branch; `dev-stack` owns test
+concurrency. Creating, pushing, or restacking a draft returns with the available
+CI state unless I request monitoring through `finish-pr`.
+
 ### Service setup
 
 Creating or entering a worktree, rebasing, committing, and pushing do not by

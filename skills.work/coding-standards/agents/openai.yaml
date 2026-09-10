@@ -2,3 +2,4 @@
 interface:
   display_name: "Coding Standards"
   short_description: "Apply coding standards to changes and reviews"
+  default_prompt: "Use $coding-standards to apply the relevant standards and select the review scope for this change."

@@ -17,7 +17,10 @@ scope and failure handling.
 When package dependencies need installation, run
 `dev workspace prepare <workspace> [workspace ...]` for those workspaces.
 Use `dev workspace prepare --help` for the command's behavior and workspace
-definition. Service startup is a separate step below.
+definition. It reinstalls selected workspaces, so reuse a working installation
+when package manifests, lockfiles, and the Node/package-manager environment
+remain compatible. Missing generated output alone needs generation, not an
+install. Service startup is a separate step below.
 
 Before a required type check, inspect its package script and generation
 inputs. If the check consumes generated types but does not generate them,
@@ -62,8 +65,12 @@ services and their dependencies. The command already detaches and waits for
 readiness. Add `--include-patient` only when verifying patient flows. For
 other applications, name the services required by that browser journey.
 
-For Playwright, prepare the frontend workspace dependencies first, including
-`apps/shell` when using `--shell`. Run through `dev test e2e` so browser requests
+For Playwright, ensure the frontend workspace dependencies are available,
+including `apps/shell` when using `--shell`; prepare only missing or stale
+installations. Confirm the selected spec exists and use a unique filename or
+an escaped pattern: bracketed route paths are regular expressions to Playwright.
+Use the runner's listing option when selection is uncertain, before starting
+services. Run through `dev test e2e` so browser requests
 and fixture setup receive the same worktree API URL. The command starts the
 backend services and checks GraphQL before Playwright starts its frontend.
 Read `dev test --help` for preview ports and argument forwarding.
@@ -74,11 +81,31 @@ the worktree's `POSTGRES_URL` on the command line. A full `dev stack up` writes
 `services/registries/.env.test.local`, so the backend suite then runs with a
 plain `npm run test`.
 
-Run suites directly in each workspace. `--changed <base>` uses the comparison
-base selected by `verify-change` and narrows
-Vitest in `services/registries` and `apps/registries-frontend` through the
-import graph. `services/codelist` uses Jest and has no equivalent. Report every
-suite run and every suite the active stack could not support.
+Run suites directly in each workspace with the selection from `verify-change`.
+Prefer explicit test files for small edits. Vitest's `--changed <revision>` can
+select through the import graph in registries backend and frontend; use the
+task's starting revision for follow-ups and the PR base for branch verification.
+Inspect an unexpectedly broad selection before running it. `services/codelist`
+uses Jest and has no equivalent. Report suites run or blocked.
+
+## Coordinate heavy work
+
+Before a backend run, check for active tests in this worktree and competing
+builds or suites on the machine. Run at most one database-resetting test process
+per worktree, including commit hooks; parallel processes need separate verified
+test databases. Wait for this worktree's dependency installs and service rebuilds
+to finish before starting tests that rely on them.
+
+When other heavy jobs are active, start registries Vitest with
+`--maxWorkers=2 --minWorkers=1`; use one worker for isolated timeout diagnosis.
+Adjust from observed results instead of repeatedly launching the same overloaded
+run. Parallelize independent reads and lightweight checks while heavy jobs run.
+Coordinate with the owning session before stopping its active tests or changing
+its services; the stack-capacity policy above governs idle-stack selection.
+These are coordination rules, not an automatic lock or machine-wide scheduler.
+
+Reuse a running Storybook for component verification. A healthy Storybook and
+mocked component tests do not require a full application stack.
 
 ## Operate the stack
 

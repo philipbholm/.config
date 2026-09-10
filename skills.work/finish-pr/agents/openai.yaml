@@ -2,3 +2,4 @@
 interface:
   display_name: "Finish PR"
   short_description: "Monitor and fix Ledidi PR checks until green"
+  default_prompt: "Use $finish-pr to monitor and fix the latest required PR checks until they pass."

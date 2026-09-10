@@ -1,5 +1,6 @@
 interface:
   display_name: "Implement Spec"
   short_description: "Implement a whole spec as one PR"
+  default_prompt: "Use $implement-spec to implement this specification with coordinated worktrees and scoped verification."
 policy:
   allow_implicit_invocation: false

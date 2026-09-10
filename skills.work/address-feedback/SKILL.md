@@ -33,13 +33,15 @@ implementation is already authorized by the conversation.
 
 ## Fix the findings
 
-Assess each finding, verify and commit each fix separately, then push and
+Assess each finding and group related fixes for implementation and verification.
+Commit coherent changes, preserve a finding-to-commit record, then push and
 deliver the responses under the following steps.
 
 ## Locate the work and feedback
 
 1. Check `git branch --show-current`, `git worktree list`, and
-   `git status --short`. Enter the checkout holding the reviewed branch.
+   `git status --short`. In Ledidi, load `worktree` and check session ownership
+   before editing. Enter the checkout holding the reviewed branch.
    In that checkout, stop and ask if the branch is master/main or the tree has
    existing tracked modifications. Preserve untracked work and capture HEAD
    for the cumulative diff.
@@ -61,9 +63,11 @@ Read the full finding and assess it under Review quality. Split a review body
 containing several findings into separate items. Check whether a finding on
 an older revision is already fixed; age alone does not make it obsolete.
 
-For a valid issue, make the change and run the required checks. Commit only
-that issue's fix, so the response can link to the commit. For a disagreement,
-record the rebuttal with code references instead of changing code.
+For valid related issues, make a coherent batch of changes and run focused
+checks. Related findings may share verification and a commit; independent fixes
+can remain separate commits without repeating checks whose inputs are unchanged.
+Map every fixed finding to its commit. For a disagreement, record the rebuttal
+with code references instead of changing code.
 
 Use these outcomes consistently:
 
@@ -83,8 +87,10 @@ Do not silently revert, stash, or commit the blocked changes.
 
 ## Verify and push
 
-After processing the findings, run the full suite within the selected
-verification scope. Push only when those verification instructions permit it.
+After processing the findings, check that valid results cover the final task
+diff under `verify-change`; run only missing or invalidated checks. A full suite
+is not required merely because several findings were addressed. Push once when
+verification permits it. Report CI as pending unless monitoring was requested.
 If pushing is blocked or the user asked not to push, hold GitHub responses.
 
 For GitHub, deliver responses under the reference's human/automated rules

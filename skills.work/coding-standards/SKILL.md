@@ -37,6 +37,16 @@ callers and data flow before excluding a topic whose relevance is unclear.
 Before planning PR scope or reviewing PR titles and descriptions, load
 `write-pr`. Before reviewing commit-message style, load `write-commit`.
 
+## Review scope
+
+Self-review the final diff for every implementation. That is sufficient for
+mechanical renames, test readability, and small presentation changes with no
+changed security or data contract. Use `code-review` for substantial behavior
+changes, authorization, tenant isolation, sensitive data handling, migrations,
+or when the user requests an independent review. An explicit review request
+still follows its requested review workflow. Apply this rule to PR creation and
+spec implementation as well as ordinary edits.
+
 ## Engineering baseline
 
 - Security, privacy, test coverage, and test quality do not bend for incomplete

@@ -2,3 +2,4 @@
 interface:
   display_name: "Create PR"
   short_description: "Implement and open a Ledidi pull request"
+  default_prompt: "Use $create-pr to implement this change, verify it locally, and open a draft PR without waiting for CI."

@@ -1,6 +1,6 @@
 ---
 name: restack-pr
-description: Restack Ledidi PRs after an upstream branch changes, merges, or becomes a new base. Rebase or port dependent features, update PR bases, push, and verify current checks.
+description: Restack Ledidi PRs, verify affected changes, and push updated branches and bases. Wait for CI only when requested.
 ---
 
 # Restack Ledidi pull requests
@@ -22,7 +22,9 @@ target or conflicting local work remains ambiguous. Preserve unrelated work.
 
 ## Restack from parent to child
 
-For each PR, finish its parent first and then:
+Restack, locally verify, and push each parent before its children. Complete the
+requested stack before monitoring CI; a parent's pending CI does not prevent
+preparing its child. For each PR:
 
 1. Identify the feature's original commit range before rewriting history. Keep
    a temporary local backup ref and record the original remote head for the
@@ -42,15 +44,22 @@ For each PR, finish its parent first and then:
    inspect and incorporate that work before retrying; never replace the lease
    with a force push. Update the PR's base when necessary. Preserve draft state.
    Load `write-pr` if the resulting scope requires a title or description change.
-5. Load `finish-pr` and verify the PR's latest head before moving on. Recheck
-   already-finished parents if their heads changed during the operation.
+5. Record the pushed head and available CI state, then continue to the next
+   child. If another session changes a parent, inspect that change before
+   continuing; coordinate branch ownership under `worktree`.
+
+After pushing the stack, load `finish-pr` only if CI monitoring was requested.
+Monitor the final heads together. If a CI repair changes a parent, update and
+verify affected children before declaring the stack green.
 
 The feature diff is against the PR's actual base. Verification also covers
 affected dependencies and consumers; using a narrower PR diff must not exclude
-them or broaden `verify-change`'s hook exception.
+them from the selected checks.
 
-Keep backup refs until the rewritten branches are pushed and verified, then
-remove only the backup refs created here. On a blocker, retain the backups and
+Keep backup refs until the rewritten branches pass local verification and their
+remote heads are confirmed; when CI monitoring was requested, keep them until
+that succeeds too. Then remove only the backup refs created here. On a blocker,
+retain the backups and
 completed work and name the specific help needed. Report each PR's base, final
 head, check result, and any dependent PR left outside scope. Keep worktrees and
 stacks available unless teardown was requested.

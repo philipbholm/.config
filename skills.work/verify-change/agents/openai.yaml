@@ -2,3 +2,4 @@
 interface:
   display_name: "Verify Change"
   short_description: "Run relevant Ledidi checks and handle failures"
+  default_prompt: "Use $verify-change to select checks for this edit, reuse valid results, and verify the final changes."
