@@ -125,10 +125,16 @@ test("Render only the current checkout unless all worktrees are requested", (t) 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(readFileSync(join(f.repo, "AGENTS.md"), "utf8"), "Keep main context\n");
   assert.match(readFileSync(join(worktree, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  assert.match(readFileSync(join(worktree, "CLAUDE.local.md"), "utf8"), /^# CLAUDE.local.md/);
+  const worktreeClaude = readFileSync(join(worktree, "CLAUDE.local.md"), "utf8");
+  assert.match(worktreeClaude, /^# CLAUDE.local.md/);
+  assert.match(worktreeClaude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
+  assert.doesNotMatch(worktreeClaude, /## Ports/);
   result = f.run(["context", "render", "--all-worktrees"]);
   assert.equal(result.status, 0, result.stderr);
   assert.match(readFileSync(join(f.repo, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
+  const mainClaude = readFileSync(join(f.repo, "CLAUDE.local.md"), "utf8");
+  assert.match(mainClaude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
+  assert.doesNotMatch(mainClaude, /## Ports/);
   assert.ok(f.calls().every(call => call.command === "docker" && call.args[0] === "ps"));
 });
 
@@ -138,7 +144,10 @@ test("Create a Ledidi worktree with context but without preparing dependencies",
   assert.equal(result.status, 0, result.stderr);
   const worktree = join(f.repo, ".worktrees/docs-only");
   assert.match(readFileSync(join(worktree, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  assert.match(readFileSync(join(worktree, "CLAUDE.local.md"), "utf8"), /^# CLAUDE.local.md/);
+  const claude = readFileSync(join(worktree, "CLAUDE.local.md"), "utf8");
+  assert.match(claude, /^# CLAUDE.local.md/);
+  assert.match(claude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
+  assert.doesNotMatch(claude, /## Ports/);
   assert.deepEqual(f.calls(), []);
 });
 

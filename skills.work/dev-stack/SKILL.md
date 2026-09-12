@@ -6,7 +6,7 @@ description: Prepare dependencies and operate the Ledidi development stack. Use 
 # Ledidi development stack
 
 Use `dev stack` instead of `docker compose`. Each worktree owns the ports
-rendered in its `AGENTS.md` and `CLAUDE.local.md`; never edit configuration to
+rendered in its `AGENTS.md`; never edit configuration to
 reach another stack's ports.
 
 ## Prepare dependencies when needed

@@ -54,8 +54,8 @@ leaving the gap for the next reader to find.
   `skill-creator` metadata reference for field constraints, and preserve any
   existing invocation policy and tool dependencies when updating the file.
 - `dev/context/ledidi-monorepo/AGENTS.md` is the single source for Ledidi
-  repository context. `dev context render --all-worktrees` renders both `AGENTS.md` and
-  `CLAUDE.local.md` into every Ledidi checkout.
+  repository context. `dev context render --all-worktrees` renders `AGENTS.md`
+  into every Ledidi checkout, and writes `CLAUDE.local.md` as a pointer to it.
 - "Update the context" means updating the Ledidi source template and any file
   that the template references.
 - After changing the Ledidi context template, its referenced context files, or

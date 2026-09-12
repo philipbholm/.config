@@ -17,6 +17,7 @@ done
 
 CONTEXT_DIR="$SCRIPT_DIR/context/ledidi-monorepo"
 CONTEXT_TEMPLATE="$CONTEXT_DIR/AGENTS.md"
+CLAUDE_POINTER="$CONTEXT_DIR/CLAUDE.local.md"
 MAIN_REPO="${DEV_MAIN_REPO:-$HOME/work/ledidi-monorepo}"
 
 NO_STACK="no-stack"
@@ -141,6 +142,11 @@ if [[ ! -f "$CONTEXT_TEMPLATE" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$CLAUDE_POINTER" ]]; then
+  echo "Claude pointer not found: $CLAUDE_POINTER" >&2
+  exit 1
+fi
+
 if [[ "$(head -n 1 "$CONTEXT_TEMPLATE")" != '# AGENTS.md' ]]; then
   echo "Template must start with '# AGENTS.md': $CONTEXT_TEMPLATE" >&2
   exit 1
@@ -246,19 +252,17 @@ for entry in "${targets[@]}"; do
   agents_dest="$preview_dir/AGENTS.md"
 
   cp "$CONTEXT_TEMPLATE" "$agents_dest"
-  sed '1s/^# AGENTS\.md$/# CLAUDE.local.md/' "$CONTEXT_TEMPLATE" > "$claude_dest"
+  cp "$CLAUDE_POINTER" "$claude_dest"
 
   if [[ "$target" == "$MAIN_REPO" ]]; then
     # The template's port section is written for a worktree. The main checkout
     # gets the slot-0 version instead.
-    for dest in "$claude_dest" "$agents_dest"; do
-      if [[ "$slot" == "$NO_STACK" ]]; then
-        replace_main_port_section "$dest"
-      else
-        replace_main_port_prose "$dest"
-      fi
-      dev_apply_context_ports "$dest" 0
-    done
+    if [[ "$slot" == "$NO_STACK" ]]; then
+      replace_main_port_section "$agents_dest"
+    else
+      replace_main_port_prose "$agents_dest"
+    fi
+    dev_apply_context_ports "$agents_dest" 0
 
     if [[ "$check_only" == true ]]; then
       :
@@ -268,11 +272,9 @@ for entry in "${targets[@]}"; do
       echo "  ✓ ${target##*/} (main, slot 0)"
     fi
   elif [[ "$slot" == "$NO_STACK" ]]; then
-    replace_port_section "$claude_dest"
     replace_port_section "$agents_dest"
     [[ "$check_only" == true ]] || echo "  ✓ ${target##*/} (no stack)"
   else
-    dev_apply_context_ports "$claude_dest" "$slot"
     dev_apply_context_ports "$agents_dest" "$slot"
     [[ "$check_only" == true ]] || echo "  ✓ ${target##*/} (slot $slot)"
   fi

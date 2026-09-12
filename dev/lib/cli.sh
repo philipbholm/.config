@@ -123,7 +123,8 @@ Usage: dev context render [--all-worktrees]
        dev context show [--json]
        dev context check
 
-Render AGENTS.md and CLAUDE.local.md from the Ledidi template with stack ports.
+Render AGENTS.md from the Ledidi template with stack ports, and write
+CLAUDE.local.md as a pointer to it.
 By default, update only the current Ledidi checkout. --all-worktrees updates
 the main checkout and all registered Ledidi worktrees. Starts no services.
 Show reports the command's actual checkout and installed instruction/skill paths.
