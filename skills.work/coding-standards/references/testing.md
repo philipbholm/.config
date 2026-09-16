@@ -38,7 +38,9 @@
 - Require evidence for timeout increases. Wait for observable conditions;
   reject longer delays that merely hide a race.
 - Keep setup close to the assertion and use established application builders.
-  Flag helpers, wrappers, and custom assertions when they hide the test's intent.
+- Keep clicks, queries, waits, and assertions inline in tests and Storybook play
+  functions. Repetition alone does not justify extracting a helper. The
+  three-case abstraction rule does not override this requirement.
 - Before adding an inline MSW GraphQL handler in registries frontend tests,
   inspect `apps/registries-frontend/test-util/registries-mocks.ts` and comparable
   tests. Use existing builders for supported responses. Keep scenario-specific
@@ -46,8 +48,8 @@
   where available. Extend the builder when multiple tests need the same missing
   capability.
 - Select fixtures by domain name or explicit ID, not array position. Keep
-  test-specific dependency behavior local. A helper is justified when it makes
-  complex setup clearer; assertions and the behavior under test stay visible.
+  test-specific dependency behavior local. Fixture helpers may make complex
+  data setup clearer; interactions and assertions stay inline.
 - Inspect builder dependency and reuse semantics before removing an empty
   builder call or changing defaults. Such a call may create the second entity
   the test needs. Add a required relationship to the shared dependency graph

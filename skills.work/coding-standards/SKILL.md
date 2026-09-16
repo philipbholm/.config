@@ -29,7 +29,7 @@ callers and data flow before excluding a topic whose relevance is unclear.
 | UI components, hooks, forms, translations, styles, accessibility, or client state | [Frontend](references/frontend.md) |
 | Authorization, tenant scope, sensitive data, audit, deletion, trust boundaries, configuration, dependencies, or external data sharing | [Security and privacy](references/security-and-privacy.md) |
 | Application behavior, data formats, mutations, failures, concurrency, migrations, compatibility, or shutdown | [Correctness and reliability](references/correctness-and-reliability.md) |
-| Application behavior or test changes, including assessing missing coverage | [Testing](references/testing.md) |
+| Application behavior, tests, or Storybook play functions, including assessing missing coverage | [Testing](references/testing.md) |
 | CI, deployment, infrastructure, scripts, or source-processing services | [Infrastructure](references/infrastructure.md) |
 | Registry analysis definitions, datasets, aggregates, or dashboard result rendering | [Registry analytics](references/registry-analytics.md) |
 | AI prompts, tool schemas, tool execution, or model conversation history | [Agent tools](references/agent-tools.md) |
