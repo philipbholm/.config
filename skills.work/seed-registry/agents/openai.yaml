@@ -2,3 +2,4 @@
 interface:
   display_name: "Seed Registry"
   short_description: "Seed a Ledidi demo registry with clinical data"
+  default_prompt: "Use $seed-registry to seed the named demo registry in the current development stack."

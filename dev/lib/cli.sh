@@ -89,8 +89,9 @@ Usage: dev stack <action> [arguments]
 
   up [--slot N] [--include-patient] [--build] [services...]
       Create or update services and wait for readiness. Registries also gets
-      codelist seeding and its test environment file. No services means the
-      default registries stack. --slot selects worktree slot 1-9.
+      codelist seeding, the Analysis test registry when missing, and its test
+      environment file. No services means the default registries stack.
+      --slot selects worktree slot 1-9.
       --include-patient opts into patient services (shared host port 4010).
       Rebuild stale or unverified local images before startup, including
       dependencies. --no-build refuses stale images; --no-deps limits the check.

@@ -110,6 +110,7 @@ wait_for_migrations() {
 }
 
 run_seed() {
+    local slot=$1
     wait_for_migrations registries
 
     # Note: prisma generate is NOT run here — the container's own CMD (npm run dev)
@@ -122,9 +123,25 @@ run_seed() {
     echo "Seeding ATC codes..."
     dc exec -T registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-atc'
 
+    ensure_analysis_registry "$slot"
+
     echo
     echo "Data seeded successfully."
     echo
+}
+
+ensure_analysis_registry() {
+    local slot=$1
+    local scripts_dir="${HOME}/work/scripts"
+    if [ ! -f "$scripts_dir/create-registry.ts" ]; then
+        echo "Warning: $scripts_dir/create-registry.ts not found; skipping Analysis test registry."
+        return 0
+    fi
+    echo "Ensuring Analysis test registry..."
+    (
+        cd "$scripts_dir"
+        npx tsx create-registry.ts analysis --slot "$slot" --if-missing
+    )
 }
 
 worktree_has_patient_bff() {
@@ -978,7 +995,7 @@ case "$subcommand" in
         sync_context_files "$resolved_slot"
 
         if service_list_contains "registries" "${requested_services[@]}"; then
-            run_seed
+            run_seed "$resolved_slot"
             write_env_files "$resolved_slot"
         fi
 
