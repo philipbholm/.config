@@ -100,7 +100,7 @@ to the user; there are no threads to publish to.
 ## Report
 
 Report every finding's outcome, fix commits, verification and push results,
-and any replies posted or threads resolved. Link the human-response draft
+and any replies posted. Link the human-response draft
 file when one was needed. Include unresolved checks, blocked work, uncommitted
 changes, and the specific action needed from the user. Keep the chat summary
 short; the outcome record holds the detail.
