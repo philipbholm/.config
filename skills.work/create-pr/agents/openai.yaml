@@ -1,5 +1,5 @@
 # Codex UI metadata. Claude Code and Cursor use SKILL.md.
 interface:
   display_name: "Create PR"
-  short_description: "Implement and open a Ledidi pull request"
-  default_prompt: "Use $create-pr to implement this change, verify it locally, and open a draft PR without waiting for CI."
+  short_description: "Open a verified Registries draft PR with risk assessment"
+  default_prompt: "Use $create-pr to implement or publish this Registries change as a draft PR with verification and an SDLC risk assessment, without waiting for CI."

@@ -2,3 +2,4 @@
 interface:
   display_name: "Write PR"
   short_description: "Plan PR scope and write titles and descriptions"
+  default_prompt: "Use $write-pr to scope this pull request and draft its title and description using the applicable repository rules."

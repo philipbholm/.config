@@ -83,7 +83,7 @@ Load the matching shared skill before acting:
 | Prepare dependencies; operate the stack; run Playwright or verify in a browser, including after a rebase | `dev-stack` |
 | Seed a demo registry | `seed-registry` |
 
-For PR titles, bodies, and risk labels, follow
+For Registries PR titles, bodies, risk labels, and commit format, follow
 [Work pull requests](/Users/philip/.config/skills/write-pr/references/work.md).
 
 ### Commands
