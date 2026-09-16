@@ -1,0 +1,5 @@
+# Codex UI metadata. Claude Code and Cursor use SKILL.md.
+interface:
+  display_name: "Write Commit"
+  short_description: "Write and review commit messages"
+  default_prompt: "Use $write-commit to write a commit message following the applicable repository format."

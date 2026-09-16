@@ -8,8 +8,10 @@ Implement the work described by the user in the spec or tickets.
 
 Use /tdd where possible, at pre-agreed seams.
 
-Run typechecking regularly, single test files regularly, and the full test suite once at the end.
-
-Once done, use /code-review to review the work.
+In Ledidi, load `verify-change` to select and reuse checks and `coding-standards`
+to select self-review or independent review. Elsewhere, follow the repository's
+verification and review requirements. Run focused checks while editing and
+cover the final diff before committing; repeat passing checks only when their
+inputs change.
 
 Commit your work to the current branch.

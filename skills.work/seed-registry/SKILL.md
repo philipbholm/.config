@@ -16,9 +16,10 @@ npx tsx create-registry.ts <registry> --slot <n>
 ```
 
 Use 20 patients unless the user names another count. Twenty is the script
-default, so add `--patients <count>` only for another count. Add `--language`
-only when the user names a language; otherwise each registry uses its own
-default language: English for `nrras`, `mrgfus`, and `njr`, and Norwegian
+default, so add `--patients <count>` only for another count. Omit `--patients`
+for `analysis`; that registry has a fixed roster. Add `--language` only when
+the user names a language; otherwise each registry uses its own default
+language: English for `nrras`, `mrgfus`, `njr`, and `analysis`, and Norwegian
 Bokmål for the rest.
 
 Compute the required slot from the registries GraphQL port rendered in the
@@ -35,6 +36,7 @@ checkout instructions: `(port - 4006) / 100`. The main checkout is slot 0.
 | robotic-assisted surgery, NRRAS | `nrras` |
 | MRgFUS, focused ultrasound | `mrgfus` |
 | joint replacement, NJR | `njr` |
+| analysis test, Kaplan-Meier, numeric summary, frequency | `analysis` |
 
 Ask which registry the user means when the phrase matches none of the rows.
 `npx tsx create-registry.ts <registry> --help` lists optional flags such as
@@ -44,6 +46,9 @@ The seeder deletes and rebuilds an existing registry with the same name. Run it
 only against the local development stack, never a test or production endpoint.
 Inspect an existing registry without reseeding it unless rebuilding its data is
 part of the request.
+
+`dev stack up` seeds `analysis` when registries starts and the named registry
+is missing. Rebuild it with `create-registry.ts analysis --slot <n>`.
 
 After seeding, confirm the registry is visible to the browser's current user in
 the active workspace and return its URL. When verifying a feature, follow

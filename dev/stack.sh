@@ -110,6 +110,7 @@ wait_for_migrations() {
 }
 
 run_seed() {
+    local slot=$1
     wait_for_migrations registries
 
     # Note: prisma generate is NOT run here — the container's own CMD (npm run dev)
@@ -122,9 +123,25 @@ run_seed() {
     echo "Seeding ATC codes..."
     dc exec -T registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-atc'
 
+    ensure_analysis_registry "$slot"
+
     echo
     echo "Data seeded successfully."
     echo
+}
+
+ensure_analysis_registry() {
+    local slot=$1
+    local scripts_dir="${HOME}/work/scripts"
+    if [ ! -f "$scripts_dir/create-registry.ts" ]; then
+        echo "Warning: $scripts_dir/create-registry.ts not found; skipping Analysis test registry."
+        return 0
+    fi
+    echo "Ensuring Analysis test registry..."
+    (
+        cd "$scripts_dir"
+        npx tsx create-registry.ts analysis --slot "$slot" --if-missing
+    )
 }
 
 worktree_has_patient_bff() {
@@ -526,7 +543,7 @@ services:
       - default
       - admin-bridge
     environment:
-      - ALLOWED_ORIGINS=http://localhost:$(( DEV_FRONTEND_BASE_PORT + offset )),http://localhost:3010
+      - ALLOWED_ORIGINS=http://localhost:$(( DEV_FRONTEND_BASE_PORT + offset )),http://localhost:$(( DEV_FRONTEND_BASE_PORT + 1 + offset )),http://localhost:$(( 3010 + offset )),http://localhost:3010
       # Raise PROM endpoint rate limit (default 100/min) to the schema cap so
       # local seeders aren't throttled. See services/registries/src/env.ts.
       - PROM_RATE_LIMIT_MAX=10000
@@ -720,25 +737,28 @@ dc() {
 sync_context_files() {
     local s=$1
     local context_template="$SCRIPT_DIR/context/ledidi-monorepo/AGENTS.md"
+    local claude_pointer="$SCRIPT_DIR/context/ledidi-monorepo/CLAUDE.local.md"
     local claude_local_md="$repo_root/CLAUDE.local.md"
     local agents_md="$repo_root/AGENTS.md"
 
     if [ ! -f "$context_template" ]; then
         echo "Warning: context template not found at $context_template" >&2
+    elif [ ! -f "$claude_pointer" ]; then
+        echo "Warning: Claude pointer not found at $claude_pointer" >&2
     elif [ "$(head -n 1 "$context_template")" != '# AGENTS.md' ]; then
         echo "Warning: context template must start with '# AGENTS.md': $context_template" >&2
     else
         cp "$context_template" "$agents_md"
-        sed '1s/^# AGENTS\.md$/# CLAUDE.local.md/' "$context_template" > "$claude_local_md"
+        cp "$claude_pointer" "$claude_local_md"
         dev_apply_context_ports "$agents_md" "$s"
-        dev_apply_context_ports "$claude_local_md" "$s"
     fi
 }
 
-# Teardown restores the context corpus instead of deleting it: CLAUDE.local.md
-# and AGENTS.md carry every project rule, not just the port table, and nothing
-# else puts them back. context-render.sh re-renders them from the templates and
-# swaps the port section for a start-the-stack note when there is no stack.
+# Teardown restores the context corpus instead of deleting it: AGENTS.md
+# carries every project rule, not just the port table, and CLAUDE.local.md
+# points at it. Nothing else puts them back. context-render.sh re-renders them
+# from the templates and swaps the port section for a start-the-stack note
+# when there is no stack.
 restore_context_files() {
     if [ ! -x "$SYNC_CONTEXT" ]; then
         echo "Warning: $SYNC_CONTEXT is not executable; leaving context files as they are." >&2
@@ -923,6 +943,7 @@ case "$subcommand" in
         done < <(collect_compose_services "$@")
         if [ "${#requested_services[@]}" -eq 0 ]; then
             requested_services=(${default_services[@]+"${default_services[@]}"})
+            set -- "$@" ${requested_services[@]+"${requested_services[@]}"}
         fi
         require_services
 
@@ -947,6 +968,18 @@ case "$subcommand" in
 
         generate_override "$resolved_slot"
 
+        image_options=()
+        for argument in "$@"; do
+            case "$argument" in
+                --no-build|--no-deps) image_options+=("$argument") ;;
+            esac
+        done
+        COMPOSE_PROJECT_NAME="$project_name" python3 "$SCRIPT_DIR/lib/stack-images.py" \
+            --state "$tmp_dir/image-inputs.json" \
+            --file "$repo_root/docker-compose.yml" \
+            --file "$tmp_dir/docker-compose.stack.yml" \
+            ${image_options[@]+"${image_options[@]}"} -- "${requested_services[@]}"
+
         # Materialize the containers — and with them the dev-slot label another
         # run reads to see this slot as taken — before releasing the slot lock.
         # `create` takes services only; the up-only flags in "$@" are not valid
@@ -956,17 +989,13 @@ case "$subcommand" in
             release_slot_lock
         fi
 
-        if [ "$#" -gt 0 ]; then
-            dc up "$@" -d --wait
-        else
-            dc up -d --wait "${requested_services[@]}"
-        fi
+        dc up -d --wait "$@"
 
         # Always sync context files so Claude has correct ports
         sync_context_files "$resolved_slot"
 
         if service_list_contains "registries" "${requested_services[@]}"; then
-            run_seed
+            run_seed "$resolved_slot"
             write_env_files "$resolved_slot"
         fi
 

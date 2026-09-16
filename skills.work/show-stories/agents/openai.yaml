@@ -1,0 +1,4 @@
+interface:
+  display_name: "Show stories"
+  short_description: "Preview added and changed Storybook stories locally"
+  default_prompt: "Use $show-stories to open the added and changed stories for this PR or branch and return a linked change table."

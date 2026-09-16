@@ -20,7 +20,7 @@ base and head SHAs. Confirm both SHAs resolve locally, fetching the PR ref if
 needed. Capture one three-dot comparison and its commit list using those SHAs.
 
 Stop if the PR cannot be resolved; report no changes when the diff is empty.
-Read the repository's `AGENTS.md` or `CLAUDE.local.md`, when present, and load
+Read the repository's `AGENTS.md`, when present, and load
 `coding-standards`. Do not load
 `/Users/philip/.config/dev/feedback/SYNTHESIZED_LEARNINGS.md`.
 

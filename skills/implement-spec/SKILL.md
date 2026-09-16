@@ -12,7 +12,10 @@ The tickets are not a list of steps. They are a **task graph** with blocking rel
 
 Communication to and from subagents should be sparse. Communicate primarily through **context pointers**: to the spec, tickets, research notes, and previous commits. Don't duplicate information already available via pointers.
 
-**Implementer subagents** should be run in the background where possible for **maximum concurrency**.
+Run independent implementer work in parallel when it shortens the task.
+Keep one writer per branch and limit competing heavy builds and tests under
+the repository's setup rules. In Ledidi, use `worktree` for ownership and
+`dev-stack` for test concurrency.
 
 ## Steps
 
@@ -26,11 +29,17 @@ Communication to and from subagents should be sparse. Communicate primarily thro
 
 5. Once an **implementer subagent** completes, merge its work to the PR branch with a **merger subagent**.
 
-6. If this changes the **frontier** of available tickets, kick off more **implementer subagents** to work on the new tickets. This allows for maximum concurrency.
+6. When dependencies become satisfied, start the next independent tickets within
+   the available worktree and test capacity.
 
-7. Once all tickets are complete, run /code-review on the PR branch. Fix all issues raised by the code review in a single **implementer subagent**.
+7. Verify the combined final diff and review it under the repository's rules.
+   In Ledidi, use `verify-change` to reuse valid checks and `coding-standards`
+   to select self-review or independent review. Fix relevant findings with one
+   writer on the PR branch and rerun affected checks.
 
-8. Report that the PR is ready for review. Leave the PR in draft until the user
-   explicitly asks to mark it ready.
+8. Report implementation, local verification, review, and available CI results.
+   In Ledidi, invoke `finish-pr` only when CI monitoring was requested; otherwise
+   report pending checks. Leave the PR in draft until the user explicitly asks
+   to mark it ready.
 
 9. Clean up all **implementer subagent** worktrees.

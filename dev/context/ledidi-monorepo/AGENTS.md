@@ -80,8 +80,11 @@ Load the matching shared skill before acting:
 | Run checks, investigate check or hook failures, commit, or push | `verify-change` |
 | Change or review code | `coding-standards` |
 | Create, enter, or remove a worktree | `worktree` |
-| Prepare workspace dependencies; start, operate, or diagnose the development stack; verify in a browser | `dev-stack` |
+| Prepare dependencies; operate the stack; run Playwright or verify in a browser, including after a rebase | `dev-stack` |
 | Seed a demo registry | `seed-registry` |
+
+For Registries PR titles, bodies, risk labels, and commit format, follow
+[Work pull requests](/Users/philip/.config/skills/write-pr/references/work.md).
 
 ### Commands
 
@@ -97,7 +100,14 @@ exists for an operation, follow the owning workflow's command.
 |----------------|---------------|
 | "save to vault" | Write a markdown file to `/Users/philip/vaults/work/dev` |
 
-Committing and pushing don't need approval.
+### Verification and delivery
+
+`verify-change` distinguishes follow-up edits from branch verification and owns
+reuse of check results and push-hook exceptions. `coding-standards` selects
+self-review or independent review by the affected behavior. `worktree` owns
+coordination with other sessions writing the branch; `dev-stack` owns test
+concurrency. Creating, pushing, or restacking a draft returns with the available
+CI state unless I request monitoring through `finish-pr`.
 
 ### Service setup
 

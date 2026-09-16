@@ -27,7 +27,7 @@ esac
 subject=$1
 shift
 case "$subject" in
-    worktree|workspace|stack|context|session|agent-config|browser) ;;
+    worktree|workspace|stack|context|session|agent-config|browser|test) ;;
     *) dev_cli_error "unknown command group: $subject" ;;
 esac
 if [[ $# -eq 0 || "$1" == --help || "$1" == -h || "$1" == help ]]; then
@@ -40,6 +40,7 @@ case "$subject $action" in
     'worktree create') script=worktree-create ;;
     'worktree destroy') script=worktree-destroy ;;
     'workspace prepare') script=workspace-prepare ;;
+    'test e2e') script=test-e2e ;;
     'stack expose') script=stack-expose ;;
     'stack '*) exec bash "$SCRIPT_DIR/stack.sh" "$action" "$@" ;;
     'context render') script=context-render ;;

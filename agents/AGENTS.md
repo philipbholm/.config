@@ -66,8 +66,6 @@ alternative would have done, not why your change is correct.
 
 Do not write "deliberately", "intentionally", "Note that", or capitalised NOT.
 
-Only touch comments in code you are already changing.
-
 ### Example
 
 **Weak:**
@@ -92,12 +90,35 @@ authorizes implementation. Agreement on a design question settles that question;
 it does not by itself authorize building the feature. Continue already-authorized
 work without asking for permission again.
 
+For a factual code question, inspect the named code and relevant callers. Load
+review workflows when assessing correctness, design, or coverage; explaining a
+line does not itself require a review or test run. Execute a check only when it
+resolves a specific uncertainty.
+
+Reuse applicable instructions already read in this session. Read them again
+when their files change, the scope changes, or their contents are no longer
+available in context.
+
 ## Commits and pull requests
 
 Before creating or amending a commit, drafting a commit message, or reviewing
 commit-message style, load `write-commit`.
 Before planning PR scope or writing or reviewing a PR title or description,
 load `write-pr`.
+
+Commit completed changes as part of finishing an implementation task, after
+the relevant checks pass. Make focused commits at coherent stopping points
+without waiting for me to request a commit. Include only changes belonging
+to the task.
+
+Follow the repository's branch rules.
+
+Push when I request it, when an authorized workflow requires it, or when
+repository instructions require automatic pushing. An existing pull request
+alone is not a reason to push.
+
+Explicit requests to leave changes uncommitted or unpushed override these
+defaults.
 
 Keep every pull request in draft until I explicitly ask you to mark that pull
 request ready for review. A finished implementation, resolved review findings,

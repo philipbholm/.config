@@ -55,8 +55,8 @@ blocker. Several findings from one review body receive one combined response.
 
 Read the thread before posting to avoid duplicate replies. Post file-backed
 bodies with `-F`, not `-f body=@…`, and read back the result to confirm that the
-text, rather than a file path, was posted. Resolve answered automated threads
-unless repository instructions say otherwise.
+text, rather than a file path, was posted. Resolve a thread only when the
+user says so.
 
 Never post a response aimed at a human or resolve a human-started thread.
 Write human-response drafts to a local Markdown file containing each thread

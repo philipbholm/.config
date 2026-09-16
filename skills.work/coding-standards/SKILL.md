@@ -29,13 +29,23 @@ callers and data flow before excluding a topic whose relevance is unclear.
 | UI components, hooks, forms, translations, styles, accessibility, or client state | [Frontend](references/frontend.md) |
 | Authorization, tenant scope, sensitive data, audit, deletion, trust boundaries, configuration, dependencies, or external data sharing | [Security and privacy](references/security-and-privacy.md) |
 | Application behavior, data formats, mutations, failures, concurrency, migrations, compatibility, or shutdown | [Correctness and reliability](references/correctness-and-reliability.md) |
-| Application behavior or test changes, including assessing missing coverage | [Testing](references/testing.md) |
+| Application behavior, tests, or Storybook play functions, including assessing missing coverage | [Testing](references/testing.md) |
 | CI, deployment, infrastructure, scripts, or source-processing services | [Infrastructure](references/infrastructure.md) |
 | Registry analysis definitions, datasets, aggregates, or dashboard result rendering | [Registry analytics](references/registry-analytics.md) |
 | AI prompts, tool schemas, tool execution, or model conversation history | [Agent tools](references/agent-tools.md) |
 
 Before planning PR scope or reviewing PR titles and descriptions, load
 `write-pr`. Before reviewing commit-message style, load `write-commit`.
+
+## Review scope
+
+Self-review the final diff for every implementation. That is sufficient for
+mechanical renames, test readability, and small presentation changes with no
+changed security or data contract. Use `code-review` for substantial behavior
+changes, authorization, tenant isolation, sensitive data handling, migrations,
+or when the user requests an independent review. An explicit review request
+still follows its requested review workflow. Apply this rule to PR creation and
+spec implementation as well as ordinary edits.
 
 ## Engineering baseline
 
@@ -64,7 +74,9 @@ when available. Show the closest example and explain any proposed departure.
 If no comparable example exists, say so. Compare with another service, such as
 studies, when the task calls for that comparison.
 
-- Prefer concrete code until at least two real cases establish a shared shape.
+- Prefer concrete code. Introduce a shared helper or abstraction only when at
+  least three real cases establish a shared shape and sharing it makes the code
+  easier to maintain. Three cases permit abstraction; they do not require it.
   Remove middle layers that only rename or delegate a call.
 - Place behavior and data with the domain concept that owns them. Keep display
   formatting and presentation sorting in the frontend.

@@ -2,6 +2,10 @@
 # runtime choice into the live ~/.codex/config.toml, which is machine-local.
 personality = "pragmatic"
 notify = ["/Users/philip/.config/dev/codex-notify.sh"]
+commit_attribution = "Codex <noreply@openai.com>"
+
+[features]
+codex_git_commit = true
 
 [projects."/Users/philip/.config"]
 trust_level = "trusted"

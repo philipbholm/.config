@@ -1,0 +1,4 @@
+# Codex UI metadata. Claude Code and Cursor use SKILL.md.
+interface:
+  display_name: "Review PR"
+  short_description: "Review a GitHub PR and produce an HTML report"

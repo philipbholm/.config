@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const source = fileURLToPath(new URL("..", import.meta.url));
 const scripts = ["dev", "stack", "worktree-create", "worktree-destroy", "workspace-prepare",
-  "stack-expose", "context-render", "context-inspect", "session-search", "agent-config-apply", "browser-launch-debug"];
+  "stack-expose", "context-render", "context-inspect", "session-search", "agent-config-apply", "browser-launch-debug", "test-e2e"];
 
 function fixture(t) {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "dev-cli-test-")));
@@ -30,7 +30,9 @@ const fs = require("node:fs");
 const args = process.argv.slice(2);
 fs.appendFileSync(process.env.DEV_TEST_LOG, JSON.stringify({ command: ${JSON.stringify(command)}, args }) + "\\n");
 if (${JSON.stringify(command)} !== "docker" || process.env.DEV_TEST_DOCKER !== "allow") process.exit(99);
-if (args.includes("--services")) process.stdout.write("postgres\\nregistries\\n");
+if (args.includes("--services")) process.stdout.write(process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n");
+if (args.includes("--format") && args.includes("json")) process.stdout.write(process.env.DEV_TEST_CONFIG_JSON ?? JSON.stringify({name: "fixture", services: Object.fromEntries((process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n").trim().split("\\n").map(name => [name, {}]))}));
+if (args.includes("build") && process.env.DEV_TEST_BUILD_FAIL) process.exit(12);
 `, { mode: 0o755 });
   }
   const env = {
@@ -61,7 +63,7 @@ if (args.includes("--services")) process.stdout.write("postgres\\nregistries\\n"
   };
 }
 
-const commands = [[], ["worktree"], ["workspace"], ["stack"], ["context"], ["session"], ["agent-config"], ["browser"],
+const commands = [[], ["worktree"], ["workspace"], ["stack"], ["context"], ["session"], ["agent-config"], ["browser"], ["test"], ["test", "e2e"],
   ["worktree", "create"], ["worktree", "destroy"], ["workspace", "prepare"],
   ...["up", "down", "destroy", "list", "expose", "logs", "exec", "ps", "build", "stop", "restart"].map(action => ["stack", action]),
   ["context", "render"], ["context", "show"], ["context", "check"], ["session", "search"],
@@ -123,10 +125,16 @@ test("Render only the current checkout unless all worktrees are requested", (t) 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(readFileSync(join(f.repo, "AGENTS.md"), "utf8"), "Keep main context\n");
   assert.match(readFileSync(join(worktree, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  assert.match(readFileSync(join(worktree, "CLAUDE.local.md"), "utf8"), /^# CLAUDE.local.md/);
+  const worktreeClaude = readFileSync(join(worktree, "CLAUDE.local.md"), "utf8");
+  assert.match(worktreeClaude, /^# CLAUDE.local.md/);
+  assert.match(worktreeClaude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
+  assert.doesNotMatch(worktreeClaude, /## Ports/);
   result = f.run(["context", "render", "--all-worktrees"]);
   assert.equal(result.status, 0, result.stderr);
   assert.match(readFileSync(join(f.repo, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
+  const mainClaude = readFileSync(join(f.repo, "CLAUDE.local.md"), "utf8");
+  assert.match(mainClaude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
+  assert.doesNotMatch(mainClaude, /## Ports/);
   assert.ok(f.calls().every(call => call.command === "docker" && call.args[0] === "ps"));
 });
 
@@ -136,7 +144,10 @@ test("Create a Ledidi worktree with context but without preparing dependencies",
   assert.equal(result.status, 0, result.stderr);
   const worktree = join(f.repo, ".worktrees/docs-only");
   assert.match(readFileSync(join(worktree, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  assert.match(readFileSync(join(worktree, "CLAUDE.local.md"), "utf8"), /^# CLAUDE.local.md/);
+  const claude = readFileSync(join(worktree, "CLAUDE.local.md"), "utf8");
+  assert.match(claude, /^# CLAUDE.local.md/);
+  assert.match(claude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
+  assert.doesNotMatch(claude, /## Ports/);
   assert.deepEqual(f.calls(), []);
 });
 
@@ -243,6 +254,58 @@ test("Use the same startup workflow for stack up and the old start alias", (t) =
   assert.deepEqual(f.calls().slice(first.length), first);
   assert.equal(f.calls().some(call => call.command === "npm"), false);
 });
+
+test("Stop stack startup before creating containers when an image rebuild fails", (t) => {
+  const f = fixture(t);
+  f.env.DEV_TEST_DOCKER = "allow";
+  f.env.DEV_TEST_BUILD_FAIL = "1";
+  writeFileSync(join(f.repo, "docker-compose.yml"), "services:\n  registries: {}\n");
+  writeFileSync(join(f.repo, "Dockerfile"), "FROM scratch\n");
+  f.env.DEV_TEST_CONFIG_JSON = JSON.stringify({ name: "fixture", services: {
+    registries: { build: { context: f.repo, dockerfile: "Dockerfile" } },
+  } });
+  const result = f.run(["stack", "up", "registries"], f.repo);
+  assert.notEqual(result.status, 0);
+  assert.ok(f.calls().some(call => call.args.includes("build")));
+  assert.equal(f.calls().some(call => call.args[0] === "compose" &&
+    (call.args.includes("create") || call.args.includes("up"))), false);
+  assert.equal(existsSync(join(f.env.DEV_STACKS_DIR, "repo/image-inputs.json")), false);
+});
+
+for (const checkout of ["main", "worktree"]) {
+  for (const scenario of [
+    { name: "bare startup", args: [], options: [] },
+    { name: "detached startup", args: ["-d"], options: ["-d"] },
+    { name: "build with a wait timeout", args: ["--build", "--wait-timeout", "60"], options: ["--build", "--wait-timeout", "60"] },
+    { name: "PostgreSQL only", args: ["postgres", "-d"], options: ["postgres", "-d"], services: ["postgres"] },
+    { name: "patient opt-in", args: ["--include-patient", "-d"], options: ["-d"], patient: true },
+  ]) {
+    test(`Keep service selection for ${scenario.name} in the ${checkout} checkout`, (t) => {
+      const f = fixture(t);
+      f.env.DEV_TEST_DOCKER = "allow";
+      f.env.DEV_TEST_SERVICES = "registries-frontend\npostgres\ncodelist\nregistries\npatient-bff\npatient-frontend\nshell\nstudies\n";
+      const repo = checkout === "main" ? f.repo : join(f.directory, "startup-worktree");
+      if (checkout === "worktree") f.git("worktree", "add", "-b", "startup", repo);
+      writeFileSync(join(repo, "docker-compose.yml"), "services:\n" +
+        f.env.DEV_TEST_SERVICES.trim().split("\n").map(service => `  ${service}: {}\n`).join(""));
+      for (const workspace of ["services/registries", "services/patient-bff", "apps/patient-frontend"]) {
+        mkdirSync(join(repo, workspace), { recursive: true });
+        writeFileSync(join(repo, workspace, "Dockerfile.dev"), "FROM scratch\n");
+      }
+
+      const result = f.run(["stack", "up", ...scenario.args], repo);
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      const services = scenario.services ?? ["registries-frontend", "postgres", "codelist", "registries",
+        ...(scenario.patient ? ["patient-bff", "patient-frontend"] : [])];
+      const startupCalls = f.calls().filter(call => call.command === "docker" &&
+        call.args[0] === "compose" && ["create", "up"].includes(call.args[5]));
+      assert.deepEqual(startupCalls.map(call => call.args.slice(5)), [
+        ...(checkout === "worktree" ? [["create", ...services]] : []),
+        ["up", "-d", "--wait", ...scenario.options, ...(scenario.services ? [] : services)],
+      ]);
+    });
+  }
+}
 
 test("Keep database volumes on down and remove them only on destroy", (t) => {
   const f = fixture(t);

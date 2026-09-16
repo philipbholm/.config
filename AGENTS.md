@@ -47,8 +47,20 @@ leaving the gap for the next reader to find.
   Cursor Agent, which has no file of its own under `~/.cursor` and instead walks
   the workspace's parent directories looking for `AGENTS.md`.
 - `skills/` contains shared skills. `skills.work/` contains work-only skills.
+- When creating or updating a skill, include `agents/openai.yaml` with
+  `interface.display_name`, `interface.short_description`, and
+  `interface.default_prompt`. Keep the metadata consistent with `SKILL.md`.
+  The default prompt must name the skill as `$skill-name`. Follow the
+  `skill-creator` metadata reference for field constraints, and preserve any
+  existing invocation policy and tool dependencies when updating the file.
 - `dev/context/ledidi-monorepo/AGENTS.md` is the single source for Ledidi
-  repository context. `dev context render --all-worktrees` renders both `AGENTS.md` and
-  `CLAUDE.local.md` into every Ledidi checkout.
+  repository context. `dev context render --all-worktrees` renders `AGENTS.md`
+  into every Ledidi checkout, and writes `CLAUDE.local.md` as a pointer to it.
 - "Update the context" means updating the Ledidi source template and any file
   that the template references.
+- After changing the Ledidi context template, its referenced context files, or
+  shared skills it names, run `dev context render --all-worktrees` once after
+  the final edit. Then run `dev context render --all-worktrees --check` to
+  confirm the main checkout and every registered worktree are current. Syncing
+  is part of completing the change and needs no separate request. Report any
+  checkout that could not be updated or verified.

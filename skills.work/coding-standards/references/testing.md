@@ -38,10 +38,18 @@
 - Require evidence for timeout increases. Wait for observable conditions;
   reject longer delays that merely hide a race.
 - Keep setup close to the assertion and use established application builders.
-  Flag helpers, wrappers, and custom assertions when they hide the test's intent.
+- Keep clicks, queries, waits, and assertions inline in tests and Storybook play
+  functions. Repetition alone does not justify extracting a helper. The
+  three-case abstraction rule does not override this requirement.
+- Before adding an inline MSW GraphQL handler in registries frontend tests,
+  inspect `apps/registries-frontend/test-util/registries-mocks.ts` and comparable
+  tests. Use existing builders for supported responses. Keep scenario-specific
+  timing, request capture, and failures local; reuse shared response factories
+  where available. Extend the builder when multiple tests need the same missing
+  capability.
 - Select fixtures by domain name or explicit ID, not array position. Keep
-  test-specific dependency behavior local. A helper is justified when it makes
-  complex setup clearer; assertions and the behavior under test stay visible.
+  test-specific dependency behavior local. Fixture helpers may make complex
+  data setup clearer; interactions and assertions stay inline.
 - Inspect builder dependency and reuse semantics before removing an empty
   builder call or changing defaults. Such a call may create the second entity
   the test needs. Add a required relationship to the shared dependency graph
@@ -50,8 +58,19 @@
   permissions the actor needs. In registries, inspect the projection through
   the test ports when a readback use case would require an unrelated permission;
   an existing persisted readback is not inherently insufficient.
-- A test states one unique intent in imperative plain English. Delete a test
-  that adds no distinct behavioral coverage.
+- Write application, transport, and UI scenarios as separate named `it` tests,
+  with concrete inputs and expected results visible together. Reserve `it.each`
+  for compact input/output tables in calculation or validation tests.
+- A test proves one behavior and names it in imperative plain English. Split a
+  test when its name needs "and" to list what it checks, or when a later
+  assertion would still be worth running after an earlier one failed; repeated
+  setup is the accepted price. Default-state checks, such as a table or legend
+  being absent, get their own test instead of trailing a behavior test. Add a
+  case when it proves a distinct contract or failure mode; delete cases that
+  add no distinct behavioral coverage. Cover domain behavior at the application
+  boundary and transport mapping at the GraphQL boundary without repeating
+  the full scenario matrix at both layers. Preserve explicit authorization and
+  data-isolation coverage.
 - Assert meaningful results and persisted state. Require exact assertions when
   unexpected extra results would be a defect; subset matchers are appropriate
   when omitted fields are irrelevant to the behavior under test.

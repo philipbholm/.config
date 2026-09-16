@@ -9,7 +9,11 @@ For example, authorization is required across services, but registries'
 ## Local development and verification
 
 `worktree`, `dev-stack`, and the rendered root port table own local checkout,
-dependency, service, and database setup. `verify-change` owns check scope.
+dependency, service, and database setup. `verify-change` owns check scope,
+result reuse, and hook exceptions. Its distinction between follow-up edits and
+branch verification replaces blanket full-suite instructions in older context.
+`coding-standards` owns when implementation needs independent review. CI
+monitoring follows `finish-pr` only when requested.
 
 The **Worktree development** section in `services/registries/CLAUDE.md` and the
 setup examples in `.claude/skills/frontend-qa/SKILL.md` use an older stack.
