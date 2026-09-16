@@ -51,9 +51,13 @@ conditional references. These filenames carry shared project guidance for
 Claude Code, Codex, and Cursor; read a referenced local skill by file path when
 the harness does not discover it automatically.
 
-Load `coding-standards` before implementation or review, select its references
-by behavior and affected consumers, and revisit them when scope changes. Before
-handing off, check the final diff against those rules and the selected checks.
+Before editing an existing checkout, load `worktree` and follow its branch
+ownership check. This applies even when no worktree needs creating or entering.
+
+Load `coding-standards` before design recommendations, implementation, or review.
+Select its references by behavior and affected consumers, and revisit them when
+scope changes. Before handing off, check the final diff against those rules and
+the selected checks.
 
 For setup commands or workflow instructions in nested context, read
 [Context precedence](/Users/philip/.config/dev/context/ledidi-monorepo/context-precedence.md).
@@ -73,13 +77,13 @@ Load the matching shared skill before acting:
 |---------|-------|
 | Create or open a pull request | `create-pr` |
 | Make a PR green; keep fixing and monitoring PR checks | `finish-pr` |
-| Restack dependent PRs or change a PR's base branch | `restack-pr` |
+| Split a PR, restack dependent PRs, or change a PR's base branch | `restack-pr` |
 | Assess review feedback or implement its fixes | `address-feedback` |
 | Preview or deploy a registries production release | `registry-release` |
 | Clean up stale worktrees, dev stacks, or leftover Docker resources | `cleanup-dev` |
 | Run checks, investigate check or hook failures, commit, or push | `verify-change` |
-| Change or review code | `coding-standards` |
-| Create, enter, or remove a worktree | `worktree` |
+| Recommend a design, change code, or review code | `coding-standards` |
+| Edit an existing checkout; create, enter, or remove a worktree | `worktree` |
 | Prepare dependencies; operate the stack; run Playwright or verify in a browser, including after a rebase | `dev-stack` |
 | Seed a demo registry | `seed-registry` |
 

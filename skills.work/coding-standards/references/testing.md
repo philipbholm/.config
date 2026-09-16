@@ -3,6 +3,11 @@
 - Most backend behavior is covered through integration tests against the public
   service boundary. Unit tests cover calculation-heavy and combinatorial edge
   cases. E2E tests cover critical user flows.
+- Before adding a case, identify its distinct contract and owner: table
+  mechanics, calculation, application/authorization, transport mapping, UI
+  interaction, or persisted browser journey. Inspect existing shared coverage.
+  Keep representative connections between layers without repeating the full
+  calculation or lifecycle matrix at each layer.
 - Frontend integration tests mock the HTTP boundary with MSW. Code owned by the
   application stays real unless a concrete constraint requires a mock.
 - A new backend operation has a happy-path test and its primary error case.
@@ -24,8 +29,11 @@
   failures and bypass attempts.
 - Audit-log tests assert the complete entry set and its chronological order.
 - Feature-flagged behavior has tests with the flag enabled and disabled.
-- A bug fix starts with a test that reproduces the bug and remains as a
-  regression test.
+- Reproduce a bug before fixing it. Keep a regression test when it proves a
+  distinct behavior. For low-impact visual fixes, use relevant story or browser
+  evidence when a stable automated assertion would not prove the appearance.
+  Stories follow the visual-only rule in [Frontend](frontend.md); behavioral
+  tests belong in test files.
 - External-service failures test rollback, retry, or graceful degradation.
 - Tests are isolated and pass in random order. They do not depend on another
   test's database state, time, random output, or assigned port.
@@ -38,9 +46,10 @@
 - Require evidence for timeout increases. Wait for observable conditions;
   reject longer delays that merely hide a race.
 - Keep setup close to the assertion and use established application builders.
-- Keep clicks, queries, waits, and assertions inline in tests and Storybook play
-  functions. Repetition alone does not justify extracting a helper. The
-  three-case abstraction rule does not override this requirement.
+- Keep clicks, queries, waits, and assertions inline in tests. Keep state-setting
+  interactions inline in Storybook play functions. Repetition alone does not
+  justify extracting a helper. The three-case abstraction rule does not
+  override this requirement.
 - Before adding an inline MSW GraphQL handler in registries frontend tests,
   inspect `apps/registries-frontend/test-util/registries-mocks.ts` and comparable
   tests. Use existing builders for supported responses. Keep scenario-specific
@@ -58,9 +67,17 @@
   permissions the actor needs. In registries, inspect the projection through
   the test ports when a readback use case would require an unrelated permission;
   an existing persisted readback is not inherently insufficient.
+- For transitions, seed the before-state and trigger the actual request or
+  mutation. Clearing an already-null field does not prove clearing; installing
+  an error handler without making its request does not prove failure handling.
+  Establish retirement or deletion in the owning state, not only a fixture ID.
+  Use the production query document when testing query compatibility.
 - Write application, transport, and UI scenarios as separate named `it` tests,
   with concrete inputs and expected results visible together. Reserve `it.each`
   for compact input/output tables in calculation or validation tests.
+- Use hand-checkable numbers and meaningful fixture IDs. Keep input rows and
+  expected results together; retain unsorted inputs where ordering is the
+  behavior under test. Leave a blank line before each `it` declaration.
 - A test proves one behavior and names it in imperative plain English. Split a
   test when its name needs "and" to list what it checks, or when a later
   assertion would still be worth running after an earlier one failed; repeated
@@ -96,3 +113,28 @@
   Avoid an empty `toThrow()` or a second test that checks only the error class
   when the message assertion already proves the case. Test the class separately
   when a distinct public contract depends on that type.
+
+## Readable scenarios
+
+A calculation fixture can make the arithmetic visible without a remote setup
+helper. For example, a grouped-mean case can use this complete input table:
+
+| Group | Measurements | Expected mean |
+|-------|--------------|---------------|
+| A | 2, 4 | 3 |
+| B | 10, 20 | 15 |
+
+For a UI table, locate the named row before asserting its cells. For example,
+after rendering an at-risk table with Group A containing 12 patients at time
+zero and 8 at the next time point:
+
+```typescript
+const groupARow = screen.getByRole("row", { name: "Group A 12 8" });
+
+expect(
+  within(groupARow).getAllByRole("cell").map((cell) => cell.textContent),
+).toEqual(["12", "8"]);
+```
+
+Here Group A is the row header. This assertion keeps the group and its values
+together instead of indexing a flat array of cells from the whole table.

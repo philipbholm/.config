@@ -1,6 +1,6 @@
 ---
 name: worktree
-description: Create, enter, or remove a Ledidi worktree. Use for Ledidi branch setup, worktree setup, or teardown after a pull request merges.
+description: Coordinate branch ownership before editing a Ledidi checkout, and create, enter, or remove Ledidi worktrees.
 ---
 
 # Ledidi worktrees
@@ -25,19 +25,24 @@ Use the harness-neutral scripts. Worktrees live at
    writes the Ledidi agent context. For dependency preparation or service
    startup, load `dev-stack` and follow its setup policy.
 
+Report the worktree name, path, and branch after creation.
+
+## Branch ownership
+
 Before writing in an existing checkout, check available session activity for
 another writer or active tests. Keep one writer per branch. Coordinate through
 the harness's session messaging when available; otherwise ask only when an
 active ownership conflict prevents safe progress. Separate worktrees support
 independent branches, not concurrent rewrites of the same branch. Record the
 chosen branch and checkout in the session handoff. This is coordination guidance,
-not an enforced lock.
+not an enforced lock. Record starting HEAD and existing task-owned changes.
+Before implementing shared behavior, inspect known related branches or PRs
+that touch it and identify which branch owns the change. Before committing,
+recheck HEAD and inspect intervening changes from another session.
 
 Fetch and settle any requested restack before expensive final verification.
 Another session's commit or rebase requires inspecting the intervening changes
 before reusing check results.
-
-Report the worktree name, path, and branch after creation.
 
 ## Teardown
 

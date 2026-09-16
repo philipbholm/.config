@@ -41,7 +41,11 @@ specification or grilling session does not itself authorize implementation.
    actual Registries requirement or work-item references and classify the
    component and change risk under the work reference. Review the final diff
    under `coding-standards`; use `code-review` when its review-scope rule
-   requires it. Fix relevant findings and rerun affected checks.
+   requires it. Supply the actual PR base and task-owned local paths so review
+   includes the implementation before commit. Fix relevant findings and rerun
+   affected checks. Refresh the review snapshot after fixes and confirm the
+   final task content is covered before publishing; an earlier HEAD-only review
+   does not cover uncommitted implementation.
 5. **Commit and push.** Load `write-commit`, using its Registries SDLC message
    convention. Commit only uncommitted task changes; preserve existing commits
    unless rewriting them is requested. Push under `verify-change` after its

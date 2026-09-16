@@ -2,6 +2,10 @@
 
 - Derive types from schemas, generated GraphQL types, Prisma utilities, and
   existing domain types rather than maintaining parallel shapes.
+- For cross-layer renames, identify the owning schema and generated consumers
+  first. Regenerate through the workspace script, then search the affected
+  feature and consumers for old names and accidental doubled names. Inspect
+  the final diff; a helper rename alone does not rename the public contract.
 - Prefer inference, narrowing, discriminated unions, and runtime guards over
   casts. Never use `as any` or `as unknown` to silence a type error.
 - Use string unions or const maps instead of TypeScript enums.

@@ -19,6 +19,11 @@
   changing a controlled or uncontrolled field.
 - Instantiate hooks close to where their result is used. Prefer cohesive
   components over state and callback prop chains.
+- Start readability changes with early returns, explicit branches, and private
+  same-file functions or components. Extract a hook when it owns a coherent
+  lifecycle or rule and reduces what the caller must know. For environment
+  styling, inspect existing ancestor data attributes and CSS variants before
+  passing styling props through several components.
 - Do not destructure query or form objects when the repository convention keeps
   their provenance visible.
 - Disable unavailable actions and explain why. Do not hide permission-dependent
@@ -51,7 +56,11 @@
   feature's empty, populated, pending, error, and open-dialog states where
   relevant; exercise controls when static fixtures cannot show the behavior.
 - Keep Storybook focused on distinct visual states. Play steps can reach those
-  states; behavioral integration assertions need not be copied into each story.
+  states. Stories never contain tests or assertions; put behavioral checks in
+  test files. Use `play` only to reach the state the story displays.
+- When a query, provider, permission gate, or alias changes, check the affected
+  stories in Storybook. Mocks must supply the actor capabilities and responses
+  needed to reach each claimed state; another test runner cannot prove this.
 - Use static Tailwind class names, the shared spacing scale, and `cn`/`clsx` for
   conditional classes. Portals protect popovers, menus, and tooltips inside
   stacking contexts.
@@ -63,9 +72,13 @@
 ## Async state and persistence
 
 - Retained query data belongs to the entity and input that produced it. On an
-  entity switch, show retained data only when its identity matches the request;
-  read loading and errors from the live result. Test a failed switch after a
-  successful load, including a return to a previously visited entity.
+  entity switch within the same tenant and authorization context, an atomic
+  transition may keep the previous title and content together while exposing
+  the requested entity's pending or failed state. Replace the displayed
+  snapshot together. Clear retained content when the security context changes.
+  Disable mutations during the transition unless the UI explicitly identifies
+  their retained target. A failed switch from A to B must never leave an action
+  labelled for B mutating A. Test failure, retry, cancellation, and cached return.
 - Keep loading, absent, failed, redacted, and zero values distinct. Show a
   useful error at the active interaction surface, including an open dialog.
 - Each query contributing to a loading state has an error outcome. Preserve
@@ -85,3 +98,16 @@
   For boolean feature flags, enable behavior only on explicit `true`; loading
   or an absent flag must not mount the feature. Prefer the existing
   `FeatureFlagContainer` in registries and test the guard and the entry point.
+
+## Dashboard transitions
+
+- Treat initial loading, switching dashboards, and switching real/training
+  results as separate transitions. Keep the title, toggle, and Add analysis
+  control stable as data arrives. Loading geometry follows the actual layout;
+  do not invent a fixed number of skeleton cards.
+- When only results change, retain card shells and show pending state in their
+  result areas. Real values must never appear under a training label, or the
+  reverse. Dashboard switching follows the retained-data rule above.
+- For reported flicker, inspect refresh and navigation on the same dashboard,
+  including empty/populated states and delayed titles. Use slowed motion or
+  frame evidence when ordinary browser inspection cannot resolve the change.

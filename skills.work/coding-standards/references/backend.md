@@ -38,6 +38,10 @@
 - Extract request and response mapping into named functions beside the handler.
 - GraphQL schema types align with domain models. Keep one named operation per
   `.graphql` file.
+- Preserve typed public contracts when adding variants. Inspect existing union
+  and `oneOf` patterns and their consumers before choosing a representation.
+  JSON is for unstructured data, not a substitute for modelling known variants.
+  Verify changed input and output mappings through GraphQL.
 - Response mappers return real values for every promised field. Use a distinct
   domain response shape when data differs; placeholder statuses, zero counts,
   and nulls must not pretend an unfinished field is implemented.
