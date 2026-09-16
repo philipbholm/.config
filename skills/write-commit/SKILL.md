@@ -5,13 +5,6 @@ description: Write commit messages when creating or amending commits, drafting a
 
 # Write a commit message
 
-For Registries work in `ledidi-as/ledidi-monorepo`, read
-[Work pull requests](../write-pr/references/work.md) and use its SDLC commit
-format. That format overrides the plain-title rule below. Apply the prose
-rules here to its description and optional body.
-
-Use the plain-title style below in other repositories.
-
 Write the title in imperative mood and sentence case, for example
 `Skip unrelated checks after rebasing`. Start with a concrete verb, capitalise
 the first word, and omit prefixes, scopes, emoji and the trailing period.

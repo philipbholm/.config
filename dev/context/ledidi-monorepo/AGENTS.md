@@ -84,7 +84,7 @@ Load the matching shared skill before acting:
 | Seed a demo registry | `seed-registry` |
 
 For Registries PR titles, bodies, risk labels, and commit format, follow
-[Work pull requests](/Users/philip/.config/skills/write-pr/references/work.md).
+[Work pull requests](/Users/philip/.config/skills.work/write-pr/references/work.md).
 
 ### Commands
 
