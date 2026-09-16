@@ -95,5 +95,9 @@
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": false,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true
+  "voiceEnabled": true,
+  "attribution": {
+    "commit": "Co-authored-by: Claude <noreply@anthropic.com>",
+    "pr": ""
+  }
 }
