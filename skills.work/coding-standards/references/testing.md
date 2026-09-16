@@ -61,9 +61,13 @@
 - Write application, transport, and UI scenarios as separate named `it` tests,
   with concrete inputs and expected results visible together. Reserve `it.each`
   for compact input/output tables in calculation or validation tests.
-- A test states one unique intent in imperative plain English. Add a case when
-  it proves a distinct contract or failure mode; delete cases that add no
-  distinct behavioral coverage. Cover domain behavior at the application
+- A test proves one behavior and names it in imperative plain English. Split a
+  test when its name needs "and" to list what it checks, or when a later
+  assertion would still be worth running after an earlier one failed; repeated
+  setup is the accepted price. Default-state checks, such as a table or legend
+  being absent, get their own test instead of trailing a behavior test. Add a
+  case when it proves a distinct contract or failure mode; delete cases that
+  add no distinct behavioral coverage. Cover domain behavior at the application
   boundary and transport mapping at the GraphQL boundary without repeating
   the full scenario matrix at both layers. Preserve explicit authorization and
   data-isolation coverage.
