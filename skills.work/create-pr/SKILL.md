@@ -35,7 +35,9 @@ specification or grilling session does not itself authorize implementation.
    needed. Satisfy the SDLC quality gates: affected static checks and unit and
    integration tests, plus E2E for changes to the UI or its backend interface.
    Use maintained workspace commands and include affected consumers. Inspect
-   any formatter changes before including them. Report actual results and any
+   any formatter changes before including them. Keep the frames that browser
+   verification puts on screen when the change is visual; the work reference
+   says which of them the body needs. Report actual results and any
    deferred or blocked gates; a draft does not waive verification requirements.
 4. **Assess and review.** Read the changed code and relevant callers. Identify
    actual Registries requirement or work-item references and classify the
@@ -56,7 +58,9 @@ specification or grilling session does not itself authorize implementation.
    file and pass `--body-file`. Apply exactly one assessed label:
    `risk:standard`, `risk:minor`, or `risk:major`. Use the existing PR when one
    already covers the branch. Leave drafts in draft until explicitly asked to
-   mark them ready. Open the PR URL in the browser.
+   mark them ready. Open the PR URL in the browser. When the body calls for
+   screenshots or a recording, upload them there as the work reference
+   describes, and confirm the saved description renders them.
 7. **Report.** Inspect available CI state once. Load `finish-pr` only when
    asked to wait for CI or make checks green. Return the PR URL, risk level,
    verification and review results, pending or failed gates, and worktree and
