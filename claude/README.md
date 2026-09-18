@@ -15,7 +15,8 @@ This directory contains Claude Code configuration files that are version-control
 - `bin/` - Helper executables on PATH (`bb`, `jira`)
 - `settings.json` - Claude Code settings (hooks are declared here; the scripts
   themselves live in `dev/`, e.g. `dev/claude-notify.sh`). `autoCompactWindow`
-  is 272000 so auto-compact fires at the same default Codex uses for GPT-6 Astra.
+  is 350000, so auto-compact fires well below the 1M window the `opus[1m]` model
+  pin makes available.
 - `settings.work.json` - Work-only overlay merged over `settings.json` by
   `dev/agent-config-apply.sh`: the Datadog MCP server and
   `permissions.defaultMode: "bypassPermissions"`, so work machines start without
