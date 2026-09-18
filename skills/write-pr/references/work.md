@@ -58,35 +58,6 @@ Keep the description useful as a release-note sentence. This convention
 applies to new commits; changing a PR description does not authorize rewriting
 existing commits. `write-commit` governs prose and optional message bodies.
 
-### Screenshots and recordings
-
-A change the reviewer can see needs a picture. Include one when the change
-alters rendered UI: layout, copy, icons, colours, a new screen, or an empty or
-error state. Backend-only work, refactors with no rendered difference, tests,
-tooling and dependency bumps carry no image.
-
-Show the state the reviewer would otherwise have to start the stack to see. One
-image per changed state is enough: a before and after pair when the change
-alters a screen that already existed, a single image when the screen is new.
-Crop to the component under review and say in one line what each image shows.
-
-Record an animated GIF instead when the change lives in the sequence rather
-than the final frame: a multi-step flow, a drag, an animation, or a state that
-only appears mid-interaction. Keep it to the few seconds that carry the change.
-
-Reuse what verification already produced. Browser verification under
-`dev-stack` and `show-stories` both put the changed UI on screen; capture
-there. When the change is visual and verification produced no usable frame,
-open the affected screen and capture on purpose.
-
-GitHub serves only images it hosts itself, and `gh` cannot upload one. Create
-the pull request with its body first, then open it with the harness's browser
-automation, edit the description, drop each file into the editor where it
-belongs, and save so GitHub rewrites it into a hosted link. A harness without
-browser automation, such as Codex or Cursor Agent, writes the body with each
-file's local path on the line where the image belongs and reports which file
-goes where, so the user can drag them in.
-
 ### PR body
 
 Use the following structure. Replace placeholders with facts from the final
@@ -106,11 +77,6 @@ compatibility, privacy, and rollout concerns where they affect the assessment.
 | URS | Requirement |
 | --- | --- |
 | <Actual URS ID> | <Requirement description> |
-
-### Visual Changes
-
-<Images or recordings of the changed screens, each with a one-line caption.
-Omit this section when nothing rendered changes.>
 
 ### Reason for Change
 

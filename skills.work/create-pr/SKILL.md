@@ -58,9 +58,7 @@ specification or grilling session does not itself authorize implementation.
    file and pass `--body-file`. Apply exactly one assessed label:
    `risk:standard`, `risk:minor`, or `risk:major`. Use the existing PR when one
    already covers the branch. Leave drafts in draft until explicitly asked to
-   mark them ready. Open the PR URL in the browser. When the body calls for
-   screenshots or a recording, upload them there as the work reference
-   describes, and confirm the saved description renders them.
+   mark them ready. Open the PR URL in the browser.
 7. **Report.** Inspect available CI state once. Load `finish-pr` only when
    asked to wait for CI or make checks green. Return the PR URL, risk level,
    verification and review results, pending or failed gates, and worktree and
