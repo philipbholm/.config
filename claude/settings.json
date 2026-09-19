@@ -93,7 +93,7 @@
     "mode": "hold"
   },
   "autoMemoryEnabled": false,
-  "autoCompactWindow": 272000,
+  "autoCompactWindow": 350000,
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "preferredNotifChannel": "notifications_disabled",

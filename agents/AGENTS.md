@@ -55,32 +55,22 @@ ones.
 
 Reach for a better name before a comment.
 
-Use comments to explain hidden constraints, invariants, or workarounds, not to
-restate code. Do not refer to the current task or a GitHub issue.
+Before adding or rewriting a comment, read the code without it. Identify the
+specific fact the comment adds and the maintenance mistake that fact helps
+prevent. Keep the comment only when the code does not already make that fact
+clear. Useful comments explain hidden constraints, invariants, workarounds,
+or reasons behind choices.
 
-A comment you write says its thing in full. Do not compress it. If it needs to
-be longer to stand on its own, make it longer.
+Apply the same check to existing comments when you change the code they
+describe. Decide whether a stale comment belongs before correcting it.
+Delete comments that fail the check.
+
+A comment that passes the check says its thing in full. Use enough words to
+make it understandable on its own.
 
 Say what is true. Not what a future change would do, not what a rejected
 alternative would have done, not why your change is correct.
-
-Do not write "deliberately", "intentionally", "Note that", or capitalised NOT.
-
-### Example
-
-**Weak:**
-
-```text
-// One repeating on the event alone sits above the other repeating on a form
-// inside it, and broadcasts down, so the two do line up.
-```
-
-**Better:**
-
-```text
-// No formId means repeating on the event alone: its one value per event entry
-// broadcasts down to every form entry inside it.
-```
+Do not refer to the current task or a GitHub issue.
 
 ## Requests
 

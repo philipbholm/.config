@@ -1,3 +1,4 @@
 interface:
   display_name: "Codebase Design"
   short_description: "Vocabulary for deep-module design"
+  default_prompt: "Use $codebase-design to improve this design's interface and testability while keeping the repository's domain vocabulary."

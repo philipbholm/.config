@@ -1,9 +1,9 @@
 ---
 name: restack-pr
-description: Restack Ledidi PRs, verify affected changes, and push updated branches and bases. Wait for CI only when requested.
+description: Split or restack Ledidi PRs, verify affected changes, and push updated branches and bases. Wait for CI only when requested.
 ---
 
-# Restack Ledidi pull requests
+# Split or restack Ledidi pull requests
 
 Load `worktree` to locate the existing checkouts and `verify-change` for checks
 and push rules. Restacking alone needs no dependency setup or service startup.
@@ -19,6 +19,22 @@ scope without rewriting them.
 Show the proposed base changes and worktree paths. Use the named base when the
 user supplied one; otherwise follow the established stack. Ask only when the
 target or conflicting local work remains ambiguous. Preserve unrelated work.
+
+## Split a PR
+
+Before extracting changes, preserve the original head with a backup ref and
+capture task-owned uncommitted work separately if it belongs in the split.
+List the behavior each resulting PR must retain. Assign each hunk to the
+retained feature, a prerequisite, or the extracted change; shared files can
+contain more than one of these.
+
+Reconstruct both branches locally before pushing either. Compare each feature
+diff with that assignment and compare their combined result with the original
+snapshot. Account for every difference, including required UI changes that
+share files with the extracted behavior. Verify the parent independently and
+the child on its new base under `verify-change`. Keep the backup refs until
+both comparisons and the normal verification below pass, then publish parent
+before child. Use `create-pr` if the split needs a new draft PR.
 
 ## Restack from parent to child
 

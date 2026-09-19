@@ -50,3 +50,9 @@ dashboard implementations are not specifications for the current analysis API.
 - Translated errors retain the actual failure reason. A missing statistic,
   incompatible variable, stale placement, and empty result need their own
   accurate handling rather than one misleading fallback message.
+- Trace recoverable failures from save/run validation through result and
+  GraphQL mapping to translated UI copy. Preserve the reason code and input
+  role, such as measurement, grouping, or filter. Test save and run separately
+  when their error contracts differ. Keep internal faults distinct from an
+  ordinary invalid analysis without exposing answer values. One failed card
+  must not prevent independent cards from loading.

@@ -1,3 +1,4 @@
 interface:
   display_name: "Code Review"
-  short_description: "Review a diff on standards and spec"
+  short_description: "Review a fixed snapshot on standards and spec"
+  default_prompt: "Use $code-review to review the final task changes against the known base, including task-owned uncommitted work, and report Standards and Spec findings separately."

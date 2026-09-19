@@ -35,13 +35,19 @@ specification or grilling session does not itself authorize implementation.
    needed. Satisfy the SDLC quality gates: affected static checks and unit and
    integration tests, plus E2E for changes to the UI or its backend interface.
    Use maintained workspace commands and include affected consumers. Inspect
-   any formatter changes before including them. Report actual results and any
+   any formatter changes before including them. Keep the frames that browser
+   verification puts on screen when the change is visual; the work reference
+   says which of them the body needs. Report actual results and any
    deferred or blocked gates; a draft does not waive verification requirements.
 4. **Assess and review.** Read the changed code and relevant callers. Identify
    actual Registries requirement or work-item references and classify the
    component and change risk under the work reference. Review the final diff
    under `coding-standards`; use `code-review` when its review-scope rule
-   requires it. Fix relevant findings and rerun affected checks.
+   requires it. Supply the actual PR base and task-owned local paths so review
+   includes the implementation before commit. Fix relevant findings and rerun
+   affected checks. Refresh the review snapshot after fixes and confirm the
+   final task content is covered before publishing; an earlier HEAD-only review
+   does not cover uncommitted implementation.
 5. **Commit and push.** Load `write-commit`, using its Registries SDLC message
    convention. Commit only uncommitted task changes; preserve existing commits
    unless rewriting them is requested. Push under `verify-change` after its

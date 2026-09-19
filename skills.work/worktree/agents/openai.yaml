@@ -1,5 +1,5 @@
 # Codex UI metadata. Claude Code and Cursor use SKILL.md.
 interface:
   display_name: "Worktree"
-  short_description: "Create, enter, or remove a Ledidi worktree"
+  short_description: "Coordinate branch writers and manage Ledidi worktrees"
   default_prompt: "Use $worktree to find or create the branch checkout and coordinate with any active writer."

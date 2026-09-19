@@ -1,6 +1,6 @@
 ---
 name: coding-standards
-description: Apply work-repository coding standards before changing or reviewing code. Load the common baseline and only the references relevant to the change and affected consumers.
+description: Apply work-repository coding standards before recommending a design, changing code, or reviewing code. Load only the references relevant to the behavior and affected consumers.
 ---
 
 # Apply coding standards
@@ -16,10 +16,10 @@ Before reviewing code, read
 
 ## Select the references
 
-Apply the baseline below to every code change. Before changing code or
-performing a review pass, read every reference whose condition matches the
-behavior, inputs, or affected consumers, not just the edited paths. Include
-test-only changes and revisit the selection when the scope changes. Inspect
+Apply the baseline below to every code change. Before recommending a design,
+changing code, or performing a review pass, read every reference whose condition
+matches the behavior, inputs, or affected consumers, not just the edited paths.
+Include test-only changes and revisit the selection when the scope changes. Inspect
 callers and data flow before excluding a topic whose relevance is unclear.
 
 | Condition | Reference |
@@ -29,7 +29,7 @@ callers and data flow before excluding a topic whose relevance is unclear.
 | UI components, hooks, forms, translations, styles, accessibility, or client state | [Frontend](references/frontend.md) |
 | Authorization, tenant scope, sensitive data, audit, deletion, trust boundaries, configuration, dependencies, or external data sharing | [Security and privacy](references/security-and-privacy.md) |
 | Application behavior, data formats, mutations, failures, concurrency, migrations, compatibility, or shutdown | [Correctness and reliability](references/correctness-and-reliability.md) |
-| Application behavior, tests, or Storybook play functions, including assessing missing coverage | [Testing](references/testing.md) |
+| Application behavior, tests, or stories, including assessing missing coverage | [Testing](references/testing.md) |
 | CI, deployment, infrastructure, scripts, or source-processing services | [Infrastructure](references/infrastructure.md) |
 | Registry analysis definitions, datasets, aggregates, or dashboard result rendering | [Registry analytics](references/registry-analytics.md) |
 | AI prompts, tool schemas, tool execution, or model conversation history | [Agent tools](references/agent-tools.md) |
@@ -74,10 +74,18 @@ when available. Show the closest example and explain any proposed departure.
 If no comparable example exists, say so. Compare with another service, such as
 studies, when the task calls for that comparison.
 
+For Registries design recommendations and implementation, use
+[Registries examples](references/registries-examples.md) to locate relevant
+patterns in the current checkout. Compare the final code with the selected
+examples too, including shared behavior already supplied by their dependencies.
+A design question needs this comparison, not a full diff review.
+
 - Prefer concrete code. Introduce a shared helper or abstraction only when at
   least three real cases establish a shared shape and sharing it makes the code
   easier to maintain. Three cases permit abstraction; they do not require it.
-  Remove middle layers that only rename or delegate a call.
+  This threshold applies to new shared abstractions; private same-file helpers
+  and existing shared components do not need three callers. Remove middle
+  layers that only rename or delegate a call.
 - Place behavior and data with the domain concept that owns them. Keep display
   formatting and presentation sorting in the frontend.
 

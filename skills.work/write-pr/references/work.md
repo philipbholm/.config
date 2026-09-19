@@ -44,8 +44,11 @@ Use the team title format:
 <gitmoji> <Imperative description> [<actual URS ID>] risk:<level>
 ```
 
-Include applicable URS identifiers; omit the bracketed field when none applies.
-Choose the gitmoji for the change type. PR titles omit a trailing issue number.
+Tag the URS document, not its criteria: `[URS-REG-022]`, never
+`[URS-REG-022.1.8]`. Use one tag; a change spanning two documents may carry one
+tag each. Criterion identifiers belong in the body's URS table. Omit the
+bracketed field when no URS applies. Choose the gitmoji for the change type.
+PR titles omit a trailing issue number.
 For Registries commits, use the same format and include the actual work-item
 reference when applicable. SDLC requires a work-item reference for change
 requests; URS implementations may omit it. Never fabricate a GitHub issue

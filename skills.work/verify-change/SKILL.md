@@ -26,9 +26,18 @@ changes alone do not broaden a follow-up edit into whole-branch verification.
 Inspect schema, generation inputs, dependencies, and consumers before excluding
 a workspace with no direct edits. Hook path filters are not a dependency graph.
 
+For PR feedback, interpret "the rest" as the remaining feature diff and
+necessary callers unless the user explicitly expands the scope. Before final
+checks, inspect the final feature diff against the actual PR base and account
+for its hunks against the requested outcome. When the user narrows scope,
+remove task-owned changes that no longer belong. Preserve unrelated existing
+work and offer unrelated improvements separately. This scope inspection does
+not by itself broaden the selected test run.
+
 Choose the smallest checks that prove the affected behavior. For test-only
-edits, run the changed test files and relevant static checks. For component
-states, prefer focused integration or Storybook checks. A full suite is needed
+edits, run the changed test files and relevant static checks. Verify UI behavior
+with focused integration tests and appearance with Storybook or browser
+inspection. Stories contain no tests or assertions. A full suite is needed
 when requested or when the affected behavior cannot be covered reliably by a
 smaller selection; it means the selected workspaces, not the whole monorepo.
 
