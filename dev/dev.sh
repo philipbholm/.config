@@ -22,6 +22,7 @@ case "$1" in
     start) shift; exec bash "$SCRIPT_DIR/stack.sh" up "$@" ;;
     nuke) shift; exec bash "$SCRIPT_DIR/stack.sh" destroy "$@" ;;
     status) shift; exec bash "$SCRIPT_DIR/stack.sh" list "$@" ;;
+    story) shift; exec bash "$SCRIPT_DIR/story.sh" "$@" ;;
 esac
 
 subject=$1

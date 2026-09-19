@@ -27,6 +27,7 @@ Usage: dev <thing> <action> [arguments]
   worktree create <name> <branch> [start-point]  Create a checkout and agent context
   worktree destroy                            Delete this worktree and its stack data
   workspace prepare <workspace> ...           Install dependencies and generate types
+  story <slot>                                Start Storybook for a checkout slot
   test e2e [--shell] -- [arguments]            Run registries E2E with this stack's URLs
   stack up [services...]                      Start this checkout's services
   stack down                                  Remove containers; keep database volumes
@@ -42,6 +43,17 @@ Usage: dev <thing> <action> [arguments]
 
 Use dev <thing> --help or dev <thing> <action> --help for details.
 Help never starts services, installs dependencies, or writes configuration.
+HELP
+            ;;
+        story)
+            cat <<'HELP'
+Usage: dev story <slot>
+       story <slot>
+
+Start registries Storybook in the checkout assigned to slot 1-9. Slot 0 uses
+the main checkout. Missing frontend dependencies are prepared on the first run.
+The default port is 6009 plus the slot; an occupied port advances to the next
+free port. Storybook stays in the foreground, and Ctrl-C stops it.
 HELP
             ;;
         worktree|worktree-create|worktree-destroy)

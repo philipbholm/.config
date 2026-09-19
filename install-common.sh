@@ -196,6 +196,7 @@ link_core() {
 
   # Both profiles use dev browser launch-debug. The browser alias is kept for terminals.
   ln -sf "$DOTFILES/dev/dev.sh" ~/bin/dev
+  ln -sf "$DOTFILES/dev/story.sh" ~/bin/story
   ln -sf "$DOTFILES/dev/browser.sh" ~/bin/browser
 
   # Codex: config + rules symlinked. Skills come from ~/.agents/skills (linked

@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const source = fileURLToPath(new URL("..", import.meta.url));
 const scripts = ["dev", "stack", "worktree-create", "worktree-destroy", "workspace-prepare",
-  "stack-expose", "context-render", "context-inspect", "session-search", "agent-config-apply", "browser-launch-debug", "test-e2e"];
+  "stack-expose", "context-render", "context-inspect", "session-search", "agent-config-apply", "browser-launch-debug", "test-e2e", "story"];
 
 function fixture(t) {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "dev-cli-test-")));
@@ -16,9 +16,11 @@ function fixture(t) {
   const tools = join(directory, "dev");
   const bin = join(directory, "bin");
   const repo = join(directory, "repo");
+  const home = join(directory, "home");
   const log = join(directory, "calls.jsonl");
   const effect = join(directory, "env-sourced");
-  for (const path of [tools, bin, repo, join(directory, "hooks")]) mkdirSync(path);
+  for (const path of [tools, bin, repo, join(home, ".config"), join(directory, "hooks")]) mkdirSync(path, { recursive: true });
+  symlinkSync(source, join(home, ".config/dev"));
   for (const script of scripts) cpSync(join(source, `${script}.sh`), join(tools, `${script}.sh`));
   cpSync(join(source, "lib"), join(tools, "lib"), { recursive: true });
   cpSync(join(source, "context/ledidi-monorepo"), join(tools, "context/ledidi-monorepo"), { recursive: true });
@@ -28,7 +30,8 @@ function fixture(t) {
     writeFileSync(join(bin, command), `#!${process.execPath}
 const fs = require("node:fs");
 const args = process.argv.slice(2);
-fs.appendFileSync(process.env.DEV_TEST_LOG, JSON.stringify({ command: ${JSON.stringify(command)}, args }) + "\\n");
+fs.appendFileSync(process.env.DEV_TEST_LOG, JSON.stringify({ command: ${JSON.stringify(command)}, args, cwd: process.cwd() }) + "\\n");
+if (${JSON.stringify(command)} === "lsof" && args.includes("-iTCP:" + process.env.DEV_TEST_OCCUPIED_PORT)) process.exit(0);
 if (${JSON.stringify(command)} !== "docker" || process.env.DEV_TEST_DOCKER !== "allow") process.exit(99);
 if (args.includes("--services")) process.stdout.write(process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n");
 if (args.includes("--format") && args.includes("json")) process.stdout.write(process.env.DEV_TEST_CONFIG_JSON ?? JSON.stringify({name: "fixture", services: Object.fromEntries((process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n").trim().split("\\n").map(name => [name, {}]))}));
@@ -37,6 +40,7 @@ if (args.includes("build") && process.env.DEV_TEST_BUILD_FAIL) process.exit(12);
   }
   const env = {
     ...process.env,
+    HOME: home,
     PATH: `${bin}:${process.env.PATH}`,
     DEV_MAIN_REPO: repo,
     DEV_STACKS_DIR: join(directory, "stacks"),
@@ -63,7 +67,7 @@ if (args.includes("build") && process.env.DEV_TEST_BUILD_FAIL) process.exit(12);
   };
 }
 
-const commands = [[], ["worktree"], ["workspace"], ["stack"], ["context"], ["session"], ["agent-config"], ["browser"], ["test"], ["test", "e2e"],
+const commands = [[], ["worktree"], ["workspace"], ["stack"], ["context"], ["session"], ["agent-config"], ["browser"], ["test"], ["test", "e2e"], ["story"],
   ["worktree", "create"], ["worktree", "destroy"], ["workspace", "prepare"],
   ...["up", "down", "destroy", "list", "expose", "logs", "exec", "ps", "build", "stop", "restart"].map(action => ["stack", action]),
   ["context", "render"], ["context", "show"], ["context", "check"], ["session", "search"],
@@ -103,6 +107,51 @@ test("Find help when dev is reached through its installed symlink", (t) => {
   const result = spawnSync("bash", [entry, "--help"], { cwd: f.directory, env: f.env, encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /dev <thing> <action>/);
+  assert.deepEqual(f.calls(), []);
+});
+
+test("Start Storybook in the worktree assigned to a slot", (t) => {
+  const f = fixture(t);
+  const worktree = join(f.directory, "storybook-worktree");
+  f.git("worktree", "add", "-b", "storybook", worktree);
+  mkdirSync(join(f.env.DEV_STACKS_DIR, "storybook-worktree"), { recursive: true });
+  writeFileSync(join(f.env.DEV_STACKS_DIR, "storybook-worktree/worktree-slot"), "3\n");
+  mkdirSync(join(worktree, "apps/registries-frontend/node_modules"), { recursive: true });
+  writeFileSync(join(worktree, "apps/registries-frontend/package.json"), "{}\n");
+  f.env.DEV_TEST_OCCUPIED_PORT = "6012";
+
+  const result = spawnSync("bash", [join(f.tools, "story.sh"), "3"], {
+    cwd: f.directory, env: f.env, encoding: "utf8",
+  });
+
+  assert.equal(result.status, 99, result.stderr);
+  assert.match(result.stdout, new RegExp(`Storybook: ${worktree.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\(slot 3\\)`));
+  assert.match(result.stdout, /URL: http:\/\/localhost:6013/);
+  assert.deepEqual(f.calls().map(({ command, args }) => ({ command, args })), [
+    { command: "lsof", args: ["-nP", "-iTCP:6012", "-sTCP:LISTEN"] },
+    { command: "lsof", args: ["-nP", "-iTCP:6013", "-sTCP:LISTEN"] },
+    { command: "npm", args: ["run", "storybook"] },
+  ]);
+  assert.equal(f.calls().at(-1).cwd, join(worktree, "apps/registries-frontend"));
+});
+
+test("Reject a Storybook slot that has no assigned worktree", (t) => {
+  const f = fixture(t);
+  const result = spawnSync("bash", [join(f.tools, "story.sh"), "4"], {
+    cwd: f.directory, env: f.env, encoding: "utf8",
+  });
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /no worktree is assigned to slot 4/);
+  assert.deepEqual(f.calls(), []);
+});
+
+test("Show story help without inspecting worktrees", (t) => {
+  const f = fixture(t);
+  const result = spawnSync("bash", [join(f.tools, "story.sh"), "--help"], {
+    cwd: f.directory, env: f.env, encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /story <slot>/);
   assert.deepEqual(f.calls(), []);
 });
 
