@@ -2,6 +2,7 @@
 name: review-pr
 description: Review a GitHub pull request through isolated Coding Standards, Security and Privacy, and Correctness and Reliability passes. Produces an HTML report by default and posts only when explicitly requested. Use only for a PR number; use code-review for local branches and fixed-point diffs.
 argument-hint: "[pr number] [report|post]"
+disable-model-invocation: true
 ---
 
 # Review a pull request

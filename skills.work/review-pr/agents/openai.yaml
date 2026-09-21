@@ -2,3 +2,5 @@
 interface:
   display_name: "Review PR"
   short_description: "Review a GitHub PR and produce an HTML report"
+policy:
+  allow_implicit_invocation: false
