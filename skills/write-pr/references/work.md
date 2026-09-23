@@ -58,6 +58,32 @@ Keep the description useful as a release-note sentence. This convention
 applies to new commits; changing a PR description does not authorize rewriting
 existing commits. `write-commit` governs prose and optional message bodies.
 
+### Before and after
+
+A visual change is one the reviewer would otherwise start the stack to see:
+layout, copy, icons, colours, a new screen, or an empty, loading or error
+state. Every visual change gets a before and after pair in the body. A new
+screen gets its after alone.
+
+Capture each pair the same way: same story or route, same seeded data, same
+viewport. Take the before from a worktree on the PR base (load `worktree`) and
+the after from the branch. Prefer the Storybook story's
+`iframe.html?id=<id>&viewMode=story` URL; `show-stories` resolves the IDs.
+Capture with `npx playwright screenshot` from `apps/registries-frontend`, or
+reuse a frame that browser verification already produced. Record a short
+video instead when the change lives in a sequence: a multi-step flow, a drag,
+an animation. Capture only from the local stack or Storybook with seeded demo
+data.
+
+Save the files in the main checkout's `.scratch/<effort>/screenshots/` as
+`<state>-before.png` and `<state>-after.png`. Write each file's absolute path
+into the Visual Changes table and pass the same absolute path to
+`gh pr create` or `gh pr edit` with a repeated `--attach`; `gh` replaces each
+local path in the body with the uploaded URL. `--attach` needs `gh` 2.99.0 or
+newer. When `gh pr create --help` lists no `--attach`, stop and ask me to run
+`brew upgrade gh`. The pair is done when `gh pr view --json body` shows an
+uploaded URL for every image and no local path remains.
+
 ### PR body
 
 Use the following structure. Replace placeholders with facts from the final
@@ -77,6 +103,14 @@ compatibility, privacy, and rollout concerns where they affect the assessment.
 | URS | Requirement |
 | --- | --- |
 | <Actual URS ID> | <Requirement description> |
+
+### Visual Changes
+
+| State | Before | After |
+| --- | --- | --- |
+| <Changed state> | ![<State> before](<absolute path>) | ![<State> after](<absolute path>) |
+
+<Omit this section when the change has no visual change.>
 
 ### Reason for Change
 
