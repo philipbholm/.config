@@ -86,6 +86,7 @@ Load the matching shared skill before acting:
 | Edit an existing checkout; create, enter, or remove a worktree | `worktree` |
 | Prepare dependencies; operate the stack; run Playwright or verify in a browser, including after a rebase | `dev-stack` |
 | Seed a demo registry | `seed-registry` |
+| Write, change, or review a Registries URS (`verification/registries/urs/`) | Read `services/registries/.claude/skills/prepare-urs/SKILL.md` |
 
 For Registries PR titles, bodies, risk labels, and commit format, follow
 [Work pull requests](/Users/philip/.config/skills/write-pr/references/work.md).
