@@ -232,7 +232,7 @@ require_services() {
     [ "${#requested_services[@]}" -gt 0 ] && return 0
 
     echo "Error: $repo_root/docker-compose.yml defines none of this stack's services" >&2
-    echo "(registries-frontend, postgres, codelist, registries, agent)." >&2
+    echo "(registries-frontend, postgres, codelist, registries, s3mock, agent)." >&2
     echo "Pass the services you want explicitly: dev stack $subcommand <service>..." >&2
     exit 1
 }
@@ -551,6 +551,9 @@ services:
       # HTTPS ngrok tunnel, not the http://localhost default, or eksternapi
       # rejects the oppgave with FHIR code 2174. Mirrors the patient-bff value.
       - PATIENT_BFF_PUBLIC_URL=${bff_public_url}
+      # Export downloads and file uploads go straight from the browser to this
+      # slot's s3mock, so presigned URLs must carry its offset host port.
+      - S3_PRESIGN_ENDPOINT_URL=http://localhost:$(( 9090 + offset ))
     volumes: !override
       - $repo_root/services/registries/src:/app/services/registries/src
       - $repo_root/services/registries/api:/app/services/registries/api
@@ -562,6 +565,13 @@ services:
       - "$(( 4006 + offset )):4000"
       - "$(( 50006 + offset )):50051"
       - "$(( 4002 + offset )):4002"
+
+  s3mock:
+    labels:
+      ${DEV_SLOT_LABEL}: "${s}"
+      ${DEV_CHECKOUT_LABEL}: "${base_project_name}"
+    ports: !override
+      - "$(( 9090 + offset )):9090"
 YAML
 
     # Conditionally add services that may not exist in all branches
@@ -922,7 +932,7 @@ echo
 default_services=()
 while IFS= read -r service; do
     [ -n "$service" ] && default_services+=("$service")
-done < <(available_services registries-frontend postgres codelist registries)
+done < <(available_services registries-frontend postgres codelist registries s3mock)
 
 # Optional services that branches opt into by adding files to the worktree.
 # patient-bff comes from services/patient-bff/docker-compose.yml; patient-frontend
