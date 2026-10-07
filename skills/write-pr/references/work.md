@@ -24,11 +24,14 @@ PR format; do not infer policy from older PRs or commit history.
 
 ### Traceability and risk
 
-Read the changed code before classifying risk. Consider the affected component,
-the change type, likelihood of issues, impact of failure, and rollback
-difficulty. Explain departures from the SDLC's default classifications.
-Choose Standard, Minor, or Major from the evidence and apply exactly one
-matching GitHub label: `risk:standard`, `risk:minor`, or `risk:major`.
+The risk level is Standard, with the `risk:standard` label, unless I name
+another level for the PR. Then use my level and its label: `risk:minor` or
+`risk:major`. Apply exactly one risk label.
+
+Read the changed code before filling in the Risk Evaluation table. Consider
+the affected component, the change type, likelihood of issues, impact of
+failure, and rollback difficulty. When that evidence points to Minor or Major,
+keep Standard and tell me in the report which factor points elsewhere.
 
 Use only verified Registries URS and work-item references from the task or
 repository. Do not borrow another service's requirements or invent identifiers.

@@ -55,12 +55,12 @@ specification or grilling session does not itself authorize implementation.
    rewritten history follows its lease and hook rules.
 6. **Open a draft.** Use `gh pr create --draft --base <intended-base>` with the
    title and risk-assessment body from `write-pr`. Write the body to a temporary
-   file and pass `--body-file`. Apply exactly one assessed label:
-   `risk:standard`, `risk:minor`, or `risk:major`. Use the existing PR when one
-   already covers the branch. Leave drafts in draft until explicitly asked to
-   mark them ready. When the body has Visual Changes, pass each file with
-   `--attach` and confirm the uploads as the work reference describes. Open
-   the PR URL in the browser.
+   file and pass `--body-file`. Apply the one risk label the work reference
+   sets; that is `risk:standard` unless I named another level. Use the
+   existing PR when one already covers the branch. Leave drafts in draft until
+   explicitly asked to mark them ready. When the body has Visual Changes, pass
+   each file with `--attach` and confirm the uploads as the work reference
+   describes. Open the PR URL in the browser.
 7. **Report.** Inspect available CI state once. Load `finish-pr` only when
    asked to wait for CI or make checks green. Return the PR URL, risk level,
    verification and review results, pending or failed gates, and worktree and
