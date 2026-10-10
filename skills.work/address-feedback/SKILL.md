@@ -15,7 +15,7 @@ Keep one outcome record per finding throughout the task.
 ## Assess without changing the branch
 
 Read repository context, `coding-standards`, and
-[Review quality](/Users/philip/.config/skills/code-review/references/review-quality.md).
+[Review quality](/Users/philip/.config/skills.work/coding-standards/references/review-quality.md).
 For GitHub feedback, read [GitHub feedback](references/github.md) to collect the
 full threads. Pin the PR's current head SHA and inspect that revision without
 switching a dirty checkout. Read the surrounding code, tests, and intervening
@@ -46,7 +46,7 @@ deliver the responses under the following steps.
    existing tracked modifications. Preserve untracked work and capture HEAD
    for the cumulative diff.
 2. Read repository context and load `coding-standards`. Read
-   [Review quality](/Users/philip/.config/skills/code-review/references/review-quality.md)
+   [Review quality](/Users/philip/.config/skills.work/coding-standards/references/review-quality.md)
    to assess the findings. In Ledidi, load `verify-change`; elsewhere follow
    the repository's verification instructions. Load `write-commit` before
    committing fixes.
