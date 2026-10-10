@@ -19,3 +19,6 @@ alacritty/active_theme.toml
 uv
 Brewfile*.lock.json
 gh/hosts.yml
+# Local credentials for the myos project
+myos/
+myos-recovery/
