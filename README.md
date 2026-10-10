@@ -224,14 +224,14 @@ The core [Brewfile](/Users/philip/.config/Brewfile) covers:
 - App casks like `alacritty` and `chai`
 - Cursor/VS Code extensions needed for the current repo mix
 
-[Brewfile.work](/Users/philip/.config/Brewfile.work) adds the Ledidi/dev tooling (`cloudflared`, `watchman`, `lefthook`, `opentofu`, `aws-vpn-client`, Chrome, `ngrok`, Slack) and the background apps the personal profile leaves out (Docker Desktop, `lazydocker`, AeroSpace, Raycast, JankyBorders, Logitech Options+); [Brewfile.personal](/Users/philip/.config/Brewfile.personal) adds Brave, Tailscale and Postgres 17.
+[Brewfile.work](/Users/philip/.config/Brewfile.work) adds the Ledidi/dev tooling (`cloudflared`, `watchman`, `lefthook`, `opentofu`, `aws-vpn-client`, Chrome, `ngrok`, Slack) and the background apps the personal profile leaves out (Docker Desktop, `lazydocker`, AeroSpace, Raycast, JankyBorders, Logitech Options+, Spotify); [Brewfile.personal](/Users/philip/.config/Brewfile.personal) adds Brave and Postgres 17.
 
 If a new machine is missing something that should always be present, add it to the appropriate Brewfile — core, work, or personal — rather than documenting it only here.
 
 ## Left Out Of The Personal Profile To Save Memory
 
 The personal Mac (MacBook Air, M2, 8 GB RAM) became unusably slow with these
-running in the background. They moved from the core `Brewfile` to
+running in the background. Most of them moved from the core `Brewfile` to
 `Brewfile.work`, so the work profile still installs them and the personal
 profile does not. The tmux AI watcher was deleted for both profiles.
 
@@ -242,6 +242,8 @@ profile does not. The tmux AI watcher was deleted for both profiles.
 | AeroSpace | Tiling window manager | `cask "nikitabobko/tap/aerospace"` in `Brewfile.work`; config in `aerospace/aerospace.toml` |
 | Raycast | Launcher | `cask "raycast"` in `Brewfile.work` |
 | Logitech Options+ | Settings app for Logitech mice and keyboards; installs two launch agents and an updater daemon | `cask "logi-options+"` in `Brewfile.work` |
+| Spotify | Music player; keeps a cache of about 1 GB | `cask "spotify"` in `Brewfile.work` |
+| Tailscale | VPN client; installs a network extension and a root-owned `tailscale` command | Deleted from `Brewfile.personal`. Add `cask "tailscale-app"` back to it |
 | JankyBorders | Coloured border around the active window | `brew "felixkratz/formulae/borders"` in `Brewfile.work`; launch agent in `launchd/work/com.philip.borders.plist`; config in `borders/bordersrc` |
 | tmux AI watcher | Polled tmux every 2 seconds and showed a yellow `!` on windows where Codex or Claude waited for input | Deleted. Restore `tmux/ai-attention-watch.sh` and the `@ai_attention` lines in `tmux/tmux.conf` from git history: `git log --diff-filter=D -- tmux/ai-attention-watch.sh` |
 
