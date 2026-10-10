@@ -47,6 +47,9 @@ ln -sf "$DOTFILES/dev/wt-down.sh" ~/bin/wt-down
 ln -sf "$DOTFILES/dev/sync-context.sh" ~/bin/sync-context
 ln -sf "$DOTFILES/dev/sync-agent-configs.sh" ~/bin/sync-agent-configs
 
+# Launch agents: the core set plus the work-only ones (JankyBorders).
+setup_launch_agents "$DOTFILES/launchd" "$DOTFILES/launchd/work"
+
 # Generate work agent configs (Datadog MCP + Codex work project-trusts)
 bash "$DOTFILES/dev/dev.sh" agent-config apply --profile work
 

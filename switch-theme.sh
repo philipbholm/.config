@@ -107,7 +107,11 @@ refresh_tmux_colors
 # in the foreground (which is what com.philip.borders expects of it), so
 # invoking it here never returns — it hangs the caller and leaks a second
 # daemon. Restarting the launch agent applies the config and returns at once.
-if ! launchctl kickstart -k "gui/$(id -u)/com.philip.borders" 2>/dev/null; then
+#
+# Only the work profile installs borders, so a personal Mac skips this step.
+if [[ ! -x /opt/homebrew/bin/borders ]]; then
+  :
+elif ! launchctl kickstart -k "gui/$(id -u)/com.philip.borders" 2>/dev/null; then
   # Agent not loaded (e.g. first install before launch agents are set up).
   "$HOME/.config/borders/bordersrc" "$MODE" &
 fi

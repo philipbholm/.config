@@ -236,25 +236,31 @@ add_allowed_signer() {
     >> ~/.ssh/allowed_signers
 }
 
+# Load one user launch agent per plist in the given source dirs:
+#   setup_launch_agents <src_dir>...
+# Each run is a full reset of the agents this function manages, like
+# link_entries: install-work.sh runs it again with launchd/work added, and a
+# personal reinstall unloads a work-only agent left by an earlier work install.
 setup_launch_agents() {
   echo "Installing launch agents..."
   local LAUNCH_AGENTS="$HOME/Library/LaunchAgents"
   mkdir -p "$LAUNCH_AGENTS"
-  local plist name label
-  # Prune agents whose repo plist was removed (now-broken symlinks into launchd/)
+  local plist name label src_dir
   for plist in "$LAUNCH_AGENTS"/com.philip.*.plist; do
-    if [ -L "$plist" ] && [ ! -e "$plist" ]; then
+    if [[ -L "$plist" && "$(readlink "$plist")" == "$DOTFILES/"* ]]; then
       label="$(basename "${plist%.plist}")"
       launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
       rm -f "$plist"
     fi
   done
-  for plist in "$DOTFILES"/launchd/*.plist; do
-    name="$(basename "$plist")"
-    label="${name%.plist}"
-    launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
-    ln -sf "$plist" "$LAUNCH_AGENTS/$name"
-    launchctl bootstrap "gui/$(id -u)" "$LAUNCH_AGENTS/$name"
+  for src_dir in "$@"; do
+    for plist in "$src_dir"/*.plist; do
+      [[ -e "$plist" ]] || continue
+      name="$(basename "$plist")"
+      label="${name%.plist}"
+      ln -sf "$plist" "$LAUNCH_AGENTS/$name"
+      launchctl bootstrap "gui/$(id -u)" "$LAUNCH_AGENTS/$name"
+    done
   done
 }
 
@@ -415,7 +421,7 @@ run_core() {
   install_node
   link_core
   setup_allowed_signers
-  setup_launch_agents
+  setup_launch_agents "$DOTFILES/launchd"
   setup_theme
   cleanup_stale
   install_zsh_autosuggestions
