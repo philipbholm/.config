@@ -89,7 +89,7 @@ Load the matching shared skill before acting:
 | Write, change, or review a Registries URS (`verification/registries/urs/`) | Read `services/registries/.claude/skills/prepare-urs/SKILL.md` |
 
 For Registries PR titles, bodies, risk labels, and commit format, follow
-[Work pull requests](/Users/philip/.config/skills/write-pr/references/work.md).
+[Work pull requests](/Users/philip/.config/skills.work/write-pr/references/work.md).
 
 ### Commands
 

@@ -10,7 +10,7 @@ disable-model-invocation: true
 Use the supplied PR number; ask if it is missing. Default to read-only
 `report` mode. Use `post` only when the user explicitly asks to publish findings.
 
-Read [Review quality](/Users/philip/.config/skills/code-review/references/review-quality.md).
+Read [Review quality](/Users/philip/.config/skills.work/coding-standards/references/review-quality.md).
 It owns the finding criteria, evidence requirements, severity definitions,
 and coordination of isolated passes.
 

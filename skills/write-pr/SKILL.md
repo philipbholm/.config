@@ -20,9 +20,7 @@ A pull request body ends with its last section. No attribution footer, no
 The pull request is opened under my GitHub account, and the footer tells a
 reviewer nothing they act on.
 
-Before planning PR scope or writing or reviewing a PR in a repository under
-`~/work/`, read [Work pull requests](references/work.md). Other repositories
-use their own title and body conventions alongside this skill.
+Follow the repository’s title and body conventions alongside this skill.
 
 Writing a draft does not authorize publishing or changing PR state. Follow
 the global draft-PR rule when creating or updating a pull request.

@@ -117,6 +117,57 @@ or green checks mean the draft is ready for me; they do not change its state.
 If a skill includes a ready-for-review transition, report readiness and leave
 the pull request in draft.
 
+## Worktrees
+
+These rules apply wherever the repository names no other worktree location or
+tool. Ledidi checkouts follow their `worktree` and `cleanup-dev` skills.
+
+### Create or enter
+
+Create worktrees with `git worktree add` at `<repo>/.worktrees/<name>`. The
+global git ignore file already excludes `.worktrees/`.
+
+1. Inspect `git status` and `git worktree list`. Uncommitted changes in the
+   current checkout may be the work I mean; ask before moving them. When the
+   branch is already checked out in a worktree, continue there.
+2. Use one short kebab-case name for both the branch and the directory, with
+   no `feat/` or `worktree-` prefix. Ask when the directory already exists.
+3. For new work, run `git fetch origin` and branch from the remote default
+   branch; the current `HEAD` may be unrelated. An existing branch keeps its
+   commits.
+
+Report the worktree name, path and branch after creating it.
+
+Keep one writer per branch. Before writing in an existing checkout, look for
+another session working there. Before committing, recheck `HEAD` and inspect
+any commits another session added.
+
+### Clean up
+
+A worktree is removable when all of these hold:
+
+- Its work has landed on the default branch: a merged pull request whose
+  final head commit equals the branch tip, or a branch tip that is an ancestor
+  of the default branch. A closed pull request has not landed. A local squash
+  merge leaves no such evidence, so that worktree needs my approval.
+- It has no other commits, no uncommitted changes, and no unique untracked or
+  ignored files such as `.scratch/`, notes, exports or local data.
+  Dependencies and build output do not count.
+- It is not the main checkout, not locked, and not in use by another session.
+
+When a task of yours lands a branch, remove its worktree once it is removable,
+and say which one you removed. Green checks or the end of a session alone do
+not make a worktree removable.
+
+When I ask for cleanup, inventory every registered worktree, including those
+the harnesses created under `.claude/worktrees/` and `~/.codex/worktrees/`.
+Remove the removable ones. List the rest as numbered rows with your
+recommendation and what deletion would lose, then remove only the numbers I
+reply with.
+
+Remove a worktree with `git worktree remove <path>` from the main checkout,
+without `--force`, and keep its branch.
+
 ## Agent skills
 
 ### Issue tracker

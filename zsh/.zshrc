@@ -84,6 +84,10 @@ fi
 export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"
 export CPPFLAGS="-I/opt/homebrew/opt/openjdk@17/include"
 
+# PostgreSQL 17 (keg-only, personal machines)
+[ -d "/opt/homebrew/opt/postgresql@17/bin" ] && \
+  export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
+
 # Disable telemetry and warnings
 export NODE_NO_WARNINGS=1
 

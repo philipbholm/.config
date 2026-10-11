@@ -18,10 +18,9 @@ cat <<'EOF'
 
 Personal setup complete. Manual follow-up:
 
-  1. Set up Karabiner-Elements, AeroSpace, Raycast, Brave, and Chai
+  1. Set up Karabiner-Elements, Brave, and Chai
   2. Restore ~/.ssh keys (github)
   3. Create ~/.config/zsh/.zsh_secrets
   4. Sign in to GitHub: gh auth login
-  5. Install and sign in to Docker Desktop
-  6. Reload shell: exec zsh -l
+  5. Reload shell: exec zsh -l
 EOF

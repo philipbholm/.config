@@ -12,7 +12,7 @@ below apply only to registries. A conflict in a security or data invariant
 needs resolution, not an exemption inferred from nearby code.
 
 Before reviewing code, read
-[Review quality](/Users/philip/.config/skills/code-review/references/review-quality.md).
+[Review quality](/Users/philip/.config/skills.work/coding-standards/references/review-quality.md).
 
 ## Select the references
 

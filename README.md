@@ -130,7 +130,7 @@ These steps are intentionally not automated by this repo and should be handled m
 - Create `~/.config/zsh/.zsh_secrets`
 - Restore `~/.ssh`
 - Sign in to GitHub CLI with `gh auth login`
-- Install and sign in to Docker Desktop
+- Work profile: sign in to Docker Desktop
 - Reinstall or restore Cursor and sign in
 - Reinstall or restore Claude Desktop / related apps if needed
 - Create a sync code for Brave before wiping (Settings > Sync > Start a new Sync Chain)
@@ -154,14 +154,15 @@ nvm alias default 'lts/*'
 
   - Verify with `pmset -g custom`. For lid-closed-on-AC over Wi-Fi you also need `sudo pmset -a disablesleep 1`, but that disables sleep on battery too — only set it if you want clamshell operation.
 - Launch `nvim` once to bootstrap LazyVim plugins (takes ~30-60 seconds, requires internet)
-- Start background apps (JankyBorders is already running via the `com.philip.borders` launch agent):
+- Start background apps:
 
 ```sh
-open -a AeroSpace
 open -a Karabiner-Elements
+# Work profile only (JankyBorders is already running via the com.philip.borders launch agent):
+open -a AeroSpace
 open -a Raycast
 ```
-- Install system-level LaunchDaemons from `launchd/daemons/`. These are not handled by `install.sh` (which only loads user-level LaunchAgents from `launchd/*.plist`). Currently:
+- Install system-level LaunchDaemons from `launchd/daemons/`. These are not handled by `install.sh` (which only loads user-level LaunchAgents from `launchd/*.plist`, plus `launchd/work/*.plist` on the work profile). Currently:
   - `com.philip.helsenorge-test-v6-blackhole.plist` — routes the Helsenorge test endpoint's IPv6 address to `lo0` so traffic falls back to IPv4 and goes through the Ledidi AWS Client VPN (which only forwards IPv4). Only needed for engineers working on the Helsenorge/HelseID test integration; see the team's Confluence page for the full VPN setup (`.ovpn` profile, AWS VPN Client configuration).
 
     ```sh
@@ -218,14 +219,42 @@ The core [Brewfile](/Users/philip/.config/Brewfile) covers:
 
 - CLI/runtime tools like `gh`, `tmux`, `neovim`, `nvm`, `uv`
 - Modern CLI replacements: `bat`, `eza`, `fd`, `fzf`, `ripgrep`, `zoxide`, `starship`
-- Development TUIs: `lazygit`, `lazydocker`, `btop`
+- Development TUIs: `lazygit`, `btop`
 - Runtime management: `mise`, `node`
-- Window manager and app casks like `aerospace`, `alacritty`, and `chai`
+- App casks like `alacritty` and `chai`
 - Cursor/VS Code extensions needed for the current repo mix
 
-[Brewfile.work](/Users/philip/.config/Brewfile.work) adds the Ledidi/dev tooling (`cloudflared`, `watchman`, `lefthook`, `opentofu`, `aws-vpn-client`, Chrome, `ngrok`, Slack); [Brewfile.personal](/Users/philip/.config/Brewfile.personal) adds Brave + Tailscale.
+[Brewfile.work](/Users/philip/.config/Brewfile.work) adds the Ledidi/dev tooling (`cloudflared`, `watchman`, `lefthook`, `opentofu`, `aws-vpn-client`, Chrome, `ngrok`, Slack) and the background apps the personal profile leaves out (Docker Desktop, `lazydocker`, AeroSpace, Raycast, JankyBorders, Logitech Options+, Spotify); [Brewfile.personal](/Users/philip/.config/Brewfile.personal) adds Brave and Postgres 17.
 
 If a new machine is missing something that should always be present, add it to the appropriate Brewfile — core, work, or personal — rather than documenting it only here.
+
+## Left Out Of The Personal Profile To Save Memory
+
+The personal Mac (MacBook Air, M2, 8 GB RAM) became unusably slow with these
+running in the background. Most of them moved from the core `Brewfile` to
+`Brewfile.work`, so the work profile still installs them and the personal
+profile does not. The tmux AI watcher was deleted for both profiles.
+
+| Tool | What it did | Where it lives now |
+|---|---|---|
+| Docker Desktop | Containers; its VM and two root helpers (`com.docker.vmnetd`, `com.docker.socket`) run all the time | `cask "docker-desktop"` in `Brewfile.work` |
+| `lazydocker` | TUI for Docker | `brew "lazydocker"` in `Brewfile.work` |
+| AeroSpace | Tiling window manager | `cask "nikitabobko/tap/aerospace"` in `Brewfile.work`; config in `aerospace/aerospace.toml` |
+| Raycast | Launcher | `cask "raycast"` in `Brewfile.work` |
+| Logitech Options+ | Settings app for Logitech mice and keyboards; installs two launch agents and an updater daemon | `cask "logi-options+"` in `Brewfile.work` |
+| Spotify | Music player; keeps a cache of about 1 GB | `cask "spotify"` in `Brewfile.work` |
+| Tailscale | VPN client; installs a network extension and a root-owned `tailscale` command | Deleted from `Brewfile.personal`. Add `cask "tailscale-app"` back to it |
+| JankyBorders | Coloured border around the active window | `brew "felixkratz/formulae/borders"` in `Brewfile.work`; launch agent in `launchd/work/com.philip.borders.plist`; config in `borders/bordersrc` |
+| tmux AI watcher | Polled tmux every 2 seconds and showed a yellow `!` on windows where Codex or Claude waited for input | Deleted. Restore `tmux/ai-attention-watch.sh` and the `@ai_attention` lines in `tmux/tmux.conf` from git history: `git log --diff-filter=D -- tmux/ai-attention-watch.sh` |
+
+Postgres 17 stays in `Brewfile.personal` but is not started at login. Start it
+when you need it with `brew services start postgresql@17`.
+
+To add the apps back on a Mac with more RAM, move their lines from
+`Brewfile.work` to the core `Brewfile` (for both profiles) or to
+`Brewfile.personal`, together with the `tap` lines they need. For borders,
+move the plist back from `launchd/work/` to `launchd/`. Then run
+`./install.sh personal`.
 
 ## Agent Rules
 
