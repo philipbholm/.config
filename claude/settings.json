@@ -15,7 +15,9 @@
   "permissions": {
     "allow": [
       "Bash(bb:*)",
-      "Bash(/Users/philip/.config/claude/bin/bb:*)"
+      "Bash(/Users/philip/.config/claude/bin/bb:*)",
+      "Bash(scripts/prod-read.sh:*)",
+      "Bash(./scripts/prod-read.sh:*)"
     ],
     "deny": [
       "Read(./**/.env)",
@@ -55,7 +57,8 @@
       "Bash(rm -rf ./)",
       "Bash(aws sso login --profile production:*)",
       "Bash(aws sso login --profile=production:*)",
-      "Bash(AWS_PROFILE=production aws sso login:*)"
+      "Bash(AWS_PROFILE=production aws sso login:*)",
+      "Edit(**/prod-read.sh)"
     ],
     "ask": [
       "Bash(dev nuke:*)",
