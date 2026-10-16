@@ -77,7 +77,7 @@ git -C "$main_repo" worktree prune
 dev_prune_stale_slot_files
 if [[ "$main_repo" == "${DEV_MAIN_REPO:-$HOME/work/ledidi-monorepo}" ]]; then
   bash "$SCRIPT_DIR/context-render.sh" ||
-    echo "Warning: context render failed; CLAUDE.local.md and AGENTS.md may be stale." >&2
+    echo "Warning: context render failed; AGENTS.md may be stale." >&2
 fi
 
 echo "Removed $worktree_path. Branch '$branch' still exists — 'git branch -d $branch' to delete it."

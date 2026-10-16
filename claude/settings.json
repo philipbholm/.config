@@ -68,6 +68,16 @@
     "defaultMode": "auto"
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/philip/.config/dev/claude-context.sh"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

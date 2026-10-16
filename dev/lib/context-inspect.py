@@ -35,9 +35,13 @@ def inspect(config, home):
         "Codex global": home / ".codex/AGENTS.md",
         "Cursor global": home / "AGENTS.md",
         "Checkout AGENTS": checkout / "AGENTS.md",
-        "Checkout Claude": checkout / ("CLAUDE.local.md" if ledidi else "CLAUDE.md"),
         "Ledidi template": config / "dev/context/ledidi-monorepo/AGENTS.md",
     }
+    if ledidi:
+        hooks = Path(command("git", "rev-parse", "--path-format=absolute", "--git-path", "hooks"))
+        instructions["Ledidi post-checkout hook"] = hooks / "post-checkout"
+    else:
+        instructions["Checkout Claude"] = checkout / "CLAUDE.md"
     skills = {}
     for harness, directory in [("Claude Code", home / ".claude/skills"),
                                ("Codex and Cursor", home / ".agents/skills")]:

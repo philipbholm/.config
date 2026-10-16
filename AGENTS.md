@@ -55,7 +55,11 @@ leaving the gap for the next reader to find.
   existing invocation policy and tool dependencies when updating the file.
 - `dev/context/ledidi-monorepo/AGENTS.md` is the single source for Ledidi
   repository context. `dev context render --all-worktrees` renders `AGENTS.md`
-  into every Ledidi checkout, and writes `CLAUDE.local.md` as a pointer to it.
+  into every Ledidi checkout and installs a `post-checkout` hook that renders it
+  into each new worktree. Codex and Cursor read the rendered `AGENTS.md`
+  directly. Claude Code receives it from the `SessionStart` hook
+  `dev/claude-context.sh`; a root `CLAUDE.md` would also load in every worktree
+  nested under the main checkout, carrying the main checkout's ports.
 - "Update the context" means updating the Ledidi source template and any file
   that the template references.
 - After changing the Ledidi context template, its referenced context files, or

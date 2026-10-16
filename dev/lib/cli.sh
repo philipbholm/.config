@@ -63,7 +63,7 @@ Usage: dev worktree create <name> <branch> [start-point]
 
 Create places the checkout in <repo>/.worktrees/<name>. Existing branches keep
 their commits; new branches start at start-point or HEAD. It does not fetch.
-Ledidi checkouts receive AGENTS.md and CLAUDE.local.md without dependency setup.
+Ledidi checkouts receive AGENTS.md without dependency setup.
 
 Destroy acts on the current worktree. It removes the checkout and its stack,
 including database volumes, images and saved port slot. The Git branch remains.
@@ -136,8 +136,9 @@ Usage: dev context render [--all-worktrees]
        dev context show [--json]
        dev context check
 
-Render AGENTS.md from the Ledidi template with stack ports, and write
-CLAUDE.local.md as a pointer to it.
+Render AGENTS.md from the Ledidi template with stack ports. Also install the
+post-checkout hook that renders AGENTS.md into each new worktree, whichever
+tool creates it.
 By default, update only the current Ledidi checkout. --all-worktrees updates
 the main checkout and all registered Ledidi worktrees. Starts no services.
 Show reports the command's actual checkout and installed instruction/skill paths.

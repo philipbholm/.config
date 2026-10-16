@@ -50,7 +50,7 @@ git diff --cached
 
 ### 2) Read project rules and affected areas
 
-- Read `CLAUDE.local.md` in repo root if present.
+- Read `AGENTS.md` in repo root if present.
 - Identify impacted areas (frontend, backend services, shared packages).
 - Read full source files as needed for context.
 

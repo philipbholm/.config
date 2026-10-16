@@ -11,8 +11,7 @@
 
   // Load repository guidance into prompts.
   "instructions": [
-    "{file:~/.config/CLAUDE.md}",
-    "./CLAUDE.local.md"
+    "{file:~/.config/CLAUDE.md}"
   ],
 
   // Conservative global defaults; can be overridden per agent.
