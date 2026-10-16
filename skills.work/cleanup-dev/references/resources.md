@@ -34,18 +34,27 @@ their own explicit selection; do not infer a merged PR from their age.
 Read [worktree-destroy.sh](/Users/philip/.config/dev/worktree-destroy.sh) and the teardown
 path in [stack.sh](/Users/philip/.config/dev/stack.sh) before relying on their target
 resolution. They must resolve to the inventoried checkout and Compose project.
-If a saved slot is now used by another stack or checkout IDs collide, keep the
-target and report the conflict instead of invoking a helper on guessed state.
+If checkout IDs collide, keep the target and report the conflict instead of
+invoking a helper: the helpers remove every resource labelled with the shared
+ID. A saved slot that another stack now holds is not a conflict; the helpers
+leave that stack's containers and the slot's networks alone.
 
-The worktree helper also prunes stale Git registrations and saved slot files
-across checkouts. Include those side effects in the inventory. If they would
-remove unapproved entries, report the scope conflict instead of invoking it.
+The worktree helper also runs `git worktree prune`, which removes stale Git
+registrations across checkouts. Include that side effect in the inventory. If
+it would remove unapproved entries, report the scope conflict instead of
+invoking it. The helper does not touch other checkouts' saved slot files.
 
-`dev worktree destroy` checks for saved slots or matching containers before
-tearing down a stack. With neither present, images and volumes can remain.
-`dev stack destroy` uses `docker compose down -v --rmi local --remove-orphans`;
-this does not promise removal of every old image, anonymous volume, or resource
-from a previous slot. Always inspect leftovers after the helper returns.
+In a worktree, `dev stack destroy` does not need the saved slot file. It removes
+the containers, volumes and images whose `com.docker.compose.project` label is
+exactly `wt<N>-<checkout-id>` for any slot N from 1 to 9. That covers a
+stopped stack and the slots the checkout used before. It removes the
+`admin-bridge-wt-<N>` and `default-network-wt-<N>` networks only for the slot
+its own containers still held, and only when no other stack's containers carry
+that slot. `dev worktree destroy` calls it whenever any such resource exists,
+and keeps the checkout when one cannot be removed. Images with a custom Compose
+`image:` name, anonymous volumes of containers that were removed earlier,
+networks of earlier slots, and build cache can remain. Always inspect leftovers
+after the helper returns.
 
 ## Leftovers after manual deletion or teardown
 

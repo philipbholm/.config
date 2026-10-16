@@ -3,6 +3,7 @@
 DEV_SLOT_LABEL="com.ledidi.dev-slot"
 # Existing containers keep this label so a command rename preserves stack ownership.
 DEV_CHECKOUT_LABEL="com.ledidi.dev-workspace"
+DEV_COMPOSE_PROJECT_LABEL="com.docker.compose.project"
 
 # New worktrees live inside the repo at <repo>/.worktrees. The location belongs
 # to the repository workflow, not to any one agent harness. WORKTREE_BASE
@@ -121,35 +122,57 @@ dev_list_slot_files() {
     find "$stacks_dir" -mindepth 2 -maxdepth 2 -type f -name worktree-slot -print 2>/dev/null | sort
 }
 
-dev_prune_stale_slot_files() {
-    # Removes slot files whose checkout has no matching containers in Docker.
-    # No-op if the Docker daemon is unreachable, to avoid wiping valid state.
-    if ! docker info >/dev/null 2>&1; then
-        return 0
-    fi
+dev_is_worktree_compose_project() {
+    local checkout=$1
+    local project=$2
 
-    local slot_file checkout slot containers
+    case "$project" in
+        wt[1-9]-"$checkout") return 0 ;;
+    esac
+    return 1
+}
 
-    while IFS= read -r slot_file; do
-        [ -n "$slot_file" ] || continue
-        [ -f "$slot_file" ] || continue
+dev_worktree_stack_resources() {
+    local checkout=$1
+    local listing
+    local id
+    local name
+    local project
+    local reference
+    local target
 
-        checkout=$(basename "$(dirname "$slot_file")")
-        slot=$(tr -d '[:space:]' < "$slot_file" 2>/dev/null || true)
-
-        if [ -z "$slot" ]; then
-            rm -f "$slot_file"
-            continue
+    listing=$(docker ps -a --filter "label=${DEV_COMPOSE_PROJECT_LABEL}" \
+        --format "{{.ID}} {{.Label \"${DEV_COMPOSE_PROJECT_LABEL}\"}}") || return 1
+    while read -r id project; do
+        [ -n "$id" ] || continue
+        if dev_is_worktree_compose_project "$checkout" "$project"; then
+            printf 'container %s\n' "$id"
         fi
+    done <<< "$listing"
 
-        containers=$(docker ps -aq \
-            --filter "label=${DEV_CHECKOUT_LABEL}=${checkout}" \
-            --filter "label=${DEV_SLOT_LABEL}=${slot}" 2>/dev/null)
-
-        if [ -z "$containers" ]; then
-            rm -f "$slot_file"
+    listing=$(docker volume ls --filter "label=${DEV_COMPOSE_PROJECT_LABEL}" \
+        --format "{{.Name}} {{.Label \"${DEV_COMPOSE_PROJECT_LABEL}\"}}") || return 1
+    while read -r name project; do
+        [ -n "$name" ] || continue
+        if dev_is_worktree_compose_project "$checkout" "$project"; then
+            printf 'volume %s\n' "$name"
         fi
-    done < <(dev_list_slot_files)
+    done <<< "$listing"
+
+    listing=$(docker image ls --filter "label=${DEV_COMPOSE_PROJECT_LABEL}" \
+        --format '{{.ID}} {{.Repository}}:{{.Tag}}') || return 1
+    while read -r id reference; do
+        case "$reference" in
+            wt[1-9]-"$checkout"-*) target=$reference ;;
+            '<none>:<none>') target=$id ;;
+            *) continue ;;
+        esac
+        project=$(docker image inspect \
+            --format "{{index .Config.Labels \"${DEV_COMPOSE_PROJECT_LABEL}\"}}" "$target" 2>/dev/null) || continue
+        if dev_is_worktree_compose_project "$checkout" "$project"; then
+            printf 'image %s\n' "$target"
+        fi
+    done <<< "$listing"
 }
 
 dev_clear_stale_slot_files() {

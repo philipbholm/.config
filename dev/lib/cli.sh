@@ -110,7 +110,8 @@ Usage: dev stack <action> [arguments]
   down     Remove this stack's containers and network; keep database volumes.
   destroy [--yes]
       Delete this stack's containers, database volumes, local images and slot.
-      Prompts in a terminal; requires --yes for non-interactive execution.
+      In a worktree this covers every slot it has used, even when the stack is
+      stopped. Prompts in a terminal; requires --yes for non-interactive execution.
   list     List running stacks across checkouts; works outside a repository.
   expose   Publish this stack's frontend and API through public tunnels.
 

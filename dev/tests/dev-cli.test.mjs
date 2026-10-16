@@ -30,9 +30,15 @@ function fixture(t) {
     writeFileSync(join(bin, command), `#!${process.execPath}
 const fs = require("node:fs");
 const args = process.argv.slice(2);
-fs.appendFileSync(process.env.DEV_TEST_LOG, JSON.stringify({ command: ${JSON.stringify(command)}, args, cwd: process.cwd() }) + "\\n");
+fs.appendFileSync(process.env.DEV_TEST_LOG, JSON.stringify({ command: ${JSON.stringify(command)}, args, cwd: process.cwd(),
+  locked: fs.existsSync(process.env.DEV_SLOT_LOCKDIR) }) + "\\n");
 if (${JSON.stringify(command)} === "lsof" && args.includes("-iTCP:" + process.env.DEV_TEST_OCCUPIED_PORT)) process.exit(0);
 if (${JSON.stringify(command)} !== "docker" || process.env.DEV_TEST_DOCKER !== "allow") process.exit(99);
+const rule = JSON.parse(process.env.DEV_TEST_DOCKER_RULES ?? "[]").find(rule => rule.has.every(token => args.includes(token)));
+if (rule) {
+  process.stdout.write(rule.stdout ?? "");
+  process.exit(rule.status ?? 0);
+}
 if (args.includes("--services")) process.stdout.write(process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n");
 if (args.includes("--format") && args.includes("json")) process.stdout.write(process.env.DEV_TEST_CONFIG_JSON ?? JSON.stringify({name: "fixture", services: Object.fromEntries((process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n").trim().split("\\n").map(name => [name, {}]))}));
 if (args.includes("build") && process.env.DEV_TEST_BUILD_FAIL) process.exit(12);
@@ -44,6 +50,7 @@ if (args.includes("build") && process.env.DEV_TEST_BUILD_FAIL) process.exit(12);
     PATH: `${bin}:${process.env.PATH}`,
     DEV_MAIN_REPO: repo,
     DEV_STACKS_DIR: join(directory, "stacks"),
+    DEV_SLOT_LOCKDIR: join(directory, "slot.lock"),
     DEV_TEST_LOG: log,
     DEV_TEST_EFFECT: effect,
     GIT_CONFIG_COUNT: "1",
@@ -394,6 +401,126 @@ test("Refuse to destroy the main checkout or a dirty worktree", (t) => {
   assert.equal(f.run(["worktree", "destroy"], worktree).status, 1);
   assert.equal(readFileSync(join(worktree, "unfinished.txt"), "utf8"), "Keep this work\n");
   assert.deepEqual(f.calls(), []);
+});
+
+function stoppedWorktreeStack(t, extraRules = []) {
+  const f = fixture(t);
+  f.env.DEV_TEST_DOCKER = "allow";
+  writeFileSync(join(f.repo, "docker-compose.yml"), "services:\n  postgres:\n    image: postgres\n");
+  writeFileSync(join(f.repo, ".gitignore"), "AGENTS.md\nCLAUDE.local.md\n");
+  f.git("add", "docker-compose.yml", ".gitignore");
+  f.git("-c", "user.name=CLI Test", "-c", "user.email=cli-test@example.invalid", "-c", "commit.gpgsign=false",
+    "commit", "-m", "Add the compose file");
+  const worktree = join(f.directory, "feature");
+  f.git("worktree", "add", "-b", "feature", worktree);
+  f.env.DEV_TEST_DOCKER_RULES = JSON.stringify([
+    ...extraRules,
+    { has: ["ps", "label=com.docker.compose.project"], stdout: "c9 wt2-feature-bar\n" },
+    { has: ["volume", "ls"], stdout: [
+      "wt2-feature_database_data_wt_2 wt2-feature",
+      "wt5-feature_database_data_wt_5 wt5-feature",
+      "wt2-feature-bar_database_data_wt_2 wt2-feature-bar",
+      "feature_database_data feature",
+      "wt2-other_database_data_wt_2 wt2-other",
+    ].join("\n") + "\n" },
+    { has: ["image", "ls"], stdout: [
+      "i1 wt2-feature-registries:latest",
+      "i2 wt2-feature-bar-registries:latest",
+      "i3 <none>:<none>",
+      "i4 wt5-feature-codelist:latest",
+      "i5 wt2-other-registries:latest",
+    ].join("\n") + "\n" },
+    { has: ["image", "inspect", "wt2-feature-registries:latest"], stdout: "wt2-feature\n" },
+    { has: ["image", "inspect", "wt2-feature-bar-registries:latest"], stdout: "wt2-feature-bar\n" },
+    { has: ["image", "inspect", "i3"], stdout: "wt5-feature\n" },
+    { has: ["image", "inspect", "wt5-feature-codelist:latest"], stdout: "wt5-feature\n" },
+  ]);
+  return { f, worktree };
+}
+
+const removalCalls = (calls) => calls
+  .filter(call => call.command === "docker" && (call.args[0] === "rm" || call.args[1] === "rm"))
+  .map(call => call.args.join(" "));
+
+const stoppedFeatureRemovals = [
+  "volume rm wt2-feature_database_data_wt_2",
+  "volume rm wt5-feature_database_data_wt_5",
+  "image rm wt2-feature-registries:latest",
+  "image rm i3",
+  "image rm wt5-feature-codelist:latest",
+];
+
+test("Remove a stopped worktree's volumes and images from every slot when its slot file is gone", (t) => {
+  const { f, worktree } = stoppedWorktreeStack(t);
+  const otherStackDirectory = join(f.env.DEV_STACKS_DIR, "other");
+  mkdirSync(otherStackDirectory, { recursive: true });
+  writeFileSync(join(otherStackDirectory, "worktree-slot"), "4\n");
+
+  const result = f.run(["worktree", "destroy"], worktree);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.equal(existsSync(worktree), false);
+  assert.deepEqual(removalCalls(f.calls()), stoppedFeatureRemovals);
+  assert.equal(f.calls().some(call => call.args[0] === "network"), false);
+  assert.equal(f.calls().some(call => call.args[0] === "compose" && call.args.includes("down")), false);
+  assert.equal(readFileSync(join(otherStackDirectory, "worktree-slot"), "utf8"), "4\n");
+});
+
+test("Destroy a stopped worktree stack whose saved slot another stack now holds", (t) => {
+  const { f, worktree } = stoppedWorktreeStack(t, [{ has: ["label=com.ledidi.dev-slot=2"], stdout: "c9\n" }]);
+  const stackDirectory = join(f.env.DEV_STACKS_DIR, "feature");
+  mkdirSync(stackDirectory, { recursive: true });
+  writeFileSync(join(stackDirectory, "worktree-slot"), "2\n");
+
+  const result = f.run(["stack", "destroy", "--yes"], worktree);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.deepEqual(removalCalls(f.calls()), stoppedFeatureRemovals);
+  assert.equal(f.calls().some(call => call.args[0] === "network"), false);
+  assert.equal(existsSync(stackDirectory), false);
+});
+
+test("Keep the worktree when a leftover stack volume cannot be removed", (t) => {
+  const { f, worktree } = stoppedWorktreeStack(t,
+    [{ has: ["volume", "rm", "wt5-feature_database_data_wt_5"], status: 1 }]);
+  const result = f.run(["worktree", "destroy"], worktree);
+  assert.notEqual(result.status, 0);
+  assert.ok(existsSync(join(worktree, ".git")));
+  assert.match(result.stderr, /volume wt5-feature_database_data_wt_5/);
+});
+
+for (const scenario of [
+  { name: "is free", slotHolders: "", networkCalls: [
+    "network disconnect admin-bridge-wt-3 admin-mock", "network disconnect default-network-wt-3 admin-mock",
+    "network rm admin-bridge-wt-3", "network rm default-network-wt-3"] },
+  { name: "has another stack's containers", slotHolders: "c7\n", networkCalls: [] },
+]) {
+  test(`Remove a running worktree stack and touch its slot networks only when the slot ${scenario.name}`, (t) => {
+    const { f, worktree } = stoppedWorktreeStack(t, [
+      { has: ["label=com.ledidi.dev-workspace=feature", "label=com.ledidi.dev-slot"], stdout: "c1\n" },
+      { has: ["inspect", "c1"], stdout: "3\n" },
+      { has: ["label=com.ledidi.dev-slot=3"], stdout: scenario.slotHolders },
+    ]);
+    const result = f.run(["stack", "destroy", "--yes"], worktree);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /Project: wt3-feature/);
+    const down = f.calls().find(call => call.args[0] === "compose" && call.args.includes("down"));
+    assert.ok(down.locked);
+    assert.deepEqual(down.args.slice(5), ["down", "-v", "--rmi", "local", "--remove-orphans"]);
+    const networkCalls = f.calls().filter(call => call.args[0] === "network");
+    assert.deepEqual(networkCalls.map(call => call.args.join(" ")), scenario.networkCalls);
+    assert.ok(networkCalls.every(call => call.locked));
+    assert.deepEqual(removalCalls(f.calls().filter(call => !call.locked && call.args[0] !== "network")), stoppedFeatureRemovals);
+    assert.equal(existsSync(f.env.DEV_SLOT_LOCKDIR), false);
+  });
+}
+
+test("Match a worktree's Compose projects by their exact name", (t) => {
+  const f = fixture(t);
+  const projects = ["wt1-feature", "wt9-feature", "wt0-feature", "wt10-feature", "wt1-feature-bar", "feature", "xwt1-feature"];
+  const result = spawnSync("bash", ["-c",
+    '. "$1"; shift; for project in "$@"; do dev_is_worktree_compose_project feature "$project" && echo "$project"; done; true',
+    "test", join(f.tools, "lib/checkout.sh"), ...projects], { env: f.env, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split("\n"), ["wt1-feature", "wt9-feature"]);
 });
 
 test("Preserve persisted checkout identity and saved slots across the rename", (t) => {

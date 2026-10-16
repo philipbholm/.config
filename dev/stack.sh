@@ -294,7 +294,7 @@ slot_from_existing_stack() {
 # has been picked. That stretch can take minutes on a cold create, so a lock is
 # stale when the pid that took it is gone rather than after a fixed age, and
 # competing runs wait instead of failing.
-SLOT_LOCKDIR="/tmp/dev-slot.lock"
+SLOT_LOCKDIR="${DEV_SLOT_LOCKDIR:-/tmp/dev-slot.lock}"
 slot_lock_held="false"
 
 acquire_slot_lock() {
@@ -323,7 +323,7 @@ acquire_slot_lock() {
         fi
 
         if [ "$announced" = false ]; then
-            echo "Waiting for another dev run (pid $holder) to claim its slot..."
+            echo "Waiting for another dev run (pid $holder) to release the slot lock..."
             announced=true
         fi
         if [ "$waited" -ge "$wait_limit" ]; then
@@ -791,6 +791,115 @@ remove_env_files() {
     rm -f "$repo_root/services/registries/.env.test.local"
 }
 
+# --- Teardown ---
+
+confirm_destroy() {
+    echo "This will remove all containers, volumes, and images for this stack."
+    if [ "$destroy_confirmed" = "true" ]; then
+        :
+    elif [ -t 0 ]; then
+        read -r -p "Are you sure? (y/N): " confirm
+        echo
+        if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+            echo "Stack destruction cancelled."
+            exit 0
+        fi
+    elif [ "$destroy_confirmed" != "true" ]; then
+        # No terminal to prompt on (script, agent, pipe). Deleting volumes —
+        # in main mode, the main checkout's postgres data — needs to be asked
+        # for on purpose.
+        echo "Error: stdin is not a terminal, so there is nothing to confirm on." >&2
+        echo "Re-run as 'dev stack destroy --yes' if you really mean to remove the volumes and images." >&2
+        exit 1
+    fi
+}
+
+remove_slot_networks() {
+    local s=$1
+    local slot_holders
+
+    slot_holders=$(docker ps -aq --filter "label=${DEV_SLOT_LABEL}=${s}")
+    if [ -n "$slot_holders" ]; then
+        echo "Kept the slot $s networks: another stack's containers use slot $s."
+        return 0
+    fi
+    docker network disconnect "admin-bridge-wt-${s}" admin-mock 2>/dev/null || true
+    docker network disconnect "default-network-wt-${s}" admin-mock 2>/dev/null || true
+    docker network rm "admin-bridge-wt-${s}" 2>/dev/null || true
+    docker network rm "default-network-wt-${s}" 2>/dev/null || true
+}
+
+remove_docker_resource() {
+    local kind=$1
+    local name=$2
+
+    case "$kind" in
+        container) docker rm -f -v "$name" >/dev/null ;;
+        volume) docker volume rm "$name" >/dev/null ;;
+        image) docker image rm "$name" >/dev/null ;;
+        *) return 1 ;;
+    esac
+}
+
+remove_worktree_stack_resources() {
+    local resources
+    local kind
+    local name
+    local kept=""
+
+    resources=$(dev_worktree_stack_resources "$base_project_name") || {
+        echo "Error: could not list the Docker resources of $base_project_name." >&2
+        exit 1
+    }
+    while read -r kind name; do
+        [ -n "$kind" ] || continue
+        if remove_docker_resource "$kind" "$name"; then
+            echo "Removed $kind $name"
+        else
+            kept="${kept}  $kind $name"$'\n'
+        fi
+    done <<< "$resources"
+
+    if [ -n "$kept" ]; then
+        echo "Error: these Docker resources of $base_project_name are still there:" >&2
+        printf '%s' "$kept" >&2
+        echo "Remove them and re-run 'dev stack destroy --yes'." >&2
+        exit 1
+    fi
+}
+
+destroy_worktree_stack() {
+    local slot
+
+    acquire_slot_lock
+    slot=$(slot_from_existing_stack || true)
+    if [ -n "$slot" ]; then
+        if ! [[ "$slot" =~ ^[1-9]$ ]]; then
+            echo "Error: this checkout's containers carry the unusable slot label '$slot' (expected 1-9)." >&2
+            exit 1
+        fi
+        project_name="wt${slot}-${base_project_name}"
+        echo "Mode: worktree (slot $slot, offset +$(( slot * 100 )))"
+        echo "Project: $project_name"
+        echo
+        generate_override "$slot"
+        dc down -v --rmi local --remove-orphans
+        remove_slot_networks "$slot"
+    else
+        echo "Mode: worktree (no containers)"
+        echo
+    fi
+    release_slot_lock
+
+    remove_worktree_stack_resources
+    clear_saved_slot
+    remove_env_files
+    rm -rf "$tmp_dir"
+    restore_context_files
+    echo
+    echo "Stack destruction complete."
+}
+
 # --- Status ---
 
 show_status() {
@@ -900,6 +1009,12 @@ if [ ! -f "$repo_root/docker-compose.yml" ]; then
     echo "Error: no docker-compose.yml in $repo_root." >&2
     echo "dev manages the monorepo's stack and has to run inside a checkout of it." >&2
     exit 1
+fi
+
+if [ "$subcommand" = "destroy" ] && [ "$mode" = "worktree" ]; then
+    confirm_destroy
+    destroy_worktree_stack
+    exit 0
 fi
 
 # Take the slot lock before scanning for a free slot; the up branch releases it
@@ -1028,33 +1143,9 @@ case "$subcommand" in
         ;;
 
     destroy)
-        echo "This will remove all containers, volumes, and images for this stack."
-        if [ "$destroy_confirmed" = "true" ]; then
-            :
-        elif [ -t 0 ]; then
-            read -r -p "Are you sure? (y/N): " confirm
-            echo
-            if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-                echo "Stack destruction cancelled."
-                exit 0
-            fi
-        elif [ "$destroy_confirmed" != "true" ]; then
-            # No terminal to prompt on (script, agent, pipe). Deleting volumes —
-            # in main mode, the main checkout's postgres data — needs to be asked
-            # for on purpose.
-            echo "Error: stdin is not a terminal, so there is nothing to confirm on." >&2
-            echo "Re-run as 'dev stack destroy --yes' if you really mean to remove the volumes and images." >&2
-            exit 1
-        fi
+        confirm_destroy
         generate_override "$resolved_slot"
         dc down -v --rmi local --remove-orphans
-        if [ "$mode" = "worktree" ]; then
-            docker network disconnect "admin-bridge-wt-${resolved_slot}" admin-mock 2>/dev/null || true
-            docker network disconnect "default-network-wt-${resolved_slot}" admin-mock 2>/dev/null || true
-            docker network rm "admin-bridge-wt-${resolved_slot}" 2>/dev/null || true
-            docker network rm "default-network-wt-${resolved_slot}" 2>/dev/null || true
-            clear_saved_slot
-        fi
         remove_env_files
         rm -rf "$tmp_dir"
         restore_context_files

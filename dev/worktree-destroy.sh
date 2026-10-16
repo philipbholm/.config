@@ -46,8 +46,15 @@ echo "Tearing down $worktree_path (branch: $branch)"
 
 slot_file=$(dev_existing_slot_file_for_repo "$worktree_path" 2>/dev/null || true)
 existing_containers=$(docker ps -aq --filter "label=${DEV_CHECKOUT_LABEL}=${project_name}" 2>/dev/null || true)
+stack_resources=""
+if docker info >/dev/null 2>&1; then
+  stack_resources=$(dev_worktree_stack_resources "$project_name") || {
+    echo "Error: could not list the Docker resources of $project_name, so $worktree_path was kept." >&2
+    exit 1
+  }
+fi
 
-if [[ -n "$slot_file" || -n "$existing_containers" ]]; then
+if [[ -n "$slot_file" || -n "$existing_containers" || -n "$stack_resources" ]]; then
   echo "  Nuking dev stack ($project_name)..."
   # Running dev worktree destroy is the confirmation, and `dev stack destroy` refuses to assume one
   # when there is no terminal to prompt on.
@@ -74,7 +81,6 @@ cd "$main_repo"
 git -C "$main_repo" worktree remove "$worktree_path"
 git -C "$main_repo" worktree prune
 
-dev_prune_stale_slot_files
 if [[ "$main_repo" == "${DEV_MAIN_REPO:-$HOME/work/ledidi-monorepo}" ]]; then
   bash "$SCRIPT_DIR/context-render.sh" ||
     echo "Warning: context render failed; CLAUDE.local.md and AGENTS.md may be stale." >&2
