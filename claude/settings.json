@@ -67,30 +67,6 @@
     ],
     "defaultMode": "auto"
   },
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/Users/philip/.config/dev/claude-notify.sh stop",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/Users/philip/.config/dev/claude-notify.sh notification",
-            "async": true
-          }
-        ]
-      }
-    ]
-  },
   "worktree": {
     "baseRef": "fresh"
   },
