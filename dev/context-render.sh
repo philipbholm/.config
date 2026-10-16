@@ -17,7 +17,6 @@ done
 
 CONTEXT_DIR="$SCRIPT_DIR/context/ledidi-monorepo"
 CONTEXT_TEMPLATE="$CONTEXT_DIR/AGENTS.md"
-CLAUDE_POINTER="$CONTEXT_DIR/CLAUDE.local.md"
 MAIN_REPO="${DEV_MAIN_REPO:-$HOME/work/ledidi-monorepo}"
 
 NO_STACK="no-stack"
@@ -142,11 +141,6 @@ if [[ ! -f "$CONTEXT_TEMPLATE" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$CLAUDE_POINTER" ]]; then
-  echo "Claude pointer not found: $CLAUDE_POINTER" >&2
-  exit 1
-fi
-
 if [[ "$(head -n 1 "$CONTEXT_TEMPLATE")" != '# AGENTS.md' ]]; then
   echo "Template must start with '# AGENTS.md': $CONTEXT_TEMPLATE" >&2
   exit 1
@@ -176,6 +170,36 @@ targets=()
 
 [[ -d "$MAIN_REPO" ]] || dev_cli_error "Ledidi checkout not found: $MAIN_REPO"
 MAIN_REPO=$(cd "$MAIN_REPO" && pwd -P)
+
+post_checkout_hook="$(git -C "$MAIN_REPO" rev-parse --path-format=absolute --git-path hooks)/post-checkout"
+post_checkout_body="#!/bin/sh
+[ -f AGENTS.md ] || bash '$SCRIPT_DIR/context-render.sh' >/dev/null 2>&1
+exit 0"
+exclude_file="$(git -C "$MAIN_REPO" rev-parse --path-format=absolute --git-path info/exclude)"
+
+hook_result=0
+if [[ "$(cat "$post_checkout_hook" 2>/dev/null)" != "$post_checkout_body" ]]; then
+  if [[ "$check_only" == true ]]; then
+    echo "Stale or missing post-checkout hook: $post_checkout_hook"
+    hook_result=1
+  elif [[ -f "$post_checkout_hook" ]] && ! grep -q 'context-render.sh' "$post_checkout_hook"; then
+    echo "Warning: $post_checkout_hook belongs to another tool, so new worktrees will not receive AGENTS.md." >&2
+  else
+    mkdir -p "$(dirname "$post_checkout_hook")"
+    printf '%s\n' "$post_checkout_body" > "$post_checkout_hook"
+    chmod +x "$post_checkout_hook"
+  fi
+fi
+
+if ! grep -qxF '/AGENTS.md' "$exclude_file" 2>/dev/null; then
+  if [[ "$check_only" == true ]]; then
+    echo "Git does not ignore the rendered AGENTS.md: $exclude_file"
+    hook_result=1
+  else
+    mkdir -p "$(dirname "$exclude_file")"
+    printf '/AGENTS.md\n' >> "$exclude_file"
+  fi
+fi
 
 add_target() {
   local target=$1
@@ -248,11 +272,9 @@ trap 'rm -rf "$preview_dir"' EXIT
 for entry in "${targets[@]}"; do
   target="${entry%%:*}"
   slot="${entry##*:}"
-  claude_dest="$preview_dir/CLAUDE.local.md"
   agents_dest="$preview_dir/AGENTS.md"
 
   cp "$CONTEXT_TEMPLATE" "$agents_dest"
-  cp "$CLAUDE_POINTER" "$claude_dest"
 
   if [[ "$target" == "$MAIN_REPO" ]]; then
     # The template's port section is written for a worktree. The main checkout
@@ -279,22 +301,21 @@ for entry in "${targets[@]}"; do
     [[ "$check_only" == true ]] || echo "  ✓ ${target##*/} (slot $slot)"
   fi
 
-  for name in AGENTS.md CLAUDE.local.md; do
-    if [[ "$check_only" == true ]]; then
-      if ! cmp -s "$preview_dir/$name" "$target/$name"; then
-        echo "Stale or missing context: $target/$name"
-        result=1
-      fi
-    else
-      cp "$preview_dir/$name" "$target/$name"
+  if [[ "$check_only" == true ]]; then
+    if ! cmp -s "$agents_dest" "$target/AGENTS.md"; then
+      echo "Stale or missing context: $target/AGENTS.md"
+      result=1
     fi
-  done
+  else
+    cp "$agents_dest" "$target/AGENTS.md"
+  fi
 
   count=$(( count + 1 ))
 done
 
 if [[ "$check_only" == true ]]; then
   [[ "$duplicate_found" == false ]] || result=1
+  [[ "$hook_result" == 0 ]] || result=1
   [[ "$result" != 0 ]] || echo "Rendered context is current for $count checkout(s)"
 else
   echo "Rendered context for $count checkout(s)"

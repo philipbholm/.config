@@ -747,34 +747,24 @@ dc() {
 sync_context_files() {
     local s=$1
     local context_template="$SCRIPT_DIR/context/ledidi-monorepo/AGENTS.md"
-    local claude_pointer="$SCRIPT_DIR/context/ledidi-monorepo/CLAUDE.local.md"
-    local claude_local_md="$repo_root/CLAUDE.local.md"
     local agents_md="$repo_root/AGENTS.md"
 
     if [ ! -f "$context_template" ]; then
         echo "Warning: context template not found at $context_template" >&2
-    elif [ ! -f "$claude_pointer" ]; then
-        echo "Warning: Claude pointer not found at $claude_pointer" >&2
     elif [ "$(head -n 1 "$context_template")" != '# AGENTS.md' ]; then
         echo "Warning: context template must start with '# AGENTS.md': $context_template" >&2
     else
         cp "$context_template" "$agents_md"
-        cp "$claude_pointer" "$claude_local_md"
         dev_apply_context_ports "$agents_md" "$s"
     fi
 }
 
-# Teardown restores the context corpus instead of deleting it: AGENTS.md
-# carries every project rule, not just the port table, and CLAUDE.local.md
-# points at it. Nothing else puts them back. context-render.sh re-renders them
-# from the templates and swaps the port section for a start-the-stack note
-# when there is no stack.
 restore_context_files() {
     if [ ! -x "$SYNC_CONTEXT" ]; then
         echo "Warning: $SYNC_CONTEXT is not executable; leaving context files as they are." >&2
         return 0
     fi
-    (cd "$repo_root" && bash "$SYNC_CONTEXT") || echo "Warning: context render failed; CLAUDE.local.md and AGENTS.md may be stale." >&2
+    (cd "$repo_root" && bash "$SYNC_CONTEXT") || echo "Warning: context render failed; AGENTS.md may be stale." >&2
 }
 
 write_env_files() {

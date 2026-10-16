@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const source = fileURLToPath(new URL("..", import.meta.url));
 const scripts = ["dev", "stack", "worktree-create", "worktree-destroy", "workspace-prepare",
-  "stack-expose", "context-render", "context-inspect", "session-search", "agent-config-apply", "browser-launch-debug", "test-e2e", "story"];
+  "stack-expose", "context-render", "context-inspect", "claude-context", "session-search", "agent-config-apply", "browser-launch-debug", "test-e2e", "story"];
 
 function fixture(t) {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "dev-cli-test-")));
@@ -181,16 +181,11 @@ test("Render only the current checkout unless all worktrees are requested", (t) 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(readFileSync(join(f.repo, "AGENTS.md"), "utf8"), "Keep main context\n");
   assert.match(readFileSync(join(worktree, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  const worktreeClaude = readFileSync(join(worktree, "CLAUDE.local.md"), "utf8");
-  assert.match(worktreeClaude, /^# CLAUDE.local.md/);
-  assert.match(worktreeClaude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
-  assert.doesNotMatch(worktreeClaude, /## Ports/);
+  assert.equal(existsSync(join(worktree, "CLAUDE.local.md")), false);
   result = f.run(["context", "render", "--all-worktrees"]);
   assert.equal(result.status, 0, result.stderr);
   assert.match(readFileSync(join(f.repo, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  const mainClaude = readFileSync(join(f.repo, "CLAUDE.local.md"), "utf8");
-  assert.match(mainClaude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
-  assert.doesNotMatch(mainClaude, /## Ports/);
+  assert.equal(existsSync(join(f.repo, "CLAUDE.local.md")), false);
   assert.ok(f.calls().every(call => call.command === "docker" && call.args[0] === "ps"));
 });
 
@@ -200,11 +195,37 @@ test("Create a Ledidi worktree with context but without preparing dependencies",
   assert.equal(result.status, 0, result.stderr);
   const worktree = join(f.repo, ".worktrees/docs-only");
   assert.match(readFileSync(join(worktree, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  const claude = readFileSync(join(worktree, "CLAUDE.local.md"), "utf8");
-  assert.match(claude, /^# CLAUDE.local.md/);
-  assert.match(claude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
-  assert.doesNotMatch(claude, /## Ports/);
+  assert.equal(existsSync(join(worktree, "CLAUDE.local.md")), false);
   assert.deepEqual(f.calls(), []);
+});
+
+test("Render AGENTS.md into a worktree that git creates outside dev", (t) => {
+  const f = fixture(t);
+  assert.equal(f.run(["context", "render"], f.repo).status, 0);
+  assert.match(readFileSync(join(f.repo, ".git/info/exclude"), "utf8"), /^\/AGENTS\.md$/m);
+  const worktree = join(f.directory, "harness-worktree");
+  f.git("worktree", "add", "-b", "harness-worktree", worktree);
+  const agents = readFileSync(join(worktree, "AGENTS.md"), "utf8");
+  assert.match(agents, /^# AGENTS.md/);
+  assert.match(agents, /No dev stack is running for this worktree/);
+  assert.equal(f.git("-C", worktree, "status", "--porcelain"), "");
+});
+
+test("Give Claude Code the AGENTS.md of the session's own checkout", (t) => {
+  const f = fixture(t);
+  const worktree = join(f.repo, ".worktrees/nested");
+  f.git("worktree", "add", "-b", "nested", worktree);
+  const session = (cwd) => spawnSync("bash", [join(f.tools, "claude-context.sh")], {
+    cwd, env: { ...f.env, CLAUDE_PROJECT_DIR: cwd }, encoding: "utf8",
+  });
+  let result = session(worktree);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^# AGENTS.md/);
+  assert.match(result.stdout, /No dev stack is running for this worktree/);
+  assert.doesNotMatch(result.stdout, /Main Checkout/);
+  result = session(f.directory);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "");
 });
 
 test("Detect stale rendered context without changing either checkout file", (t) => {
@@ -213,8 +234,6 @@ test("Detect stale rendered context without changing either checkout file", (t) 
   f.git("worktree", "add", "-b", "feature-context", worktree);
   assert.equal(f.run(["context", "render"], worktree).status, 0);
   const agents = join(worktree, "AGENTS.md");
-  const claude = join(worktree, "CLAUDE.local.md");
-  const originalClaude = readFileSync(claude, "utf8");
   writeFileSync(agents, "Stale instructions\n");
   const result = spawnSync("bash", [join(f.tools, "context-render.sh"), "--check"], {
     cwd: worktree, env: f.env, encoding: "utf8",
@@ -222,7 +241,6 @@ test("Detect stale rendered context without changing either checkout file", (t) 
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stdout, /Stale or missing context:.*AGENTS.md/);
   assert.equal(readFileSync(agents, "utf8"), "Stale instructions\n");
-  assert.equal(readFileSync(claude, "utf8"), originalClaude);
   assert.deepEqual(f.calls(), []);
 });
 

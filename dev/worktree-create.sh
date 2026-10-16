@@ -59,7 +59,7 @@ fi
 
 if [[ "$main_repo" == "${DEV_MAIN_REPO:-$HOME/work/ledidi-monorepo}" ]]; then
   (cd "$worktree_path" && bash "$SCRIPT_DIR/context-render.sh") ||
-    echo "Warning: context sync failed; AGENTS.md and CLAUDE.local.md may be missing." >&2
+    echo "Warning: context sync failed; AGENTS.md may be missing." >&2
 fi
 
 echo

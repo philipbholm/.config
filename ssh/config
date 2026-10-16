@@ -1,12 +1,6 @@
+Include ~/.config/ssh/myos.conf
+
 Host github.com
     HostName github.com
     IdentityFile ~/.ssh/github
 
-Host myos
-  HostName 
-  User root
-  IdentityFile ~/.ssh/myos
-  IdentitiesOnly yes
-
-  AddKeysToAgent yes
-  UseKeychain yes
