@@ -125,13 +125,16 @@ mocked component tests do not require a full application stack.
 When upgrading a service Docker image for a vulnerability, check whether its
 migrator uses the same image.
 
-Before browser verification after a rebase, merge, or branch switch, run
-`dev stack up` for the required services even when their containers exist.
-Startup checks image inputs against the checkout and rebuilds changed or
-unverified images. `dev test e2e` runs this check for its backend services.
-Configuration such as `prisma.config.ts` and generation scripts can remain in
-the image while schema directories are mounted from the checkout; restarting
-alone does not refresh those image files. Use `--build` for changed ignored
+After a rebase, merge, or branch switch, list the incoming files with
+`git diff --name-only ORIG_HEAD HEAD` (or the previous head after a branch
+switch). Run `dev stack up` for the required services when that list touches
+an image input of a running service: its `Dockerfile` or `.dockerignore`, its
+`package.json` or lockfile, Prisma schema or migrations, `prisma.config.ts`, or
+generation scripts. Run it also when those services are stopped. Otherwise keep
+the running containers: mounted source reloads through nodemon and Vite, and
+the table above covers schema and `.proto` changes. `dev stack up` compares
+image inputs with the checkout and rebuilds stale images; `dev test e2e` runs
+the same check for its backend services. Use `--build` for changed ignored
 build inputs or to request an explicit rebuild.
 
 ## Browser verification and diagnosis
