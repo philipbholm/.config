@@ -843,7 +843,7 @@ def command_up(args):
     render_context(checkout.root)
     wait_ready(checkout, slot, app_services)
     if "registries" in app_services:
-        if seed(checkout, slot) and database_state == "migrated":
+        if database_state == "migrated" and seed(checkout, slot):
             snapshot_seeded_template(checkout, slot)
     ports = ports_for(slot)
     if "registries-frontend" in app_services:
