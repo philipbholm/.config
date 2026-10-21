@@ -117,12 +117,6 @@ run_seed() {
     # already runs generate before migrate. Running it again while nodemon watchers
     # are active triggers a restart loop (writes .ts files → dev:watch detects → restarts).
 
-    echo "Seeding ICD-10 codes..."
-    dc exec -T registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-icd10'
-
-    echo "Seeding ATC codes..."
-    dc exec -T registries sh -c 'POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/registries" npm run seed-atc'
-
     ensure_analysis_registry "$slot"
 
     echo
@@ -138,10 +132,12 @@ ensure_analysis_registry() {
         return 0
     fi
     echo "Ensuring Analysis test registry..."
-    (
+    if ! (
         cd "$scripts_dir"
         npx tsx create-registry.ts analysis --slot "$slot" --if-missing
-    )
+    ); then
+        echo "Warning: create-registry.ts failed; the Analysis test registry may be missing or incomplete."
+    fi
 }
 
 worktree_has_patient_bff() {

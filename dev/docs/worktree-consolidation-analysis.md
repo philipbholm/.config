@@ -70,13 +70,7 @@ These can coexist if you choose which to use based on context.
 
 ### 6. Seeding Issue
 
-`run_seed` in `dev.sh` hardcodes database name `registries`:
-
-```bash
-POSTGRES_URL="postgresql://...@postgres:5432/registries" npm run seed-icd10
-```
-
-If adopting per-worktree databases, this needs to use `registries_wt{N}`.
+`run_seed` in `stack.sh` no longer seeds code lists: the registries service dropped its `seed-icd10` and `seed-atc` scripts. It waits for the `registries` migrations and creates the Analysis test registry with `create-registry.ts --slot`. If adopting per-worktree databases, `wait_for_migrations` must check `registries_wt{N}` instead of `registries`.
 
 ---
 
