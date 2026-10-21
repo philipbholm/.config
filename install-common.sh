@@ -277,28 +277,8 @@ setup_theme() {
 setup_macos_defaults() {
   echo "Configuring macOS defaults (Dock, battery, keyboard, Finder)..."
 
-  # Dock: autohide + pinned app list, in order. Apps not yet installed are
-  # skipped rather than added as broken icons; re-run after installing them.
   defaults write com.apple.dock autohide -bool true
   defaults write com.apple.dock show-recents -bool false
-  defaults write com.apple.dock persistent-apps -array
-  local dock_apps=(
-    "/Applications/Alacritty.app"
-    "/Applications/Docker.app"
-    "/Applications/Spotify.app"
-    "/Applications/TickTick.app"
-    "/Applications/Obsidian.app"
-    "/Applications/Brave Browser.app"
-  )
-  local app
-  for app in "${dock_apps[@]}"; do
-    if [[ -d "$app" ]]; then
-      defaults write com.apple.dock persistent-apps -array-add \
-        "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>$app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>"
-    else
-      echo "  Skipping Dock entry for $app (not installed)"
-    fi
-  done
 
   # Menu bar: show battery percentage (legacy key + Ventura+ Control Center key)
   defaults write com.apple.menuextra.battery ShowPercent -string "YES"
