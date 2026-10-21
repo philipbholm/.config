@@ -8,8 +8,39 @@ source "$DOTFILES/install-common.sh"
 
 echo "── Installing PERSONAL profile ───────────────────"
 
+# Homebrew's docker-buildx lands outside Docker's plugin search path. A
+# symlink in ~/.docker/cli-plugins, a directory Docker always searches,
+# avoids tracking ~/.docker/config.json, which `docker login` writes
+# credentials into.
+link_docker_buildx() {
+  mkdir -p ~/.docker/cli-plugins
+  ln -sfn /opt/homebrew/opt/docker-buildx/bin/docker-buildx ~/.docker/cli-plugins/docker-buildx
+}
+
+# myos scripts/check.sh needs vmalert-tool, which no Homebrew formula ships
+# (victoriametrics has only the server). The version matches the pin in
+# myos scripts/ci/lib.sh; change both together. lib.sh puts
+# ~/.cache/myos-ci-tools/bin on PATH, so only myos's checks see it.
+install_myos_vmalert_tool() {
+  local version=v1.148.0
+  local sum=bf8d960339c305bcc617ab0cc19dbc07cc0be45cf11ddd7d477561ad12132591
+  local bin="$HOME/.cache/myos-ci-tools/bin/vmalert-tool"
+  [[ -x "$bin" ]] && "$bin" --version 2>&1 | grep -q "$version" && return 0
+  local tmp
+  tmp=$(mktemp -d)
+  curl -fsSL -o "$tmp/vmutils.tgz" \
+    "https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/$version/vmutils-darwin-arm64-$version.tar.gz"
+  echo "$sum  $tmp/vmutils.tgz" | shasum -a 256 --check --quiet
+  tar -xzf "$tmp/vmutils.tgz" -C "$tmp" vmalert-tool-prod
+  mkdir -p "$(dirname "$bin")"
+  install -m 0755 "$tmp/vmalert-tool-prod" "$bin"
+  rm -rf "$tmp"
+}
+
 run_core
 brew_bundle "$DOTFILES/Brewfile.personal"
+link_docker_buildx
+install_myos_vmalert_tool
 setup_macos_defaults
 
 verify

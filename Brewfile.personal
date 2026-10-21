@@ -7,4 +7,18 @@ brew "helm"
 brew "k3d"
 brew "opentofu"
 brew "postgresql@17"
+# myos scripts/check.sh runs the CI jobs locally. Colima runs the Docker
+# engine in a Lima VM, without Docker Desktop, for the image jobs; start it
+# with `colima start --cpu 2 --memory 4` and stop it after checking.
+brew "colima"
+brew "docker"
+brew "docker-buildx"
+# Builds the MinIO test server the app job starts.
+brew "go"
+# promtool, alloy, vmalert-tool and victoria-metrics for the manifests and
+# scripts jobs. CI downloads the versions pinned in scripts/ci/lib.sh; these
+# follow Homebrew, so a local pass can drift slightly from CI.
+brew "prometheus"
+brew "grafana-alloy"
+brew "victoriametrics"
 cask "brave-browser"
