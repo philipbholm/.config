@@ -38,9 +38,15 @@ install_myos_vmalert_tool() {
 }
 
 # myos scripts/check.sh and its pre-push hook pick CI jobs with
-# scripts/ci/select-jobs.py, which imports yaml under the system python3.
+# scripts/ci/select-jobs.py, which imports yaml under whichever python3 is
+# first on PATH. Homebrew's Python (pulled in by awscli) usually wins, and it
+# refuses pip installs (PEP 668) unless told otherwise. --user keeps the
+# package in the user site, out of Homebrew's own site-packages; Apple's
+# older pip does not know --break-system-packages, hence the fallback.
 install_myos_pyyaml() {
-  /usr/bin/python3 -c 'import yaml' 2>/dev/null || /usr/bin/python3 -m pip install --user --quiet pyyaml
+  python3 -c 'import yaml' 2>/dev/null && return 0
+  python3 -m pip install --user --quiet --break-system-packages pyyaml 2>/dev/null ||
+    python3 -m pip install --user --quiet pyyaml
 }
 
 run_core
