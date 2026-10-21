@@ -27,6 +27,7 @@ PG_DATA = SHARED_DIR / "postgres"
 PG_PORT = 5432
 PG_SUPERUSER = "postgres"
 PG_PASSWORD = "postgres"
+ICU_LOCALE = "en-US-u-ka-shifted"
 APP_ROLE = "registries_app_user"
 APP_PASSWORD = "password"
 ADMIN_MOCK_DIR = DEV_DIR / "admin-mock"
@@ -294,7 +295,7 @@ def ensure_postgres():
             PG_DATA.mkdir(parents=True, exist_ok=True)
             subprocess.run(
                 [str(PG_BIN / "initdb"), "-D", str(PG_DATA), "-U", PG_SUPERUSER, "--auth=trust",
-                 "-E", "UTF8", "--locale=en_US.UTF-8"],
+                 "-E", "UTF8", "--locale=en_US.UTF-8", "--locale-provider=icu", f"--icu-locale={ICU_LOCALE}"],
                 check=True, stdout=subprocess.DEVNULL,
             )
             with open(PG_DATA / "postgresql.conf", "a") as conf:
