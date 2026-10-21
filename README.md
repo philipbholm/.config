@@ -86,7 +86,7 @@ Notes:
 - `~/.config` contains this repo and the managed local configuration
 - `~/work` contains main working repositories such as `ledidi-monorepo`, `legacy`, and related work repos
 - Git worktrees live inside each repo at `<repo>/.worktrees/<name>`, created with the harness-agnostic `dev worktree create` helper and torn down with `dev worktree destroy`
-- `~/work/.dev-stacks` is used by the local `dev` tooling for generated Docker Compose stack files
+- `~/work/.dev-stacks` holds the `dev stack` state: each checkout's slot, pid files and logs, plus the shared PostgreSQL data and dependency cache in `.shared/`
 - `~/private` contains private/personal repositories
 - `~/vaults` contains Obsidian or other note vaults
 - `~/bin` contains symlinks to helper scripts from this repo

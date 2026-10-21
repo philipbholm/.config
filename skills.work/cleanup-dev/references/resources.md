@@ -42,16 +42,3 @@ The worktree helper also runs `git worktree prune`, which removes stale Git
 registrations across checkouts. Include that side effect in the inventory. If
 it would remove unapproved entries, report the scope conflict instead of
 invoking it.
-
-## Legacy Docker resources
-
-Stacks used to run in Docker. Stack directories without a `checkout` file,
-containers and volumes named `wt<N>-<checkout-id>-*`, the `admin-mock`
-container, and Docker build cache are left from that setup. No dev command
-manages them any more. Inventory them with `docker ps -a`, `docker volume ls`,
-`docker image ls` and `docker system df` when Docker is running, and list them
-as their own numbered groups. Remove only selected resources by exact name
-with `docker rm`, `docker volume rm` and `docker image rm`, without force.
-Build cache needs its own explicit selection. Never substitute
-`docker system prune`, global pruning, or `git clean -fdx` for the approved
-targets.
