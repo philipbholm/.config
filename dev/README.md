@@ -123,10 +123,20 @@ in `services/registries` uses `registries_test_<id>`.
 ### Dependencies
 
 `dev stack up` compares each service's `node_modules/.package-lock.json` with
-its `package-lock.json`. When they differ, it stops that service and installs
-again. Installs are cached in `~/work/.dev-stacks/.shared/node_modules`, keyed
-by the lockfile hash; another checkout with the same lockfile gets an APFS
-clone of the cache in seconds instead of `npm ci`.
+its `package-lock.json` and installs only when they differ. Installs are
+cached in `~/work/.dev-stacks/.shared/node_modules`, keyed by the lockfile
+hash, and copied with an APFS directory clone, which takes about a second:
+
+| The checkout has | `dev stack up` does |
+|------------------|---------------------|
+| `node_modules` matching the lockfile | nothing |
+| no `node_modules`, and a cache entry for the lockfile | clones the cache entry |
+| no `node_modules`, and no cache entry for the lockfile | clones the newest cache entry, then `npm install` adds the packages that differ |
+| `node_modules` for another lockfile | `npm install` adds the packages that differ |
+
+`npm ci` runs only when that `npm install` fails or leaves the tree different
+from the lockfile. `dev stack up` restores `package-lock.json` if `npm install`
+rewrote it. Each service runs `npm run generate` itself when it starts.
 
 ### Automatic cleanup
 
@@ -136,7 +146,9 @@ minutes and logs to `~/work/.dev-stacks/.shared/reap.log`. It:
 - stops a stack that has had no open connection on its frontend or GraphQL
   port for two hours (`DEV_STACK_IDLE_SECONDS` overrides the limit);
 - removes the stack state and databases of checkouts that no longer exist;
-- drops template databases that no checkout's migrations use.
+- drops template databases that no checkout's migrations use;
+- removes cached `node_modules` that no checkout's lockfile uses, keeping the
+  newest per workspace.
 
 `dev stack reap --dry-run` prints what it would do.
 

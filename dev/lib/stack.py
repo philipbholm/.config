@@ -1,5 +1,6 @@
 import argparse
 import contextlib
+import ctypes
 import fcntl
 import hashlib
 import json
@@ -505,40 +506,113 @@ def installed_matches_lockfile(directory):
     return True
 
 
-def ensure_dependencies(checkout, workspaces):
-    missing = []
-    for workspace in workspaces:
-        directory = checkout.root / workspace
-        if not (directory / "package-lock.json").is_file():
-            if not (directory / "node_modules").is_dir():
-                missing.append(workspace)
-            continue
-        if installed_matches_lockfile(directory):
-            continue
-        cache = SHARED_DIR / "node_modules" / slugify(workspace) / file_hash(directory / "package-lock.json")[:16]
+def dependency_cache_root(workspace):
+    return SHARED_DIR / "node_modules" / slugify(workspace)
+
+
+def dependency_cache(workspace, directory):
+    return dependency_cache_root(workspace) / file_hash(directory / "package-lock.json")[:16]
+
+
+def cached_dependency_sets(workspace):
+    root = dependency_cache_root(workspace)
+    if not root.is_dir():
+        return []
+    return sorted((path for path in root.iterdir() if (path / "node_modules").is_dir()),
+                  key=lambda path: path.stat().st_mtime, reverse=True)
+
+
+LIBC = ctypes.CDLL("libc.dylib", use_errno=True)
+
+
+def clone_tree(source, target):
+    if LIBC.clonefile(os.fsencode(source), os.fsencode(target), 0) != 0:
+        subprocess.run(["cp", "-cR", str(source), str(target)], check=True)
+
+
+def remove_in_background(path):
+    if not path.exists():
+        return
+    trash = SHARED_DIR / "trash"
+    trash.mkdir(parents=True, exist_ok=True)
+    doomed = trash / f"{path.name}.{os.getpid()}.{time.time_ns()}"
+    path.rename(doomed)
+    subprocess.Popen(["rm", "-rf", str(doomed)], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def clone_node_modules(source, directory):
+    remove_in_background(directory / "node_modules")
+    clone_tree(source / "node_modules", directory / "node_modules")
+    os.utime(source)
+
+
+def npm(directory, *args):
+    lockfile = directory / "package-lock.json"
+    original = lockfile.read_bytes()
+    try:
+        return subprocess.run(["npm", *args, "--no-audit", "--no-fund", "--loglevel=warn"], cwd=directory).returncode == 0
+    finally:
+        if lockfile.read_bytes() != original:
+            lockfile.write_bytes(original)
+
+
+def fill_dependency_cache(workspace, directory):
+    cache = dependency_cache(workspace, directory)
+    if cache.exists():
+        return
+    staging = cache.with_name(cache.name + f".{os.getpid()}")
+    staging.mkdir(parents=True, exist_ok=True)
+    clone_tree(directory / "node_modules", staging / "node_modules")
+    try:
+        staging.rename(cache)
+    except OSError:
+        shutil.rmtree(staging, ignore_errors=True)
+
+
+def install_dependencies(workspace, directory):
+    with file_lock("dependency-cache"):
+        cache = dependency_cache(workspace, directory)
         if (cache / "node_modules").is_dir():
             log(f"{workspace}: cloning node_modules from the dependency cache...")
-            shutil.rmtree(directory / "node_modules", ignore_errors=True)
-            subprocess.run(["cp", "-cR", str(cache / "node_modules"), str(directory / "node_modules")], check=True)
-            continue
-        missing.append(workspace)
-    if not missing:
-        return
-    log(f"Installing dependencies for {' '.join(missing)}...")
-    subprocess.run(["bash", str(DEV_DIR / "workspace-prepare.sh"), *missing], cwd=checkout.root, check=True)
-    for workspace in missing:
+            clone_node_modules(cache, directory)
+            return
+        if not (directory / "node_modules").is_dir():
+            nearest = next(iter(cached_dependency_sets(workspace)), None)
+            if nearest:
+                log(f"{workspace}: cloning the newest cached node_modules as a starting point...")
+                clone_node_modules(nearest, directory)
+    if (directory / "node_modules").is_dir():
+        log(f"{workspace}: installing the packages that differ from package-lock.json...")
+        if npm(directory, "install", "--prefer-offline") and installed_matches_lockfile(directory):
+            fill_dependency_cache(workspace, directory)
+            return
+    log(f"{workspace}: installing every package with npm ci...")
+    if not npm(directory, "ci", "--prefer-offline") or not installed_matches_lockfile(directory):
+        raise StackError(f"npm ci failed in {workspace}")
+    fill_dependency_cache(workspace, directory)
+
+
+def ensure_dependencies(checkout, workspaces):
+    for workspace in workspaces:
         directory = checkout.root / workspace
         if not installed_matches_lockfile(directory):
-            continue
-        cache = SHARED_DIR / "node_modules" / slugify(workspace) / file_hash(directory / "package-lock.json")[:16]
-        if not cache.exists():
-            staging = cache.with_name(cache.name + f".{os.getpid()}")
-            staging.mkdir(parents=True, exist_ok=True)
-            subprocess.run(["cp", "-cR", str(directory / "node_modules"), str(staging / "node_modules")], check=True)
-            try:
-                staging.rename(cache)
-            except OSError:
-                shutil.rmtree(staging, ignore_errors=True)
+            install_dependencies(workspace, directory)
+
+
+def prune_dependency_cache(live, dry_run):
+    actions = []
+    for workspace in WORKSPACES.values():
+        wanted = {dependency_cache(workspace, root / workspace).name for root in live
+                  if (root / workspace / "package-lock.json").is_file()}
+        sets = cached_dependency_sets(workspace)
+        for path in sets[1:]:
+            if path.name not in wanted:
+                actions.append(f"removed cached node_modules {workspace} {path.name}")
+                if not dry_run:
+                    with file_lock("dependency-cache"):
+                        shutil.rmtree(path, ignore_errors=True)
+    return actions
 
 
 def migrations_hash(root):
@@ -839,11 +913,11 @@ def command_list(args):
 
 def command_ps(args):
     checkout = Checkout.current()
-    slot = checkout.saved_slot() or 0
+    slot = checkout.saved_slot() if checkout.is_worktree else 0
     for service in SERVICES:
         record = read_process(checkout.pid_file(service))
         state = f"running (pid {record['pid']})" if record else "stopped"
-        ports = ", ".join(str(port) for port in service_ports(service, slot))
+        ports = "no slot yet" if slot is None else ", ".join(str(port) for port in service_ports(service, slot))
         log(f"{service:20} {state:24} ports {ports}  log {checkout.log_file(service)}")
 
 
@@ -957,6 +1031,7 @@ def command_reap(args):
                 if not args.dry_run:
                     with file_lock(f"template-{name[-12:]}"):
                         drop_database(name)
+    actions += prune_dependency_cache(live, args.dry_run)
     stamp = time.strftime("%Y-%m-%d %H:%M:%S")
     for action in actions:
         log(f"{stamp} {'would have ' if args.dry_run else ''}{action}")

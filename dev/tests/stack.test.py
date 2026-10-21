@@ -123,6 +123,38 @@ class StackTest(unittest.TestCase):
         self.assertTrue(kept.stack_dir.exists())
         self.assertFalse(gone.stack_dir.exists())
 
+    def cache_entry(self, workspace, name, age):
+        entry = self.stack.dependency_cache_root(workspace) / name
+        (entry / "node_modules").mkdir(parents=True)
+        stamp = 1_000_000 - age
+        os.utime(entry, (stamp, stamp))
+        return entry
+
+    def test_prune_cached_node_modules_except_live_lockfiles_and_the_newest(self):
+        workspace = "services/registries"
+        checkout = self.worktree("feature")
+        (checkout.root / workspace).mkdir(parents=True)
+        (checkout.root / workspace / "package-lock.json").write_text("{}")
+        live = self.cache_entry(workspace, self.stack.dependency_cache(workspace, checkout.root / workspace).name, 30)
+        newest = self.cache_entry(workspace, "newest", 10)
+        unused = self.cache_entry(workspace, "unused", 20)
+        actions = self.stack.prune_dependency_cache({checkout.root}, dry_run=False)
+        self.assertEqual(len(actions), 1)
+        self.assertTrue(live.exists())
+        self.assertTrue(newest.exists())
+        self.assertFalse(unused.exists())
+
+    def test_restore_a_lockfile_that_npm_rewrites(self):
+        directory = self.root / "workspace"
+        directory.mkdir()
+        (directory / "package-lock.json").write_text("original")
+        def rewrite(command, cwd):
+            (Path(cwd) / "package-lock.json").write_text("rewritten")
+            return subprocess.CompletedProcess(command, 0)
+        with mock.patch.object(self.stack.subprocess, "run", rewrite):
+            self.assertTrue(self.stack.npm(directory, "install"))
+        self.assertEqual((directory / "package-lock.json").read_text(), "original")
+
     def test_reap_removes_nothing_when_the_worktree_list_fails(self):
         checkout = self.worktree("feature")
         checkout.stack_dir.mkdir(parents=True)
