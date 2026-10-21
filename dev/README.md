@@ -86,7 +86,9 @@ involved. `dev stack --help` lists the actions.
 
 Both keep running until the machine restarts. The PostgreSQL cluster runs with
 `fsync`, `synchronous_commit` and `full_page_writes` off: its data is
-disposable, and migrations and test resets run faster without them.
+disposable, and migrations and test resets run faster without them. Text
+sorts with the ICU locale `en-US-u-ka-shifted`, which ignores punctuation like
+the glibc `en_US.utf8` that CI and the tests expect.
 
 ### Per-checkout services
 
