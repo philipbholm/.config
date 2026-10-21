@@ -88,14 +88,14 @@ replace_paragraph() {
   fi
 }
 
-# Worktrees without a Docker stack have no ports to substitute. Replace the
+# Worktrees without a dev stack have no ports to substitute. Replace the
 # body of the self-contained "## Ports (Worktree-Specific)" section — up to the
 # next `## ` heading — rather than leaving raw {{PLACEHOLDER}} tokens behind.
 replace_port_section() {
   local body
   body='## Ports (Worktree-Specific)
 
-No dev stack is running for this worktree, so it has no ports yet. Start only what the task needs: `dev stack up postgres -d` for the backend suite, `dev stack up` for browser work or E2E. Either one fills in this table.
+No dev stack is running for this worktree, so it has no ports yet. Start only what the task needs: `dev stack up postgres` for the backend suite, `dev stack up` for browser work or E2E. `dev stack up` fills in this table.
 '
 
   replace_section "$1" '## Ports (Worktree-Specific)' '^## ' "$body"
@@ -109,7 +109,7 @@ replace_main_port_section() {
 
 No dev stack is running for the main checkout, so it has no ports yet. `dev stack up`
 here starts the slot-0 stack — the one no worktree owns — on the base ports:
-frontend {{FRONTEND_PORT}}, registries {{REGISTRIES_PORT}}, PostgreSQL {{POSTGRES_PORT}}.
+frontend {{FRONTEND_PORT}}, registries {{REGISTRIES_PORT}}. PostgreSQL is shared on {{POSTGRES_PORT}}.
 Start it only for work on the main checkout itself.
 '
 
@@ -124,11 +124,11 @@ replace_main_port_prose() {
   local heading intro caveat
 
   heading='## Ports (Main Checkout)'
-  intro='This is the main checkout, and the ports below are the base set it publishes.
-Each parallel worktree runs its own stack 100 higher per slot, so none of these
-numbers are shared with them.'
+  intro='This is the main checkout, and the ports below are the base set it uses.
+Each parallel worktree runs its own stack 100 higher per slot, so only the
+shared PostgreSQL port is the same for them.'
   caveat="These ports belong to the main checkout, and they are correct as listed. When
-one doesn't respond, the Docker stack is what needs attention — editing
+one doesn't respond, the dev stack is what needs attention — editing
 hardcoded URLs, env files, or configs to reach a service breaks the checkout
 instead of fixing it."
   replace_paragraph "$file" '^## Ports \(Worktree-Specific\)$' "$heading"
@@ -146,20 +146,8 @@ if [[ "$(head -n 1 "$CONTEXT_TEMPLATE")" != '# AGENTS.md' ]]; then
   exit 1
 fi
 
-# stack.sh writes a slot file for worktrees only, so the main checkout's stack has
-# to be read out of Docker. Slot 0 is its number, in stack.sh's main mode and in
-# the labels that mode stamps on the containers.
 main_repo_slot() {
-  local containers
-  if ! containers="$(docker ps -q --filter "label=${DEV_SLOT_LABEL}=0" 2>/dev/null)"; then
-    if [[ "$check_only" == true ]]; then
-      echo "Cannot check main-checkout context: Docker stack state is unavailable." >&2
-      return 1
-    fi
-    containers=""
-  fi
-
-  if [[ -n "$containers" ]]; then
+  if [[ -f "$(dev_slot_file_for_repo "$MAIN_REPO")" ]]; then
     printf '0\n'
   else
     printf '%s\n' "$NO_STACK"

@@ -9,7 +9,7 @@ action supports `--help` without installing dependencies, starting services,
 writing configuration, or removing data. The help text owns command usage.
 
 A **checkout** is the main Git checkout or a worktree. A **workspace** is a
-directory with its own `package.json`. A **stack** is the checkout's containers
+directory with its own `package.json`. A **stack** is the checkout's service processes
 and their saved state.
 
 There is no lint/build/test wrapper here. The monorepo's own `lefthook.yml` gates all six workspaces (services/registries, services/patient-bff, apps/registries-frontend, apps/patient-frontend, apps/shell, packages/components) on commit; for ad-hoc runs, call the underlying commands (`npm run build-ts`, `npx vitest run`, `npx biome check`) from the workspace you changed.
@@ -28,7 +28,6 @@ state; an existing conversation may still carry earlier instructions.
 `dev context check` checks the current Ledidi checkout's two rendered files,
 global instruction links, shared skill installations, and explicit skill/document
 references. It returns 1 for stale or broken context without repairing it.
-Docker must be available to check whether the main checkout has a running stack.
 Use `dev context render` to refresh rendered instructions after inspecting a failure.
 
 `dev session search` searches user messages in local Claude Code and Codex logs.
@@ -57,7 +56,7 @@ Validate setup scope without installing dependencies or starting services:
 ```bash
 node --test dev/tests/*.test.mjs
 python3 -B dev/tests/session-search.test.py
-python3 -B dev/tests/stack-images.test.py
+python3 -B dev/tests/stack.test.py
 python3 -B dev/tests/test-e2e.test.py
 ```
 
@@ -75,143 +74,90 @@ for shell tests). The command starts the backend services, supplies matching API
 URLs to the browser and fixture setup, and checks GraphQL before frontend startup.
 Preview ports must be free; `dev test --help` lists their allocation.
 
-`dev stack up` checks local images for the selected services and their Compose
-dependencies before creating containers. It hashes Dockerfile COPY/ADD inputs
-from tracked and nonignored files, build configuration, and Docker ignore files.
-Changes to mounted source also trigger a rebuild on the next startup; this
-conservatively covers files used during the build as well as at runtime.
-Only the hash and resulting image ID are saved in the stack's `image-inputs.json`.
-An existing image without a matching record is rebuilt once. Failed builds never
-update the record. Docker's build cache remains available during rebuilds.
+`dev stack` runs a checkout's services as processes on this Mac. No Docker is
+involved. `dev stack --help` lists the actions.
 
-Use `dev stack up --build <service>` for changes to ignored build inputs or an
-explicit rebuild. `--no-build` refuses stale or unverified images. Starting
-PostgreSQL alone does not build application images. Stack restarts do not check
-image freshness; use `up` before browser verification after changing branches.
+### Shared services
 
-`dev stack` wraps `docker compose` with automatic environment detection. It determines whether you're in the main checkout or a git worktree, generates the correct compose override file (port offsets, networking, volumes), and forwards your command to `docker compose`.
+| Service | Where | Started by |
+|---------|-------|------------|
+| PostgreSQL 17 (Homebrew `postgresql@17`) | localhost:5432, data in `~/work/.dev-stacks/.shared/postgres` | the first `dev stack up` |
+| Admin mock (`dev/admin-mock`) | GraphQL :4054, gRPC :50004 | `dev stack up` of registries |
 
-```bash
-# These are equivalent:
-dev stack restart registries
-docker compose -f docker-compose.yml -f <override> restart registries
-```
+Both keep running until the machine restarts. The PostgreSQL cluster runs with
+`fsync`, `synchronous_commit` and `full_page_writes` off: its data is
+disposable, and migrations and test resets run faster without them.
 
-### Passthrough Examples
+### Per-checkout services
 
-The Compose actions listed in `dev stack --help` receive the checkout's
-configuration through `-f` flags:
+| Service | Base port | Command it runs |
+|---------|-----------|-----------------|
+| `registries` | GraphQL 4006, gRPC 50006 | `npm run dev` in `services/registries` |
+| `registries-frontend` | 3003 | `npm run generate`, then `vite dev` |
+| `codelist` | GraphQL 4005, gRPC 50005 | `npm run dev` in `services/codelist` |
 
-```bash
-dev stack restart registries       # Restart a service
-dev stack logs -f registries       # Tail logs
-dev stack exec registries sh       # Shell into container
-dev stack ps                       # List containers
-dev stack build registries         # Build image without starting
-dev stack stop                     # Stop without removing
-```
+The main checkout uses slot 0 and the base ports. A worktree gets slot 1-9 and
+adds `slot × 100` to every port. The environment comes from the service's
+`environment:` list in the checkout's `docker-compose.yml`, with hosts, ports
+and database names replaced by this checkout's values. Logs, pid files and
+the slot live in `~/work/.dev-stacks/<checkout-id>/`.
 
-### Mode Detection
+### Databases and test data
 
-`dev stack` auto-detects the environment by checking the `.git` entry at the repo root:
+Each checkout owns `registries_<id>`, `registries_test_<id>` and, when codelist
+runs, `codelist_<id>`, where `<id>` is the checkout ID with `-` replaced by `_`.
 
-- **Main checkout** (`.git` is a directory) → slot 0, default ports, shared admin-mock networking
-- **Worktree** (`.git` is a file) → slots 1–9, ports offset by `slot × 100`, isolated network
+A new checkout's database is copied from a template. The template's name holds
+a hash of `services/registries/prisma/migrations`:
 
-### Port Mapping (Worktrees)
+1. `registries_seed_<hash>` holds the migrations plus the Analysis test
+   registry. A copy takes about a second.
+2. Without it, `registries_tpl_<hash>` holds the migrations only. The first
+   checkout with that hash builds it, seeds its own copy through
+   `~/work/scripts/create-registry.ts`, then saves the result as
+   `registries_seed_<hash>` for the next checkout.
 
-Each worktree gets a unique slot (1–9). Ports are offset by `slot × 100`:
+`dev stack up` writes `services/registries/.env.test.local`, so `npm run test`
+in `services/registries` uses `registries_test_<id>`.
 
-| Service | Main (slot 0) | Slot 1 | Slot 2 |
-|---------|--------------|--------|--------|
-| Frontend | 3003 | 3103 | 3203 |
-| Postgres | 5432 | 5532 | 5632 |
-| Codelist | 4005 | 4105 | 4205 |
-| Registries | 4006 | 4106 | 4206 |
-| patient-frontend | 3015 | 3115 | 3215 |
-| **patient-bff** | **4010** | **4010 (pinned)** | **4010 (pinned)** |
+### Dependencies
 
-`patient-bff` is the one exception to the offset rule — see [Helsenorge / patient-bff demo setup](#helsenorge--patient-bff-demo-setup) below.
+`dev stack up` compares each service's `node_modules/.package-lock.json` with
+its `package-lock.json` and installs only when they differ. Installs are
+cached in `~/work/.dev-stacks/.shared/node_modules`, keyed by the lockfile
+hash, and copied with an APFS directory clone, which takes about a second:
 
-The Apollo `router` is not in the set `dev stack up` starts, and `stack.sh` never rewrites its ports, so it always binds 4000 from the base compose file. Two worktrees can't run their own router, and a worktree frontend's `VITE_ADMIN_GRAPHQL_URI` points at whichever router owns 4000.
+| The checkout has | `dev stack up` does |
+|------------------|---------------------|
+| `node_modules` matching the lockfile | nothing |
+| no `node_modules`, and a cache entry for the lockfile | clones the cache entry |
+| no `node_modules`, and no cache entry for the lockfile | clones the newest cache entry, then `npm install` adds the packages that differ |
+| `node_modules` for another lockfile | `npm install` adds the packages that differ |
 
-### Override Files
+`npm ci` runs only when that `npm install` fails or leaves the tree different
+from the lockfile. `dev stack up` restores `package-lock.json` if `npm install`
+rewrote it. Each service runs `npm run generate` itself when it starts.
 
-`dev stack` writes a generated compose override to:
+### Automatic cleanup
 
-```
-~/work/.dev-stacks/<checkout-id>/docker-compose.stack.yml
-```
+The launch agent `com.philip.dev-stack-reap` runs `dev stack reap` every 15
+minutes and logs to `~/work/.dev-stacks/.shared/reap.log`. It:
 
-This file is regenerated by stack actions other than `dev stack list` and help. The `DEV_STACKS_DIR` env var controls the base directory. The checkout ID is the slugified *directory* name — the repo directory for the main checkout, the worktree directory (`<repo>/.worktrees/<name>`) for a worktree — so switching branches inside a worktree keeps its stack, ports and slot. The slot itself lives next to the override in `worktree-slot`; `dev stack expose` and `dev context render` read it, and `dev stack up` is what writes it.
+- stops a stack that has had no open connection on its frontend or GraphQL
+  port for two hours (`DEV_STACK_IDLE_SECONDS` overrides the limit);
+- removes the stack state and databases of checkouts that no longer exist;
+- drops template databases that no checkout's migrations use;
+- removes cached `node_modules` that no checkout's lockfile uses, keeping the
+  newest per workspace.
 
-`dev stack destroy` in a worktree does not need `worktree-slot`. It removes every container, volume and image whose `com.docker.compose.project` label is exactly `wt<N>-<checkout-id>` for a slot N from 1 to 9, so a stopped stack and the slots the checkout used before are covered too. It removes the `admin-bridge-wt-<N>` and `default-network-wt-<N>` networks only for the slot its own containers held, under the slot lock, and only when no other stack's containers carry that slot. `dev worktree destroy` runs it whenever any of those resources, containers or the slot file exist, and keeps the checkout when a resource cannot be removed.
+`dev stack reap --dry-run` prints what it would do.
 
-## Helsenorge / patient-bff demo setup
+### Patient services
 
-The patient-bff stack (introduced with the PROM patient flow) talks to NHN's Helsenorge HN2 test environment via real OIDC + HelseID, so a few things have to line up before `/uthopp` works end-to-end. The wiring in `stack.sh` and `.env.local` is ready, but knowing the moving pieces helps when something fails.
-
-This describes the `demo-ous` demo branch. Master runs `registries` with `USE_STUBBED_HELSENORGE_CLIENTS=true` and renamed the base URL to `HELSENORGE_EKSTERNAPI_BASE_URL`, so nothing there calls NHN and `HELSENORGE_OPPGAVE_BASE_URL` has no reader — `NGROK_PATIENT_BFF_URL` still does, since `stack.sh` stamps it into `PATIENT_BFF_PUBLIC_URL` on both.
-
-The patient stack is **opt-in**: pass `--include-patient` to start it.
-
-```bash
-dev stack up --include-patient
-```
-
-Without the flag, `dev stack up` skips `patient-bff` and `patient-frontend` even if the worktree has their Dockerfiles, so the pinned port 4010 stays free for whichever stack actually needs it.
-
-### Why patient-bff is pinned to port 4010
-
-NHN's Helsenorge OIDC client (`HELSENORGE_CLIENT_ID=3a17b005-…`) only has `http://localhost:4010/uthopp/callback` on its `redirect_uri` allow-list. Anything else — `localhost:4110`, `localhost:4510`, a per-developer ngrok subdomain — fails the Pushed Authorization Request with FHIR error `204019 - Fant ingen match på RedirectUri`. So `stack.sh` ignores the worktree offset for this one service and always binds host port 4010.
-
-**Trade-off:** only one worktree can run `patient-bff` at a time. Switching worktrees requires `dev stack down` on the old one first. If two worktrees compete for 4010, the second `dev stack up patient-bff` will fail with a port-already-allocated error.
-
-### `.env.local` — per-developer overrides
-
-`stack.sh` sources `~/.config/dev/.env.local` at startup and `set -a`'s every variable so docker-compose's `${VAR}` interpolation can see them.
-
-Required keys for the Helsenorge flow:
-
-```bash
-# Your reserved ngrok subdomain. Helsenorge stamps PATIENT_BFF_PUBLIC_URL
-# into the oppgave's Task.instantiatesUri, which must be HTTPS-reachable
-# from the public internet (FHIR code 2174 rejects http://).
-NGROK_PATIENT_BFF_URL=https://<your-reserved-subdomain>.ngrok-free.dev
-
-# NHN test env. Always HN2 — HN1's citizen portal (tjenester.hn.test.nhn.no)
-# has been observed serving "Tjenesten er midlertidig ikke tilgjengelig"
-# while the API still accepts oppgaves, so sends silently don't reach the
-# patient.
-HELSENORGE_OPPGAVE_BASE_URL=https://eksternapi.hn2.test.nhn.no
-```
-
-### ngrok tunnel
-
-Your reserved subdomain has to forward to the pinned host port 4010:
-
-```bash
-ngrok http --url=<your-reserved-subdomain>.ngrok-free.dev 4010
-```
-
-Keep it running in a terminal while you're testing `/uthopp`. The tunnel is what lets Helsenorge call back into the BFF from the public internet — without it, the oppgave creation succeeds but the patient's task link points nowhere.
-
-**One-time NHN registration:** your specific ngrok subdomain has to be added to the Helsenorge OIDC client's allow-list (alongside `localhost:4010`) by whoever owns the NHN test client. Without that, the OIDC discovery happens on `localhost:4010` but stamp-into-oppgave uses the ngrok URL, which is fine as long as the bff bounces the user from ngrok host → localhost before starting OIDC (handled in `services/patient-bff/src/handlers/http/uthopp/uthopp.ts`).
-
-### MSW disabled
-
-`stack.sh` sets `VITE_USE_MSW=false` on the `patient-frontend` container, but nothing on master reads it: Mock Service Worker now ships only under `apps/patient-frontend/src/test-util/msw/` for unit tests, and the app entry (`src/index.tsx`) never starts a worker. The var is a leftover from the pre-squash `demo-ous` layout, whose `src/main.tsx` started MSW in dev and served canned "Smerteskala uke 3 / Symptomer denne uka / Bakgrunnsopplysninger" mock data instead of the real PROM. On that branch a container started without the var shows the mock forms — recreate with `dev stack up -d patient-frontend`.
-
-### Sanity checklist when `/uthopp` misbehaves
-
-1. **PAR rejected with `204019 - Fant ingen match på RedirectUri`** → patient-bff isn't on port 4010, or NHN doesn't have your ngrok subdomain on the allow-list. Verify `docker inspect <bff> --format='{{range .Config.Env}}{{println .}}{{end}}' | grep HELSENORGE_REDIRECT_URI`.
-2. **`getaddrinfo ENOTFOUND eksternapi.…`** → `HELSENORGE_OPPGAVE_BASE_URL` is wrong. Only `eksternapi.hn.test.nhn.no` (HN1) and `eksternapi.hn2.test.nhn.no` (HN2) exist; `eksternapi.test.nhn.no` is NXDOMAIN. Use HN2.
-3. **ngrok returns 502** → tunnel is forwarding to a stale port. Kill it (`pkill -f 'ngrok http'`) and restart against 4010.
-4. **Mock "Smerteskala uke 3" PROM showing** (only on the `demo-ous` layout — master has no runtime MSW) → MSW is on. Confirm `VITE_USE_MSW=false` in the patient-frontend container and hard-reload (Shift-Cmd-R) so the service worker re-fetches the app entry. May need to manually unregister the SW via DevTools → Application → Service Workers.
-5. **Session cookie missing on localhost** → the OIDC callback was processed on the ngrok host (cookie set on that domain) instead of localhost. Check `PATIENT_BFF_LOCAL_URL=http://localhost:4010` in the bff env so the host-bounce in `/uthopp/start` runs.
-6. **HN2 portal at `tjenester.hn2.test.nhn.no` shows "Vi beklager!"** → you're not logged in as the patient. Citizen portals require BankID auth as that specific fnr; can't be inspected unauthenticated.
-7. **`ERR_NGROK_3200 — endpoint <sub>.ngrok-free.dev is offline`** → you opened a **stale oppgave** whose link was frozen with an old ngrok subdomain. The patient link is stamped at send time by **`services/registries`** (not patient-bff): `send-prom-through-helsenorge.ts` builds `${PATIENT_BFF_PUBLIC_URL}/uthopp/start?prom_entry_id=…` into the oppgave's `instantiatesUri`, and that value lives in HN2 forever. The request dies at ngrok's edge and never reaches your stack, so no config change fixes it — **re-send the PROM and open the new task.** When the subdomain looks wrong, confirm all four agree: the **registries** container env (`PATIENT_BFF_PUBLIC_URL`), the patient-bff container env, `.env.local` (`NGROK_PATIENT_BFF_URL`), and the live agent (`curl -s localhost:4040/api/tunnels`). If only the running ngrok agent is on the wrong name, restart it on your reserved subdomain.
-8. **`Blocked request. This host ("patient-frontend") is not allowed`** (Vite) → the patient-bff catch-all proxies non-API routes to the Vite dev server (`@fastify/http-proxy` → `patient-frontend:3015`), and via ngrok the Host arrives as `patient-frontend`. Vite 6 denies hosts not in `server.allowedHosts`. Master's `apps/patient-frontend/vite.config.ts` sets no allow-list, so add `patient-frontend` and `.ngrok-free.dev` there if you hit this (the dot-prefix matches any rotated subdomain — that is what the `demo-ous` layout carried). Direct `localhost:3115` is always allowed, so this only shows through the tunnel/proxy. **Only `src/` is bind-mounted** into the patient-frontend container — `vite.config.ts` lives in the image, so config edits need `dev stack build patient-frontend` + recreate, not just a restart.
+`patient-bff` and `patient-frontend` do not run natively yet, so
+`dev stack up --include-patient` fails. The Docker setup for them, including
+the Helsenorge test notes, is in the history of `dev/stack.sh` and this README
+before the native stack.
 
 ## Installation and compatibility
 
@@ -225,8 +171,7 @@ The terminal aliases `wt-up`, `wt-down`, `setup-stack`, `tunnel`, `sync-context`
 The old `dev start` alias now follows `dev stack up`, including readiness,
 seeding and context updates; there is only one startup workflow.
 
-Existing stack directories, Docker labels and saved slots retain their values.
-The `com.ledidi.dev-workspace` label is a compatibility name for checkout identity.
+Existing stack directories and saved slots retain their values.
 
 Harness notification hooks remain separate: `claude-notify.sh`,
 `codex-notify.sh`, and `cursor-notify.sh`. `mcp-datadog.sh` and `admin-mock/`

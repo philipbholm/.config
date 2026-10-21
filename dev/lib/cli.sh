@@ -30,8 +30,8 @@ Usage: dev <thing> <action> [arguments]
   story <slot>                                Start Storybook for a checkout slot
   test e2e [--shell] -- [arguments]            Run registries E2E with this stack's URLs
   stack up [services...]                      Start this checkout's services
-  stack down                                  Remove containers; keep database volumes
-  stack destroy [--yes]                       Delete containers, volumes, images and slot
+  stack down                                  Stop services; keep databases
+  stack destroy [--yes]                       Delete services, databases and slot
   stack list                                  List running stacks across checkouts
   stack expose                                Publish this stack through public tunnels
   context render [--all-worktrees]             Render this checkout's agent instructions
@@ -66,7 +66,7 @@ their commits; new branches start at start-point or HEAD. It does not fetch.
 Ledidi checkouts receive AGENTS.md without dependency setup.
 
 Destroy acts on the current worktree. It removes the checkout and its stack,
-including database volumes, images and saved port slot. The Git branch remains.
+including its databases and saved port slot. The Git branch remains.
 It refuses the main checkout and worktrees with uncommitted changes.
 HELP
             ;;
@@ -78,14 +78,14 @@ A workspace is a directory with its own package.json, such as services/registrie
 Paths are relative to the checkout root. Only named workspaces are prepared.
 Install with npm ci when a lockfile exists, otherwise npm install without a
 lockfile. Then run each selected workspace's generate script, if present.
-No containers are started. With no workspace arguments, nothing is prepared.
+No services are started. With no workspace arguments, nothing is prepared.
 HELP
             ;;
         test)
             cat <<'HELP'
 Usage: dev test e2e [--shell] -- [Playwright arguments]
 
-Start registries, codelist and their dependencies, rebuilding stale images.
+Start registries, codelist and their dependencies.
 Check GraphQL readiness and run the registries package's test:e2e script.
 --shell selects test:e2e:shell. Arguments after -- go to Playwright unchanged.
 Browser requests and fixture setup use this checkout's API URL, overriding
@@ -99,26 +99,34 @@ HELP
             cat <<'HELP'
 Usage: dev stack <action> [arguments]
 
-  up [--slot N] [--include-patient] [--build] [services...]
-      Create or update services and wait for readiness. Registries also gets
-      codelist seeding, the Analysis test registry when missing, and its test
-      environment file. No services means the default registries stack.
-      --slot selects worktree slot 1-9.
-      --include-patient opts into patient services (shared host port 4010).
-      Rebuild stale or unverified local images before startup, including
-      dependencies. --no-build refuses stale images; --no-deps limits the check.
-  down     Remove this stack's containers and network; keep database volumes.
-  destroy [--yes]
-      Delete this stack's containers, database volumes, local images and slot.
-      In a worktree this covers every slot it has used, even when the stack is
-      stopped. Prompts in a terminal; requires --yes for non-interactive execution.
-  list     List running stacks across checkouts; works outside a repository.
-  expose   Publish this stack's frontend and API through public tunnels.
+Services run as processes on this Mac. All checkouts share one PostgreSQL on
+localhost:5432 and one admin mock on ports 4054 and 50004.
 
-Compose actions: logs, exec, ps, build, stop, restart, config, pull, images,
-top, events, port, run. Their arguments are passed to Docker Compose.
-Use -- before a forwarded command whose arguments include --help.
-Use dev stack up to start services; there is no separate start workflow.
+  up [--slot N] [services...]
+      Start services and wait until they are ready. Services: registries,
+      registries-frontend, codelist, and postgres for the database alone.
+      No services means registries and registries-frontend. The first start
+      for a set of migrations builds a template database; later checkouts copy
+      it with the Analysis test registry already seeded. Also writes
+      services/registries/.env.test.local for the backend suite.
+      --slot selects worktree slot 1-9.
+  down     Stop this checkout's services; keep its databases. stop is an alias.
+  destroy [--yes]
+      Stop the services and delete this checkout's databases and slot.
+      Prompts in a terminal; requires --yes for non-interactive execution.
+  list     List running stacks across checkouts; works outside a repository.
+  ps       Show this checkout's services, ports and log files.
+  logs [-f] [-n N] [services...]
+      Print service logs; -f follows them.
+  restart [services...]
+      Restart services; no services means the running ones.
+  psql [--test] [psql arguments]
+      Open this checkout's database, or its test database with --test.
+  reap [--dry-run]
+      Stop stacks idle for two hours, and delete the stack data and databases
+      of checkouts that no longer exist, plus unused template databases.
+      A launch agent runs this every 15 minutes.
+  expose   Publish this stack's frontend and API through public tunnels.
 HELP
             ;;
         stack-expose)
@@ -126,8 +134,8 @@ HELP
 Usage: dev stack expose
 
 Expose this checkout's frontend and API to the public internet through
-Cloudflare tunnels. Requires an existing stack and cloudflared.
-Recreates the affected containers with tunnel URLs while running; restores
+Cloudflare tunnels. Requires a running stack and cloudflared.
+Restarts registries and the frontend with tunnel URLs while running; restores
 their configuration when stopped. Keep this command running; Ctrl-C closes it.
 HELP
             ;;

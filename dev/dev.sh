@@ -25,7 +25,7 @@ fi
 
 case "$1" in
     --help|-h|help) dev_help "${2:-dev}"; exit 0 ;;
-    up|down|logs|exec|ps|build|stop|restart|config|pull|images|top|events|port|run)
+    up|down|logs|ps|stop|restart)
         exec bash "$SCRIPT_DIR/stack.sh" "$@" ;;
     start) shift; exec bash "$SCRIPT_DIR/stack.sh" up "$@" ;;
     nuke) shift; exec bash "$SCRIPT_DIR/stack.sh" destroy "$@" ;;
