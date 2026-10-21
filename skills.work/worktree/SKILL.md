@@ -48,7 +48,7 @@ before reusing check results.
 
 Load `cleanup-dev` before removing a worktree or its stack, including after a
 PR merges. That skill owns eligibility, numbered approval for other candidates,
-safe teardown, and leftover Docker resources. For a single-worktree teardown,
+safe teardown, and leftover stack resources. For a single-worktree teardown,
 keep its inventory scoped to that worktree and its resources.
 
-When a session ends with containers running, report the stack and ports.
+When a session ends with services running, report the stack and ports.

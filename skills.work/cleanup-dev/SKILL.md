@@ -1,6 +1,6 @@
 ---
 name: cleanup-dev
-description: Clean up stale Ledidi worktrees, dev stacks, and leftover Docker resources. Automatically remove safe merged-PR worktrees; present other candidates as numbered choices for approval. Inspection-only requests remain read-only.
+description: Clean up stale Ledidi worktrees, dev stacks, and their databases. Automatically remove safe merged-PR worktrees; present other candidates as numbered choices for approval. Inspection-only requests remain read-only.
 ---
 
 # Clean up Ledidi development resources
@@ -11,9 +11,9 @@ remove. Creating or editing this skill, or asking for an inspection, does not
 start cleanup.
 
 Read [Resource inspection and removal](references/resources.md) before
-inspecting or removing Docker resources. Use the existing dev tools where
+inspecting or removing stack resources. Use the existing dev tools where
 their resolved targets match the approved inventory. Cleanup needs no service
-startup, dependency installation, or image build.
+startup or dependency installation.
 
 ## Inventory and evaluate
 
@@ -29,13 +29,13 @@ startup, dependency installation, or image build.
    authorize removing newer work. Account for squash and rebase merges using
    the PR's final head, not just Git ancestry against master. Missing or
    ambiguous PR evidence makes the worktree an approval candidate.
-3. Map running and stopped containers, images, volumes, networks, and saved
-   stack state to exact checkouts. Include resources whose containers or
-   directories were manually deleted, and older slots belonging to a checkout.
-   Keep shared resources and uncertain ownership separate from each stack.
+3. Map running services, databases, and saved stack state to exact
+   checkouts. Include stack state and databases whose checkout was manually
+   deleted. Keep shared resources and uncertain ownership separate from each
+   stack.
 4. Recommend keep or remove using PR state, pending work, recent commits and
    PR activity, other worktrees depending on local files, and evidence of an
-   active agent or development session. Age and stopped containers alone do
+   active agent or development session. Age and stopped services alone do
    not prove that work is disposable.
 
 ## Automatic cleanup after merge
@@ -51,36 +51,36 @@ A worktree qualifies only when all of these are confirmed:
 - Resource ownership is unambiguous. Its stack has no shared consumers or
   saved database data identified for retention.
 
-Announce the worktree and stack to be removed, including database-volume loss,
+Announce the worktree and stack to be removed, including database loss,
 then remove them without requesting another confirmation. Leave Git branches
 and remote refs intact. Retain any candidate that fails a condition for the
 numbered approval list. Green checks or the end of a session are not cleanup
-conditions. Stack restarts and rebuilds are maintenance, not cleanup.
+conditions. Stack restarts are maintenance, not cleanup.
 
 ## Numbered approval
 
 Give every remaining candidate a stable number and an explicit recommendation.
 Use one row per worktree with its stack, or per independently removable group
-of leftover resources. Separate image-only cleanup from database-volume loss.
+of leftover resources. Separate disk-only cleanup from database loss.
 
 | # | Worktree or resource group | PR state and activity | Recommendation and reason | What deletion removes |
 |---|----------------------------|-----------------------|---------------------------|-----------------------|
 
-Keep the exact path, HEAD, Docker context, project labels, resource IDs, and
-volume names behind each number in the conversation or a local manifest.
+Keep the exact path, HEAD, checkout ID, stack directory, and database names
+behind each number in the conversation or a local manifest.
 Show full paths when names collide. Explain any unsaved work or retained data
 before asking: "Reply with the numbers to clean up, for example 2, 4."
 
 The reply authorizes only the listed resources and disclosed data loss. Keep
 unselected entries. Do not renumber an outstanding list, add newly discovered
-resources to an approved group, or treat approval to remove images as approval
-to remove volumes. Save unique files outside the target before teardown if the
+resources to an approved group, or treat approval to remove one resource kind
+as approval to remove databases. Save unique files outside the target before teardown if the
 user chooses preservation; do not silently commit, stash, or discard them.
 
 ## Remove and verify
 
 Immediately before each removal, recheck PR state, HEAD, pending files, active
-use, Docker context, ownership, and resource consumers. If the inventory or
+use, ownership, and resource consumers. If the inventory or
 data-loss scope changed, keep the target and ask again. Stop that target on a
 failed safety check or removal; continue only with independent approved targets.
 
@@ -92,8 +92,7 @@ run `dev stack destroy --yes` from the owning checkout. The main checkout
 itself is never removable; its stack requires explicit approval as a separate
 entry. Handle leftover resources under the reference's ownership checks.
 
-Check Git registration and every inventoried Docker resource after teardown.
+Check Git registration and every inventoried resource after teardown.
 Report what was removed, what remains, and failures. Commits remain recoverable
-through retained branches; deleted database volumes and discarded local files
-have no recovery guarantee. Report Docker's measured space change, not the sum
-of image sizes whose layers may be shared.
+through retained branches; deleted databases and discarded local files have no
+recovery guarantee. Report the measured disk space change.

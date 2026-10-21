@@ -1,16 +1,5 @@
 #!/bin/bash
 
-### This script starts cloudflared tunnels for the frontend and API, layers a
-### disposable compose overlay that points the app at the tunnel URLs, and tears
-### everything down on exit.
-###
-### Design note: this script NEVER edits git-tracked files or the dev-generated
-### stack overlay. All tunnel config lives in two throwaway files under the
-### worktree's stack dir (docker-compose.tunnel.yml + vite.config.tunnel.ts).
-### Cleanup just deletes them and recreates the containers, so the worst case is
-### a clean stack — stale tunnel URLs can never be left behind, even if a run
-### crashes or two runs overlap.
-
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -19,30 +8,15 @@ dev_help_if_requested stack-expose "$@"
 [[ $# -eq 0 ]] || dev_cli_error "dev stack expose takes no arguments"
 . "$SCRIPT_DIR/lib/checkout.sh"
 
-# Ensure Docker CLI is in PATH (Docker Desktop on macOS)
-[[ -d "/Applications/Docker.app/Contents/Resources/bin" ]] && \
-    export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
-
 if ! git rev-parse --show-toplevel &>/dev/null; then
     echo "Error: Not inside a git repository" >&2
     exit 1
 fi
 MONOREPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$MONOREPO_ROOT"
-PROJECT_NAME="$(dev_checkout_id_for_repo "$MONOREPO_ROOT")"
 FRONTEND_BASE_PORT=3003
 API_BASE_PORT=4006
 
-# Determine ports + compose project name from worktree slot.
-# stack.sh prefixes worktree stacks with wt{slot}- (see where stack.sh sets
-# project_name in worktree mode), so the dc() wrapper below must use the same
-# name to target the real containers instead of spinning up a duplicate stack
-# that collides on the already-allocated ports.
-#
-# A worktree only gets a slot file once `dev stack up` has run there. Without one we
-# must NOT fall back to the base ports — those belong to the main checkout, and
-# a tunnel is public, so the fallback would publish someone else's stack to the
-# internet. Refuse instead.
 worktree_slot_file="$(dev_slot_file_for_repo "$MONOREPO_ROOT")"
 if dev_is_worktree_repo "$MONOREPO_ROOT"; then
   if [[ ! -f "$worktree_slot_file" ]]; then
@@ -62,34 +36,20 @@ if dev_is_worktree_repo "$MONOREPO_ROOT"; then
   offset=$((slot * 100))
   frontend_port=$((FRONTEND_BASE_PORT + offset))
   api_port=$((API_BASE_PORT + offset))
-  PROJECT_NAME="wt${slot}-${PROJECT_NAME}"
 else
   frontend_port=$FRONTEND_BASE_PORT
   api_port=$API_BASE_PORT
 fi
 
-# Source vite config (read-only — copied, never edited)
-VITE_CONFIG="$MONOREPO_ROOT/apps/registries-frontend/vite.config.ts"
-
-# Worktree stack dir + files.
-#   WT_COMPOSE       : the dev-generated stack overlay (read-only here)
-#   TUNNEL_COMPOSE   : our disposable overlay with the tunnel deltas
-#   TUNNEL_VITE_CONFIG: a patched copy of vite.config.ts mounted into the container
 TMP_BASE="$(dev_stack_dir_for_repo "$MONOREPO_ROOT")"
-WT_COMPOSE="$TMP_BASE/docker-compose.stack.yml"
-TUNNEL_COMPOSE="$TMP_BASE/docker-compose.tunnel.yml"
-TUNNEL_VITE_CONFIG="$TMP_BASE/vite.config.tunnel.ts"
+OVERRIDES="$TMP_BASE/overrides.json"
+TUNNEL_VITE_CONFIG_NAME="vite.config.tunnel.ts"
+TUNNEL_VITE_CONFIG="$MONOREPO_ROOT/apps/registries-frontend/$TUNNEL_VITE_CONFIG_NAME"
 
-# docker compose wrapper: layer base + dev stack overlay + (when present) the
-# tunnel overlay. Removing TUNNEL_COMPOSE and recreating yields a clean stack.
-dc() {
-  local -a files=(-f "$MONOREPO_ROOT/docker-compose.yml")
-  [[ -f "$WT_COMPOSE" ]] && files+=(-f "$WT_COMPOSE")
-  [[ -f "$TUNNEL_COMPOSE" ]] && files+=(-f "$TUNNEL_COMPOSE")
-  COMPOSE_PROJECT_NAME="$PROJECT_NAME" docker compose "${files[@]}" "$@"
+stack() {
+  python3 -B "$SCRIPT_DIR/lib/stack.py" "$@"
 }
 
-# Process IDs for cleanup
 FRONTEND_TUNNEL_PID=""
 API_TUNNEL_PID=""
 
@@ -128,12 +88,9 @@ cleanup() {
     fi
     kill_stale_tunnels
 
-    # Drop the tunnel overlay + patched config copy, then recreate the two
-    # affected services so they fall back to the clean stack config.
-    echo "Removing tunnel overlay and recreating services with clean config..."
-    rm -f "$TUNNEL_COMPOSE" "$TUNNEL_VITE_CONFIG"
-    dc up -d --force-recreate registries-frontend 2>/dev/null || true
-    dc up -d --force-recreate registries 2>/dev/null || true
+    echo "Removing tunnel overrides and restarting services with clean config..."
+    rm -f "$OVERRIDES" "$TUNNEL_VITE_CONFIG"
+    stack restart registries registries-frontend || true
 
     rm -f "$FRONTEND_LOG" "$API_LOG"
 
@@ -157,8 +114,8 @@ check_prerequisites() {
         exit 1
     fi
 
-    if ! command -v docker &>/dev/null; then
-        echo "Error: docker is not installed."
+    if [[ ! -f "$TMP_BASE/pids/registries.json" || ! -f "$TMP_BASE/pids/registries-frontend.json" ]]; then
+        echo "Error: this checkout's registries and frontend are not running. Run 'dev stack up' first."
         exit 1
     fi
 }
@@ -192,52 +149,53 @@ extract_url() {
     return 1
 }
 
-#######################################
-# Generate the patched vite.config copy + the tunnel compose overlay.
-# Nothing here mutates a git-tracked file or the dev stack overlay.
-#######################################
 generate_tunnel_overlay() {
     local frontend_url=$1
     local api_url=$2
 
-    echo "Generating tunnel overlay..."
+    echo "Generating tunnel overrides..."
 
-    # The stack dir exists whenever a dev stack has been generated; create it
-    # anyway so a first run in the main checkout can't die on the redirect below.
     mkdir -p "$TMP_BASE"
+    exclude_file="$(git -C "$MONOREPO_ROOT" rev-parse --path-format=absolute --git-path info/exclude)"
+    grep -qxF "/apps/registries-frontend/$TUNNEL_VITE_CONFIG_NAME" "$exclude_file" 2>/dev/null ||
+        printf '/apps/registries-frontend/%s\n' "$TUNNEL_VITE_CONFIG_NAME" >> "$exclude_file"
 
-    # Patched vite.config.ts copy (mounted over the image's baked-in one):
-    #   - allowedHosts so Vite's dev-server host check accepts *.trycloudflare.com
-    #   - a process.env shim so amplify-config.ts's non-localhost branch
-    #     (process.env.VITE_APP_BASE_DOMAIN) doesn't throw "process is not
-    #     defined" in the browser when served from the tunnel host.
-    cp "$VITE_CONFIG" "$TUNNEL_VITE_CONFIG"
-    sed -i '' '/host: true,/a\
-    allowedHosts: [".trycloudflare.com"],
-' "$TUNNEL_VITE_CONFIG"
-    sed -i '' 's|base: command === "build" ? "/registries/" : "/",|&\
-  define: { "process.env.VITE_APP_BASE_DOMAIN": "undefined" },|' "$TUNNEL_VITE_CONFIG"
+    cat > "$TUNNEL_VITE_CONFIG" <<'TS'
+import baseConfig from "./vite.config";
 
-    # Tunnel compose overlay: point the frontend at the tunnel URLs, mount the
-    # patched vite config, and allow the frontend tunnel origin through CORS.
-    cat > "$TUNNEL_COMPOSE" <<YAML
-# Auto-generated by tunnel.sh — disposable. Removed on exit.
-services:
-  registries-frontend:
-    environment:
-      - VITE_APP_URL=$frontend_url
-      - VITE_GRAPHQL_URI=$api_url/graphql
-      - VITE_GRAPHQL_PROM_URI=$api_url/graphql-prom
-      - VITE_REGISTRIES_API_URL=$api_url
-    volumes:
-      - $TUNNEL_VITE_CONFIG:/apps/registries-frontend/vite.config.ts:cached
+export default async (env) => {
+  const config = typeof baseConfig === "function" ? await baseConfig(env) : baseConfig;
+  return {
+    ...config,
+    define: { ...config.define, "process.env.VITE_APP_BASE_DOMAIN": "undefined" },
+    server: { ...config.server, allowedHosts: [".trycloudflare.com"] },
+  };
+};
+TS
 
-  registries:
-    environment:
-      - ALLOWED_ORIGINS=http://localhost:$frontend_port,http://localhost:3010,$frontend_url
-YAML
+    FRONTEND_PORT="$frontend_port" FRONTEND_URL="$frontend_url" API_URL="$api_url" \
+        CONFIG_NAME="$TUNNEL_VITE_CONFIG_NAME" python3 -c '
+import json, os, sys
+api = os.environ["API_URL"]
+json.dump({
+    "registries-frontend": {
+        "env": {
+            "VITE_APP_URL": os.environ["FRONTEND_URL"],
+            "VITE_GRAPHQL_URI": f"{api}/graphql",
+            "VITE_GRAPHQL_PROM_URI": f"{api}/graphql-prom",
+            "VITE_REGISTRIES_API_URL": api,
+        },
+        "vite_config": os.environ["CONFIG_NAME"],
+    },
+    "registries": {
+        "env": {
+            "ALLOWED_ORIGINS": f"http://localhost:{os.environ[\"FRONTEND_PORT\"]},http://localhost:3010,{os.environ[\"FRONTEND_URL\"]}",
+        },
+    },
+}, sys.stdout, indent=2)
+' > "$OVERRIDES"
 
-    echo "Tunnel overlay generated."
+    echo "Tunnel overrides generated."
 }
 
 #######################################
@@ -272,38 +230,22 @@ wait_for_api() {
 }
 
 #######################################
-# Recreate registries and frontend to pick up the tunnel overlay.
-#
-# Order matters: recreate registries FIRST and wait until its API + CORS are
-# actually serving, THEN recreate the frontend. Otherwise the frontend can be
+# Order matters: restart registries FIRST and wait until its API + CORS are
+# actually serving, THEN restart the frontend. Otherwise the frontend can be
 # reachable before the API is ready, and the first GraphQL calls fail CORS —
 # which the SPA surfaces as a sticky "An unknown error occurred" until reload.
 #######################################
 recreate_services() {
     echo ""
-    echo "Recreating registries service first (to apply ALLOWED_ORIGINS change)..."
-    dc up -d --force-recreate registries
+    echo "Restarting registries first (to apply ALLOWED_ORIGINS change)..."
+    stack restart registries
 
     echo ""
-    # `|| true`: a timeout is a warning, not a failure — set -e would otherwise
-    # abort the run (and tear the stack down) instead of letting the user reload.
     wait_for_api 90 || true
 
     echo ""
-    echo "Recreating frontend (tunnel env + patched vite.config, no image rebuild)..."
-    dc up -d --force-recreate registries-frontend
-
-    echo ""
-    echo "Waiting for the frontend dev server to serve..."
-    local elapsed=0
-    while [ $elapsed -lt 60 ]; do
-        if curl -sS -o /dev/null -m 3 "http://localhost:$frontend_port/" 2>/dev/null; then
-            echo "Frontend dev server ready."
-            break
-        fi
-        sleep 1
-        elapsed=$((elapsed + 1))
-    done
+    echo "Restarting the frontend with the tunnel URLs and Vite config..."
+    stack restart registries-frontend
 }
 
 #######################################
@@ -334,7 +276,7 @@ main() {
     # re-runs and recovery-after-crash safe.
     echo "Ensuring clean baseline..."
     kill_stale_tunnels
-    rm -f "$TUNNEL_COMPOSE" "$TUNNEL_VITE_CONFIG"
+    rm -f "$OVERRIDES" "$TUNNEL_VITE_CONFIG"
 
     echo ""
     echo "Starting tunnels..."
@@ -376,7 +318,6 @@ main() {
 
     echo ""
 
-    # Generate overlay + recreate services
     generate_tunnel_overlay "$FRONTEND_URL" "$API_URL"
     recreate_services
 

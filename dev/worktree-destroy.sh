@@ -44,32 +44,14 @@ project_name=$(dev_checkout_id_for_repo "$worktree_path")
 
 echo "Tearing down $worktree_path (branch: $branch)"
 
-slot_file=$(dev_existing_slot_file_for_repo "$worktree_path" 2>/dev/null || true)
-existing_containers=$(docker ps -aq --filter "label=${DEV_CHECKOUT_LABEL}=${project_name}" 2>/dev/null || true)
-stack_resources=""
-if docker info >/dev/null 2>&1; then
-  stack_resources=$(dev_worktree_stack_resources "$project_name") || {
-    echo "Error: could not list the Docker resources of $project_name, so $worktree_path was kept." >&2
-    exit 1
-  }
-fi
-
-if [[ -n "$slot_file" || -n "$existing_containers" || -n "$stack_resources" ]]; then
-  echo "  Nuking dev stack ($project_name)..."
+if [[ -d "$(dev_stack_dir_for_repo "$worktree_path")" ]]; then
+  echo "  Destroying dev stack ($project_name)..."
   # Running dev worktree destroy is the confirmation, and `dev stack destroy` refuses to assume one
   # when there is no terminal to prompt on.
-  (cd "$worktree_path" && bash "$DEV_CMD" destroy --yes)
-
-  # `dev stack destroy` exits 0 when its own prompt is answered "n", so removing the
-  # directory has to be gated on the stack actually being gone — otherwise the
-  # containers and one of the nine slots are orphaned with no way back to them.
-  leftover=$(docker ps -aq --filter "label=${DEV_CHECKOUT_LABEL}=${project_name}" 2>/dev/null || true)
-  if [[ -n "$leftover" ]]; then
-    echo "Error: containers for $project_name are still there, so $worktree_path was kept." >&2
-    docker ps -a --filter "label=${DEV_CHECKOUT_LABEL}=${project_name}" >&2 || true
-    echo "Remove them ('dev stack destroy --yes' inside the worktree) and re-run dev worktree destroy." >&2
+  (cd "$worktree_path" && bash "$DEV_CMD" destroy --yes) || {
+    echo "Error: the dev stack of $project_name could not be destroyed, so $worktree_path was kept." >&2
     exit 1
-  fi
+  }
 fi
 
 echo "  Removing worktree..."

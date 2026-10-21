@@ -5,9 +5,10 @@ description: Prepare dependencies and operate the Ledidi development stack. Use 
 
 # Ledidi development stack
 
-Use `dev stack` instead of `docker compose`. Each worktree owns the ports
-rendered in its `AGENTS.md`; never edit configuration to
-reach another stack's ports.
+`dev stack` runs this checkout's services as processes on this Mac. All
+checkouts share one PostgreSQL on localhost:5432, where each checkout has its
+own databases. Each worktree owns the ports rendered in its `AGENTS.md`; reach
+services only through those ports.
 
 ## Prepare dependencies when needed
 
@@ -38,32 +39,23 @@ under `verify-change`.
 
 | Task | Command |
 |------|---------|
-| TypeScript, Biome, frontend unit tests | No containers |
-| Registries backend suite | `dev stack up postgres -d` |
+| TypeScript, Biome, frontend unit tests | No services |
+| Registries backend suite | `dev stack up postgres` |
 | Registries Playwright E2E | `dev test e2e -- [Playwright arguments]`; add `--shell` before `--` for shell coverage |
 | Direct browser verification | `dev stack up` |
 
-Only three full dev stacks can run at a time. A full stack runs application
-services and their dependencies; a database-only stack and the shared admin
-mock do not count. Run `dev stack list` before starting application services
-through `dev stack up` or `dev test e2e`.
+Worktree stacks take slots 1-9. When every slot holds a running stack,
+`dev stack up` fails. Then stop the other stack most likely to be unused,
+without asking: compare recent session activity for its checkout, running
+tests or browser processes, and recent application requests. Run
+`dev stack down` from that checkout; its databases stay. Report which stack
+you stopped and why. A background job also stops stacks that have been idle
+for two hours.
 
-If starting this checkout would exceed the limit, stop the other stack most
-likely to be unused without asking. Compare recent session
-activity for its checkout, running tests or browser processes, and recent
-application requests. Prefer a stack whose session has ended and has no active
-tests or browser work. If the evidence is incomplete, choose the other stack
-with the least recent signs of use; container age alone is not enough.
-
-Run `dev stack stop` from the selected checkout to preserve its containers and
-database volumes. Keep the current task's stack running. Report which stack
-you stopped and the evidence for choosing it. Confirm it stopped and repeat
-if needed until there is room within the limit, then start the required stack.
-
-For registries browser verification, `dev stack up` starts the registries
-services and their dependencies. The command already detaches and waits for
-readiness. Add `--include-patient` only when verifying patient flows. For
-other applications, name the services required by that browser journey.
+For registries browser verification, `dev stack up` starts registries and
+its frontend and waits for readiness. A new checkout gets a database copied
+from a seeded template, so the Analysis test registry is already there. Name
+`codelist` as well when the journey needs patient identity data.
 
 For Playwright, ensure the frontend workspace dependencies are available,
 including `apps/shell` when using `--shell`; prepare only missing or stale
@@ -75,11 +67,10 @@ and fixture setup receive the same worktree API URL. The command starts the
 backend services and checks GraphQL before Playwright starts its frontend.
 Read `dev test --help` for preview ports and argument forwarding.
 
-PostgreSQL alone supports the registries suite. Its Vitest setup generates and
-resets `registries-test` through `POSTGRES_URL`. After `dev stack up postgres`, pass
-the worktree's `POSTGRES_URL` on the command line. A full `dev stack up` writes
-`services/registries/.env.test.local`, so the backend suite then runs with a
-plain `npm run test`.
+PostgreSQL alone supports the registries suite. `dev stack up postgres` writes
+`services/registries/.env.test.local`, which points the suite at this
+checkout's own test database, so it runs with a plain `npm run test`. Its
+Vitest setup drops and recreates that database on every run.
 
 Run suites directly in each workspace with the selection from `verify-change`.
 Prefer explicit test files for small edits. Vitest's `--changed <revision>` can
@@ -93,7 +84,7 @@ uses Jest and has no equivalent. Report suites run or blocked.
 Before a backend run, check for active tests in this worktree and competing
 builds or suites on the machine. Run at most one database-resetting test process
 per worktree, including commit hooks; parallel processes need separate verified
-test databases. Wait for this worktree's dependency installs and service rebuilds
+test databases. Wait for this worktree's dependency installs and service restarts
 to finish before starting tests that rely on them.
 
 When other heavy jobs are active, start registries Vitest with
@@ -109,33 +100,27 @@ mocked component tests do not require a full application stack.
 
 ## Operate the stack
 
+- Start, stop and restart services through `dev stack`; it owns their ports,
+  databases and logs. `dev stack ps` shows them and `dev stack logs <service>`
+  prints a log.
 - Backend TypeScript reloads through nodemon and the frontend reloads through
   Vite HMR.
 - Generation watchers vary by checkout. Run the matching workflow below after
   schema or generation-input changes.
-- Services run in Docker. Do not run `npm run dev` or `npm start`.
 
 | Change to a running stack | Workflow |
 |--------|----------|
-| Backend `.graphql` schema | Run `npm run generate` in `services/registries`, `./compose-supergraph.sh` in `services/apollo-router`, and `npm run generate` in `apps/registries-frontend`; restart registries, frontend, and router |
+| Backend `.graphql` schema | Run `npm run generate` in `services/registries` and in `apps/registries-frontend`, then `dev stack restart` |
 | `.proto` | Run `npm run generate-proto` in the owner, generate in every consumer, then restart affected services |
-| Prisma schema files | For new schema edits, create and inspect the migration. For incoming changes, apply the existing migrations. Run `dev stack up <service> -d` to refresh image inputs, then use the workspace's generation and migration scripts with this worktree's `POSTGRES_URL` as needed |
-| `package.json` | Run `npm install`, then `dev stack up --build <service> -d`; a restart does not install dependencies |
-
-When upgrading a service Docker image for a vulnerability, check whether its
-migrator uses the same image.
+| Prisma schema files | For new schema edits, create and inspect the migration. For incoming migrations, `dev stack restart registries` applies them |
+| `package.json` or lockfile | `dev stack up`; it reinstalls dependencies that no longer match the lockfile and restarts the affected services |
 
 After a rebase, merge, or branch switch, list the incoming files with
 `git diff --name-only ORIG_HEAD HEAD` (or the previous head after a branch
-switch). Run `dev stack up` for the required services when that list touches
-an image input of a running service: its `Dockerfile` or `.dockerignore`, its
-`package.json` or lockfile, Prisma schema or migrations, `prisma.config.ts`, or
-generation scripts. Run it also when those services are stopped. Otherwise keep
-the running containers: mounted source reloads through nodemon and Vite, and
-the table above covers schema and `.proto` changes. `dev stack up` compares
-image inputs with the checkout and rebuilds stale images; `dev test e2e` runs
-the same check for its backend services. Use `--build` for changed ignored
-build inputs or to request an explicit rebuild.
+switch). Run `dev stack up` when that list touches a lockfile, and
+`dev stack restart registries` when it touches Prisma migrations. Otherwise
+keep the running services: mounted source reloads through nodemon and Vite,
+and the table above covers schema and `.proto` changes.
 
 ## Browser verification and diagnosis
 
@@ -143,13 +128,13 @@ For “verify in browser,” start the services selected above if needed, open
 the rendered frontend URL, and verify the behavior directly. After starting
 a new worktree's browser services, confirm the frontend renders.
 
-Start diagnosis with `docker ps`, then read logs from containers carrying the
-current worktree name. Only those containers belong to this environment. A
-connection failure means container state, not port configuration.
+Start diagnosis with `dev stack ps`, then `dev stack logs <service>`. Only
+this checkout's services belong to this environment. A connection failure
+means service state, not port configuration.
 
 “An unknown error occurred. Please try again later or contact support.” is
 usually a service needing a restart, an unrun migration, or missing
-dependencies. Establish the Docker-side cause before changing application
+dependencies. Establish the service-side cause before changing application
 code.
 
 For verification against a seeded registry, read

@@ -26,8 +26,8 @@ in sibling apps need their own task.
 
 ## Ports (Worktree-Specific)
 
-This is one of many parallel worktrees, each with its own isolated Docker stack
-and unique ports.
+This is one of many parallel worktrees. Each runs its services as processes on
+this Mac with its own ports and its own databases in the shared PostgreSQL.
 
 | Service | URL |
 |---------|-----|
@@ -35,11 +35,11 @@ and unique ports.
 | Registries (GraphQL) | http://localhost:{{REGISTRIES_PORT}}/graphql |
 | Registries (gRPC) | localhost:{{REGISTRIES_GRPC_PORT}} |
 | Codelist (gRPC) | localhost:{{CODELIST_GRPC_PORT}} |
-| PostgreSQL | localhost:{{POSTGRES_PORT}} |
+| PostgreSQL (shared) | localhost:{{POSTGRES_PORT}}; `dev stack psql` opens this checkout's database |
 
 These ports belong to this worktree alone, and they are correct as listed. When
-one doesn't respond, the Docker stack is what needs attention — the standard
-ports (5432, 3000, 4000) belong to other stacks, and editing hardcoded URLs, env
+one doesn't respond, the dev stack is what needs attention — the standard
+ports (3003, 4006) belong to other stacks, and editing hardcoded URLs, env
 files, or configs to reach a service breaks the worktree instead of fixing it.
 
 ## Read the applicable context
@@ -80,7 +80,7 @@ Load the matching shared skill before acting:
 | Split a PR, restack dependent PRs, or change a PR's base branch | `restack-pr` |
 | Assess review feedback or implement its fixes | `address-feedback` |
 | Preview or deploy a registries production release | `registry-release` |
-| Clean up stale worktrees, dev stacks, or leftover Docker resources | `cleanup-dev` |
+| Clean up stale worktrees or dev stacks | `cleanup-dev` |
 | Run checks, investigate check or hook failures, commit, or push | `verify-change` |
 | Recommend a design, change code, or review code | `coding-standards` |
 | Edit an existing checkout; create, enter, or remove a worktree | `worktree` |

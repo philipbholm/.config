@@ -64,7 +64,7 @@ Work setup complete. Manual follow-up:
      signing key is trusted for signature verification
   3. Create ~/.config/zsh/.zsh_secrets (incl. DD_API_KEY / DD_APP_KEY)
   4. Sign in to GitHub: gh auth login
-  5. Install and sign in to Docker Desktop
+  5. Install Docker Desktop only to run the patient services; dev stack runs without it
   6. Sign in to Cursor, Claude, Slack, AWS VPN, etc.
   7. Reload shell: exec zsh -l
 EOF

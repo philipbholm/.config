@@ -22,3 +22,4 @@ gh/hosts.yml
 # Local credentials for the myos project
 myos/
 myos-recovery/
+__pycache__

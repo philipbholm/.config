@@ -1,10 +1,5 @@
 #!/bin/bash
 
-DEV_SLOT_LABEL="com.ledidi.dev-slot"
-# Existing containers keep this label so a command rename preserves stack ownership.
-DEV_CHECKOUT_LABEL="com.ledidi.dev-workspace"
-DEV_COMPOSE_PROJECT_LABEL="com.docker.compose.project"
-
 # New worktrees live inside the repo at <repo>/.worktrees. The location belongs
 # to the repository workflow, not to any one agent harness. WORKTREE_BASE
 # overrides it for tests.
@@ -82,7 +77,7 @@ dev_repo_family_name() {
 }
 
 # Stack identity for a worktree. Keyed on the directory name, not the branch:
-# switching branches inside a worktree must not change which Docker stack,
+# switching branches inside a worktree must not change which dev stack,
 # slot file, and ports it owns.
 dev_worktree_raw_key_for_repo() {
     local repo_root=$1
@@ -111,88 +106,6 @@ dev_stack_dir_for_repo() {
 dev_slot_file_for_repo() {
     local repo_root=$1
     printf '%s/worktree-slot\n' "$(dev_stack_dir_for_repo "$repo_root")"
-}
-
-dev_list_slot_files() {
-    local stacks_dir
-    stacks_dir=$(dev_stacks_dir)
-
-    [ -d "$stacks_dir" ] || return 0
-
-    find "$stacks_dir" -mindepth 2 -maxdepth 2 -type f -name worktree-slot -print 2>/dev/null | sort
-}
-
-dev_is_worktree_compose_project() {
-    local checkout=$1
-    local project=$2
-
-    case "$project" in
-        wt[1-9]-"$checkout") return 0 ;;
-    esac
-    return 1
-}
-
-dev_worktree_stack_resources() {
-    local checkout=$1
-    local listing
-    local id
-    local name
-    local project
-    local reference
-    local target
-
-    listing=$(docker ps -a --filter "label=${DEV_COMPOSE_PROJECT_LABEL}" \
-        --format "{{.ID}} {{.Label \"${DEV_COMPOSE_PROJECT_LABEL}\"}}") || return 1
-    while read -r id project; do
-        [ -n "$id" ] || continue
-        if dev_is_worktree_compose_project "$checkout" "$project"; then
-            printf 'container %s\n' "$id"
-        fi
-    done <<< "$listing"
-
-    listing=$(docker volume ls --filter "label=${DEV_COMPOSE_PROJECT_LABEL}" \
-        --format "{{.Name}} {{.Label \"${DEV_COMPOSE_PROJECT_LABEL}\"}}") || return 1
-    while read -r name project; do
-        [ -n "$name" ] || continue
-        if dev_is_worktree_compose_project "$checkout" "$project"; then
-            printf 'volume %s\n' "$name"
-        fi
-    done <<< "$listing"
-
-    listing=$(docker image ls --filter "label=${DEV_COMPOSE_PROJECT_LABEL}" \
-        --format '{{.ID}} {{.Repository}}:{{.Tag}}') || return 1
-    while read -r id reference; do
-        case "$reference" in
-            wt[1-9]-"$checkout"-*) target=$reference ;;
-            '<none>:<none>') target=$id ;;
-            *) continue ;;
-        esac
-        project=$(docker image inspect \
-            --format "{{index .Config.Labels \"${DEV_COMPOSE_PROJECT_LABEL}\"}}" "$target" 2>/dev/null) || continue
-        if dev_is_worktree_compose_project "$checkout" "$project"; then
-            printf 'image %s\n' "$target"
-        fi
-    done <<< "$listing"
-}
-
-dev_clear_stale_slot_files() {
-    local repo_root=$1
-    local slot=$2
-    local own_slot_file
-    local candidate
-    local candidate_slot
-
-    own_slot_file=$(dev_slot_file_for_repo "$repo_root")
-
-    while IFS= read -r candidate; do
-        [ -n "$candidate" ] || continue
-        [ "$candidate" = "$own_slot_file" ] && continue
-
-        candidate_slot=$(tr -d '[:space:]' < "$candidate" 2>/dev/null || true)
-        if [ "$candidate_slot" = "$slot" ]; then
-            rm -f "$candidate"
-        fi
-    done < <(dev_list_slot_files)
 }
 
 dev_existing_slot_file_for_repo() {
@@ -279,7 +192,7 @@ dev_apply_context_ports() {
     local replacements=(
         -e "s|{{FRONTEND_PORT}}|$(( DEV_FRONTEND_BASE_PORT + offset ))|g"
         -e "s|{{ROUTER_PORT}}|$(( DEV_ROUTER_BASE_PORT + offset ))|g"
-        -e "s|{{POSTGRES_PORT}}|$(( DEV_POSTGRES_BASE_PORT + offset ))|g"
+        -e "s|{{POSTGRES_PORT}}|$DEV_POSTGRES_BASE_PORT|g"
         -e "s|{{CODELIST_PORT}}|$(( DEV_CODELIST_BASE_PORT + offset ))|g"
         -e "s|{{CODELIST_GRPC_PORT}}|$(( DEV_CODELIST_GRPC_BASE_PORT + offset ))|g"
         -e "s|{{REGISTRIES_PORT}}|$(( DEV_REGISTRIES_BASE_PORT + offset ))|g"
