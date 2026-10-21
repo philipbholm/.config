@@ -227,9 +227,11 @@ def stop_process(path, timeout=20):
         os.killpg(pgid, signal.SIGTERM)
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
+        with contextlib.suppress(ChildProcessError):
+            os.waitpid(pgid, os.WNOHANG)
         try:
             os.killpg(pgid, 0)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             return True
         time.sleep(0.2)
     with contextlib.suppress(ProcessLookupError):
