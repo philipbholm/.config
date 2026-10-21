@@ -10,11 +10,15 @@ brew "postgresql@17"
 # The CronJob scripts the checks run need a modern bash; macOS ships 3.2.
 brew "bash"
 # myos scripts/check.sh runs the CI jobs locally. Colima runs the Docker
-# engine in a Lima VM, without Docker Desktop, for the image jobs; start it
-# with `colima start --cpu 2 --memory 4` and stop it after checking.
+# engine in a Lima VM, without Docker Desktop, for the image jobs. Start it
+# with `colima start --cpu 2 --memory 4 --mount $HOME:w --mount /var/folders:w`
+# and stop it after checking. Some checks bind-mount files from mktemp, which
+# lives under /var/folders; Colima shares only $HOME unless told otherwise.
 brew "colima"
 brew "docker"
 brew "docker-buildx"
+# GNU date as gdate: myos tests run Linux CronJob scripts that call date -d.
+brew "coreutils"
 # Builds the MinIO test server the app job starts.
 brew "go"
 # promtool, alloy, vmalert-tool and victoria-metrics for the manifests and
