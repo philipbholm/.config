@@ -7,6 +7,8 @@ brew "helm"
 brew "k3d"
 brew "opentofu"
 brew "postgresql@17"
+# The CronJob scripts the checks run need a modern bash; macOS ships 3.2.
+brew "bash"
 # myos scripts/check.sh runs the CI jobs locally. Colima runs the Docker
 # engine in a Lima VM, without Docker Desktop, for the image jobs; start it
 # with `colima start --cpu 2 --memory 4` and stop it after checking.

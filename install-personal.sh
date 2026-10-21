@@ -37,10 +37,17 @@ install_myos_vmalert_tool() {
   rm -rf "$tmp"
 }
 
+# myos scripts/check.sh and its pre-push hook pick CI jobs with
+# scripts/ci/select-jobs.py, which imports yaml under the system python3.
+install_myos_pyyaml() {
+  /usr/bin/python3 -c 'import yaml' 2>/dev/null || /usr/bin/python3 -m pip install --user --quiet pyyaml
+}
+
 run_core
 brew_bundle "$DOTFILES/Brewfile.personal"
 link_docker_buildx
 install_myos_vmalert_tool
+install_myos_pyyaml
 setup_macos_defaults
 
 verify
