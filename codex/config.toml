@@ -1,7 +1,6 @@
 # model + model_reasoning_effort are deliberately not tracked — Codex writes the
 # runtime choice into the live ~/.codex/config.toml, which is machine-local.
 personality = "pragmatic"
-notify = ["/Users/philip/.config/dev/codex-notify.sh"]
 commit_attribution = "Codex <noreply@openai.com>"
 
 [features]

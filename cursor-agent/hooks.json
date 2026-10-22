@@ -1,8 +1,4 @@
 {
   "version": 1,
-  "hooks": {
-    "stop": [
-      { "command": "/Users/philip/.config/dev/cursor-notify.sh" }
-    ]
-  }
+  "hooks": {}
 }

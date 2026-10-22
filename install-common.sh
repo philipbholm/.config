@@ -164,9 +164,8 @@ link_core() {
   ln -sf "$DOTFILES/cursor/settings.json" ~/.cursor/settings.json
   ln -sf "$DOTFILES/cursor/keybindings.json" ~/.cursor/keybindings.json
 
-  # Cursor Agent (CLI): base mcp.json + statusline + notify hook.
+  # Cursor Agent (CLI): base mcp.json + statusline + hooks.
   # On work, dev agent-config apply --profile work replaces mcp.json with a generated file.
-  # hooks.json fires dev/cursor-notify.sh (macOS banner) on the CLI `stop` event.
   ln -sfn "$DOTFILES/cursor-agent/mcp.json" ~/.cursor/mcp.json
   ln -sf "$DOTFILES/cursor-agent/statusline.sh" ~/.cursor/statusline.sh
   ln -sfn "$DOTFILES/cursor-agent/hooks.json" ~/.cursor/hooks.json

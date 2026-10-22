@@ -18,9 +18,8 @@ only). On a work machine `dev agent-config apply --profile work` replaces that s
 real file: base + `mcp.work.json` (adds Datadog). Do not re-symlink the base on
 a work machine — that drops Datadog.
 
-`hooks.json` registers the CLI `stop` hook that runs `../dev/cursor-notify.sh`
-(a macOS banner when a turn ends), matching Claude's `Stop` hook and Codex's
-`notify`.
+`hooks.json` registers no hooks. To get a macOS banner when a turn ends, add a
+`stop` hook that runs `../dev/cursor-notify.sh`.
 
 ### Why `cli-config.json` is not symlinked
 

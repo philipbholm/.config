@@ -9,7 +9,7 @@
   "editor": {
     "vimMode": false
   },
-  "notifications": true,
+  "notifications": false,
   "hints": true,
   "rewind": false,
   "suggestNextPrompt": false,
