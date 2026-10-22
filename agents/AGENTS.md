@@ -113,6 +113,8 @@ defaults.
 Keep every pull request in draft until I explicitly ask you to mark that pull
 request ready for review. A finished implementation, resolved review findings,
 or green checks mean the draft is ready for me; they do not change its state.
+A repository whose own instructions say to open pull requests ready for review
+overrides this rule; follow the repository there.
 
 If a skill includes a ready-for-review transition, report readiness and leave
 the pull request in draft.
