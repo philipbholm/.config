@@ -22,3 +22,5 @@ gh/hosts.yml
 # Local credentials for the myos project
 myos/
 myos-recovery/
+# The myos production node's address; ssh/config includes it
+ssh/myos.conf
