@@ -66,7 +66,7 @@
       "Bash(dev stack destroy:*)",
       "Bash(dev worktree destroy:*)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "bypassPermissions"
   },
   "hooks": {
     "Stop": [
