@@ -119,6 +119,7 @@
   "teammateMode": "in-process",
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": false,
+  "remoteControlAtStartup": true,
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
   "attribution": {
