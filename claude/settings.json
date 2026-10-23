@@ -21,6 +21,9 @@
       "Bash(./scripts/prod-read.sh:*)"
     ],
     "deny": [
+      "Agent(general-purpose)",
+      "Agent(claude)",
+      "Workflow",
       "Read(./**/.env)",
       "Read(./**/.env.local)",
       "Read(./**/.env.*.local)",

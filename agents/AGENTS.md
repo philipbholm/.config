@@ -89,6 +89,17 @@ Reuse applicable instructions already read in this session. Read them again
 when their files change, the scope changes, or their contents are no longer
 available in context.
 
+## Subagents
+
+My Mac has resources for one working session at a time. Use subagents to read
+and search, and have them send back a summary. Make edits and run tests and
+builds in the main session, one at a time. Start other sessions only when I ask
+for one.
+
+Claude Code enforces part of this: `claude/settings.json` denies the
+`general-purpose` and `claude` agent types and the `Workflow` tool. Codex and
+Cursor Agent have only this rule.
+
 ## Commits and pull requests
 
 Before creating or amending a commit, drafting a commit message, or reviewing
