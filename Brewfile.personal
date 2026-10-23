@@ -28,3 +28,9 @@ brew "prometheus"
 brew "grafana-alloy"
 brew "victoriametrics"
 cask "brave-browser"
+# Opens the myos dev server on the iPhone over HTTPS: `tailscale serve`
+# proxies https://<mac>.<tailnet>.ts.net to localhost:3000, reachable only
+# from devices signed into the same tailnet. The cask is the menu-bar app,
+# which runs the network extension and the sign-in flow; the `tailscale`
+# formula is the bare daemon, which needs root to run.
+cask "tailscale-app"
