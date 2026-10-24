@@ -367,7 +367,7 @@ verify() {
   # (link_entries leaves such an entry alone), and a link left by an older
   # install can dangle.
   local unlinked=()
-  for link in ~/.claude/skills/explain-diff-html ~/.agents/skills/explain-diff-html \
+  for link in ~/.agents/skills/grilling \
               ~/.claude/statusline-command.sh ~/.claude/CLAUDE.md ~/.codex/AGENTS.md \
               ~/AGENTS.md \
               ~/.codex/keybindings.json ~/bin/dev ~/bin/browser ~/bin/python ~/bin/pip; do
