@@ -49,7 +49,30 @@ install_myos_pyyaml() {
     python3 -m pip install --user --quiet pyyaml
 }
 
+# These skills are uploaded to the personal claude.ai account, which loads them
+# into every Claude session on this Mac and in the cloud. A ~/.claude/skills
+# link with the same name loads a second copy beside the account one. Codex and
+# Cursor cannot read account skills, so ~/.agents/skills keeps every link.
+# Change this list when a skill is added to or removed from the account.
+ACCOUNT_SKILLS=(
+  code-review codebase-design diagnosing-bugs domain-modeling grilling handoff
+  implement implement-spec improve-codebase-architecture pr prototype research
+  retro setup-matt-pocock-skills tdd to-spec to-tickets triage wayfinder wizard
+  writing-for-agents
+)
+
+unlink_account_skills() {
+  local name link
+  for name in "${ACCOUNT_SKILLS[@]}"; do
+    link="$HOME/.claude/skills/$name"
+    if [[ -L "$link" && "$(readlink "$link")" == "$DOTFILES/"* ]]; then
+      rm "$link"
+    fi
+  done
+}
+
 run_core
+unlink_account_skills
 brew_bundle "$DOTFILES/Brewfile.personal"
 link_docker_buildx
 install_myos_vmalert_tool

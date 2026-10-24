@@ -353,9 +353,7 @@ verify() {
   done
 
   # Paths that must resolve for the shell, git and agent configs to work at all
-  # (~/.claude/skills and ~/.claude/agents are real dirs, both empty on a
-  # personal machine — plugin skills come from the plugin, not from links here.
-  # settings.json / config.toml / mcp.json are real files on work machines.)
+  # (settings.json / config.toml / mcp.json are real files on work machines).
   local link
   for link in ~/.zshrc ~/.claude/settings.json ~/.claude/agents ~/.agents/skills \
               ~/.codex/config.toml ~/.cursor/mcp.json ~/.ssh/allowed_signers; do
