@@ -1,9 +1,5 @@
 #!/bin/bash
 
-DEV_SLOT_LABEL="com.ledidi.dev-slot"
-# Existing containers keep this label so a command rename preserves stack ownership.
-DEV_CHECKOUT_LABEL="com.ledidi.dev-workspace"
-
 # New worktrees live inside the repo at <repo>/.worktrees. The location belongs
 # to the repository workflow, not to any one agent harness. WORKTREE_BASE
 # overrides it for tests.
@@ -81,7 +77,7 @@ dev_repo_family_name() {
 }
 
 # Stack identity for a worktree. Keyed on the directory name, not the branch:
-# switching branches inside a worktree must not change which Docker stack,
+# switching branches inside a worktree must not change which dev stack,
 # slot file, and ports it owns.
 dev_worktree_raw_key_for_repo() {
     local repo_root=$1
@@ -110,66 +106,6 @@ dev_stack_dir_for_repo() {
 dev_slot_file_for_repo() {
     local repo_root=$1
     printf '%s/worktree-slot\n' "$(dev_stack_dir_for_repo "$repo_root")"
-}
-
-dev_list_slot_files() {
-    local stacks_dir
-    stacks_dir=$(dev_stacks_dir)
-
-    [ -d "$stacks_dir" ] || return 0
-
-    find "$stacks_dir" -mindepth 2 -maxdepth 2 -type f -name worktree-slot -print 2>/dev/null | sort
-}
-
-dev_prune_stale_slot_files() {
-    # Removes slot files whose checkout has no matching containers in Docker.
-    # No-op if the Docker daemon is unreachable, to avoid wiping valid state.
-    if ! docker info >/dev/null 2>&1; then
-        return 0
-    fi
-
-    local slot_file checkout slot containers
-
-    while IFS= read -r slot_file; do
-        [ -n "$slot_file" ] || continue
-        [ -f "$slot_file" ] || continue
-
-        checkout=$(basename "$(dirname "$slot_file")")
-        slot=$(tr -d '[:space:]' < "$slot_file" 2>/dev/null || true)
-
-        if [ -z "$slot" ]; then
-            rm -f "$slot_file"
-            continue
-        fi
-
-        containers=$(docker ps -aq \
-            --filter "label=${DEV_CHECKOUT_LABEL}=${checkout}" \
-            --filter "label=${DEV_SLOT_LABEL}=${slot}" 2>/dev/null)
-
-        if [ -z "$containers" ]; then
-            rm -f "$slot_file"
-        fi
-    done < <(dev_list_slot_files)
-}
-
-dev_clear_stale_slot_files() {
-    local repo_root=$1
-    local slot=$2
-    local own_slot_file
-    local candidate
-    local candidate_slot
-
-    own_slot_file=$(dev_slot_file_for_repo "$repo_root")
-
-    while IFS= read -r candidate; do
-        [ -n "$candidate" ] || continue
-        [ "$candidate" = "$own_slot_file" ] && continue
-
-        candidate_slot=$(tr -d '[:space:]' < "$candidate" 2>/dev/null || true)
-        if [ "$candidate_slot" = "$slot" ]; then
-            rm -f "$candidate"
-        fi
-    done < <(dev_list_slot_files)
 }
 
 dev_existing_slot_file_for_repo() {
@@ -256,7 +192,7 @@ dev_apply_context_ports() {
     local replacements=(
         -e "s|{{FRONTEND_PORT}}|$(( DEV_FRONTEND_BASE_PORT + offset ))|g"
         -e "s|{{ROUTER_PORT}}|$(( DEV_ROUTER_BASE_PORT + offset ))|g"
-        -e "s|{{POSTGRES_PORT}}|$(( DEV_POSTGRES_BASE_PORT + offset ))|g"
+        -e "s|{{POSTGRES_PORT}}|$DEV_POSTGRES_BASE_PORT|g"
         -e "s|{{CODELIST_PORT}}|$(( DEV_CODELIST_BASE_PORT + offset ))|g"
         -e "s|{{CODELIST_GRPC_PORT}}|$(( DEV_CODELIST_GRPC_BASE_PORT + offset ))|g"
         -e "s|{{REGISTRIES_PORT}}|$(( DEV_REGISTRIES_BASE_PORT + offset ))|g"

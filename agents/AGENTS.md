@@ -50,23 +50,19 @@ so those branches will not compile after you restack.
 
 ## Code comments
 
-Code comments follow different writing rules. Write fewer comments, not shorter
-ones.
+Write code without comments. Add or rewrite a comment only when I ask for that
+comment. This rule beats a repository's comment conventions and any harness
+default about matching comment density.
 
-Reach for a better name before a comment.
+Carry meaning in names instead: a better variable, function or test name.
+When the code needs a fact it cannot show, such as a hidden constraint or a
+workaround, tell me in your report and let me decide on a comment.
 
-Before adding or rewriting a comment, read the code without it. Identify the
-specific fact the comment adds and the maintenance mistake that fact helps
-prevent. Keep the comment only when the code does not already make that fact
-clear. Useful comments explain hidden constraints, invariants, workarounds,
-or reasons behind choices.
+When your change makes an existing comment false, delete that comment and say
+so in your report.
 
-Apply the same check to existing comments when you change the code they
-describe. Decide whether a stale comment belongs before correcting it.
-Delete comments that fail the check.
-
-A comment that passes the check says its thing in full. Use enough words to
-make it understandable on its own.
+When I ask for a comment, it says its thing in full. Use enough words to make
+it understandable on its own.
 
 Say what is true. Not what a future change would do, not what a rejected
 alternative would have done, not why your change is correct.

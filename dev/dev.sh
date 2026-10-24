@@ -10,6 +10,14 @@ done
 SCRIPT_DIR=$(cd "$(dirname "$script_path")" && pwd)
 . "$SCRIPT_DIR/lib/cli.sh"
 
+if [[ -z "${GITHUB_TOKEN:-}" && -r "$HOME/.npmrc" ]]; then
+    GITHUB_TOKEN=$(sed -n 's#^//npm.pkg.github.com/:_authToken=##p' "$HOME/.npmrc" | head -n 1)
+    export GITHUB_TOKEN
+fi
+if [[ -z "${NPM_AUTH_TOKEN:-}" && -n "${GITHUB_TOKEN:-}" ]]; then
+    export NPM_AUTH_TOKEN=$GITHUB_TOKEN
+fi
+
 if [[ $# -eq 0 ]]; then
     dev_help dev
     exit 0
@@ -17,7 +25,7 @@ fi
 
 case "$1" in
     --help|-h|help) dev_help "${2:-dev}"; exit 0 ;;
-    up|down|logs|exec|ps|build|stop|restart|config|pull|images|top|events|port|run)
+    up|down|logs|ps|stop|restart)
         exec bash "$SCRIPT_DIR/stack.sh" "$@" ;;
     start) shift; exec bash "$SCRIPT_DIR/stack.sh" up "$@" ;;
     nuke) shift; exec bash "$SCRIPT_DIR/stack.sh" destroy "$@" ;;

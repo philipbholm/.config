@@ -1,8 +1,8 @@
 import { startGrpcServer } from "./grpc-server.js";
 import { startGraphQLServer } from "./graphql-server.js";
 
-const GRAPHQL_PORT = 4000;
-const GRPC_PORT = 50051;
+const GRAPHQL_PORT = Number(process.env.ADMIN_MOCK_GRAPHQL_PORT ?? 4000);
+const GRPC_PORT = Number(process.env.ADMIN_MOCK_GRPC_PORT ?? 50051);
 
 async function main() {
   console.log("Starting admin-mock...");

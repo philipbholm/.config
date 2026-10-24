@@ -1,10 +1,12 @@
 # admin-mock
 
-Standalone mock of the admin service for local development. Replaces the real admin service (MySQL, Cognito, SpiceDB, HubSpot, Chargebee) with a tiny container that serves hardcoded test data.
+Standalone mock of the admin service for local development. It replaces the
+real admin service (MySQL, Cognito, SpiceDB, HubSpot, Chargebee) with a small
+Node process that serves hardcoded test data.
 
 ## What it provides
 
-**gRPC** (port 50051):
+**gRPC** (`ADMIN_MOCK_GRPC_PORT`, default 50051):
 
 | Method | Behavior |
 |--------|----------|
@@ -14,7 +16,7 @@ Standalone mock of the admin service for local development. Replaces the real ad
 | `ResetUserPassword` | `{ success: true }` |
 | `ResetUserMfa` | `{ success: true }` |
 
-**GraphQL** (port 4000):
+**GraphQL** (`ADMIN_MOCK_GRAPHQL_PORT`, default 4000):
 
 | Route | Schema |
 |-------|--------|
@@ -22,79 +24,60 @@ Standalone mock of the admin service for local development. Replaces the real ad
 | `/graphql-public` | `admin-public.graphql` — public queries (SSO check, error details) |
 | `/health` | `{ "status": "ok" }` |
 
-All resolvers return hardcoded defaults. The 8 test users match `services/admin/src/test-data/setup-users.ts`.
+All resolvers return hardcoded defaults. The 8 test users match
+`services/admin/src/test-data/setup-users.ts`.
 
-## How it works
+## How the dev stack runs it
 
-The mock container runs on a shared Docker network (`admin-mock-net`) with hostname `admin-service.internal` — the same hostname the real admin service uses. The `run-main.sh` script generates a compose override that:
+`dev stack up` starts one shared admin mock when registries is among the
+services, and every checkout uses it:
 
-1. Disables `admin` and `mysql` services via `profiles: ["disabled"]`
-2. Connects `router` and `registries` to the `admin-mock-net` network
+| Port | Used by |
+|------|---------|
+| 4054 (GraphQL) | the registries frontend's default `VITE_ADMIN_GRAPHQL_URI` |
+| 50004 (gRPC) | registries, through `ADMIN_SERVICE_GRPC_ADDRESS=localhost:50004` |
 
-The existing env vars (`ADMIN_SERVICE_GRAPHQL_URL=http://admin-service.internal:4000/graphql`, `ADMIN_SERVICE_GRPC_ADDRESS=admin-service.internal:50051`) resolve directly to the mock container. No env var overrides or port remapping needed.
+It installs `node_modules` on first use and runs the committed `build/`
+output. Its log is `~/work/.dev-stacks/.shared/admin-mock.log`, and
+`dev stack list` shows whether it runs. It keeps running until the machine
+restarts.
 
-## First-time setup
+## Changing the mock
 
-```bash
-cd ~/.config/dev/admin-mock
-docker build -t admin-mock .
-docker network create admin-mock-net
-docker run -d --name admin-mock --restart unless-stopped \
-  --network admin-mock-net --hostname admin-service.internal admin-mock
-```
-
-The container uses `--restart unless-stopped` so it survives Docker Desktop restarts.
-
-## After setup
-
-`run-main.sh --up` uses the mock automatically. It checks that the `admin-mock` container is running before starting the stack.
-
-## Rebuilding
-
-After changing source files:
+`build/` is committed, so the stack runs without compiling. After changing
+`src/`, rebuild and restart the running mock:
 
 ```bash
 cd ~/.config/dev/admin-mock
-docker rm -f admin-mock
-docker build -t admin-mock .
-docker run -d --name admin-mock --restart unless-stopped \
-  --network admin-mock-net --hostname admin-service.internal admin-mock
+npm run build
+kill "$(jq .pid ~/work/.dev-stacks/.shared/admin-mock.json)"
 ```
+
+The next `dev stack up` starts it again.
 
 ## Updating schemas
 
-The `api/` directory contains copies of the real admin schemas. If the admin service schemas change, copy the updated files:
+The `api/` directory contains copies of the real admin schemas. When the admin
+service schemas change, copy the updated files:
 
 ```bash
-cp /path/to/repo/services/admin/api/admin.proto      ~/.config/dev/admin-mock/api/
-cp /path/to/repo/services/admin/api/admin.graphql     ~/.config/dev/admin-mock/api/
+cp /path/to/repo/services/admin/api/admin.proto          ~/.config/dev/admin-mock/api/
+cp /path/to/repo/services/admin/api/admin.graphql        ~/.config/dev/admin-mock/api/
 cp /path/to/repo/services/admin/api/admin-public.graphql ~/.config/dev/admin-mock/api/
 ```
 
-Then rebuild (see above). You may also need to update resolvers in `src/graphql-server.ts` if new queries or mutations were added.
+New queries or mutations may also need resolvers in `src/graphql-server.ts`.
 
 ## Updating test users
 
-Edit `src/users.ts`. The user data should match what `services/admin/src/test-data/setup-users.ts` seeds into the real admin database.
+Edit `src/users.ts`. The user data should match what
+`services/admin/src/test-data/setup-users.ts` seeds into the real admin
+database.
 
 ## Troubleshooting
 
-**`run-main.sh` says admin-mock is not running:**
+**GraphQL errors in the frontend:** the mock's schemas may not match the repo.
+When the admin service added fields or queries, update the schemas.
 
-```bash
-docker start admin-mock
-```
-
-Or if the container doesn't exist, follow the first-time setup above.
-
-**GraphQL errors in the frontend:**
-
-Check that the mock's schemas match the repo. If the admin service added new fields or queries, the mock schemas need updating.
-
-**Container keeps restarting:**
-
-```bash
-docker logs admin-mock
-```
-
-Look for startup errors. Common cause: schema files missing from `api/`.
+**The mock does not start:** read `~/work/.dev-stacks/.shared/admin-mock.log`.
+A missing schema file in `api/` is the usual cause.

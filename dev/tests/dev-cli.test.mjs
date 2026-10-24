@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const source = fileURLToPath(new URL("..", import.meta.url));
 const scripts = ["dev", "stack", "worktree-create", "worktree-destroy", "workspace-prepare",
-  "stack-expose", "context-render", "context-inspect", "session-search", "agent-config-apply", "browser-launch-debug", "test-e2e", "story"];
+  "stack-expose", "context-render", "context-inspect", "claude-context", "session-search", "agent-config-apply", "browser-launch-debug", "test-e2e", "story"];
 
 function fixture(t) {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "dev-cli-test-")));
@@ -26,16 +26,14 @@ function fixture(t) {
   cpSync(join(source, "context/ledidi-monorepo"), join(tools, "context/ledidi-monorepo"), { recursive: true });
   writeFileSync(join(tools, ".env.local"), 'printf sourced > "$DEV_TEST_EFFECT"\n');
   writeFileSync(log, "");
-  for (const command of ["docker", "npm", "cloudflared", "rover", "lsof", "osascript", "terminal-notifier", "npx"]) {
+  for (const command of ["docker", "pg_ctl", "npm", "cloudflared", "rover", "lsof", "osascript", "terminal-notifier", "npx"]) {
     writeFileSync(join(bin, command), `#!${process.execPath}
 const fs = require("node:fs");
 const args = process.argv.slice(2);
-fs.appendFileSync(process.env.DEV_TEST_LOG, JSON.stringify({ command: ${JSON.stringify(command)}, args, cwd: process.cwd() }) + "\\n");
+fs.appendFileSync(process.env.DEV_TEST_LOG, JSON.stringify({ command: ${JSON.stringify(command)}, args, cwd: process.cwd(),
+  locked: fs.existsSync(process.env.DEV_SLOT_LOCKDIR) }) + "\\n");
 if (${JSON.stringify(command)} === "lsof" && args.includes("-iTCP:" + process.env.DEV_TEST_OCCUPIED_PORT)) process.exit(0);
-if (${JSON.stringify(command)} !== "docker" || process.env.DEV_TEST_DOCKER !== "allow") process.exit(99);
-if (args.includes("--services")) process.stdout.write(process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n");
-if (args.includes("--format") && args.includes("json")) process.stdout.write(process.env.DEV_TEST_CONFIG_JSON ?? JSON.stringify({name: "fixture", services: Object.fromEntries((process.env.DEV_TEST_SERVICES ?? "postgres\\nregistries\\n").trim().split("\\n").map(name => [name, {}]))}));
-if (args.includes("build") && process.env.DEV_TEST_BUILD_FAIL) process.exit(12);
+process.exit(99);
 `, { mode: 0o755 });
   }
   const env = {
@@ -44,8 +42,11 @@ if (args.includes("build") && process.env.DEV_TEST_BUILD_FAIL) process.exit(12);
     PATH: `${bin}:${process.env.PATH}`,
     DEV_MAIN_REPO: repo,
     DEV_STACKS_DIR: join(directory, "stacks"),
+    DEV_SLOT_LOCKDIR: join(directory, "slot.lock"),
     DEV_TEST_LOG: log,
     DEV_TEST_EFFECT: effect,
+    DEV_PG_BIN: bin,
+    DEV_SCRIPTS_DIR: join(directory, "scripts"),
     GIT_CONFIG_COUNT: "1",
     GIT_CONFIG_KEY_0: "core.hooksPath",
     GIT_CONFIG_VALUE_0: join(directory, "hooks"),
@@ -69,7 +70,7 @@ if (args.includes("build") && process.env.DEV_TEST_BUILD_FAIL) process.exit(12);
 
 const commands = [[], ["worktree"], ["workspace"], ["stack"], ["context"], ["session"], ["agent-config"], ["browser"], ["test"], ["test", "e2e"], ["story"],
   ["worktree", "create"], ["worktree", "destroy"], ["workspace", "prepare"],
-  ...["up", "down", "destroy", "list", "expose", "logs", "exec", "ps", "build", "stop", "restart"].map(action => ["stack", action]),
+  ...["up", "down", "destroy", "list", "expose", "logs", "ps", "stop", "restart", "psql", "reap"].map(action => ["stack", action]),
   ["context", "render"], ["context", "show"], ["context", "check"], ["session", "search"],
   ["agent-config", "apply"], ["browser", "launch-debug"]];
 
@@ -157,12 +158,12 @@ test("Show story help without inspecting worktrees", (t) => {
 
 test("List stacks outside a Git repository without generating stack files", (t) => {
   const f = fixture(t);
-  f.env.DEV_TEST_DOCKER = "allow";
   const result = f.run(["stack", "list"]);
   assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Shared PostgreSQL: stopped/);
   assert.match(result.stdout, /No dev stacks running/);
   assert.equal(existsSync(f.env.DEV_STACKS_DIR), false);
-  assert.ok(f.calls().every(call => call.command === "docker" && ["info", "ps"].includes(call.args[0])));
+  assert.deepEqual(f.calls().map(call => call.command), ["pg_ctl"]);
 });
 
 test("Render only the current checkout unless all worktrees are requested", (t) => {
@@ -174,17 +175,12 @@ test("Render only the current checkout unless all worktrees are requested", (t) 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(readFileSync(join(f.repo, "AGENTS.md"), "utf8"), "Keep main context\n");
   assert.match(readFileSync(join(worktree, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  const worktreeClaude = readFileSync(join(worktree, "CLAUDE.local.md"), "utf8");
-  assert.match(worktreeClaude, /^# CLAUDE.local.md/);
-  assert.match(worktreeClaude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
-  assert.doesNotMatch(worktreeClaude, /## Ports/);
+  assert.equal(existsSync(join(worktree, "CLAUDE.local.md")), false);
   result = f.run(["context", "render", "--all-worktrees"]);
   assert.equal(result.status, 0, result.stderr);
   assert.match(readFileSync(join(f.repo, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  const mainClaude = readFileSync(join(f.repo, "CLAUDE.local.md"), "utf8");
-  assert.match(mainClaude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
-  assert.doesNotMatch(mainClaude, /## Ports/);
-  assert.ok(f.calls().every(call => call.command === "docker" && call.args[0] === "ps"));
+  assert.equal(existsSync(join(f.repo, "CLAUDE.local.md")), false);
+  assert.deepEqual(f.calls(), []);
 });
 
 test("Create a Ledidi worktree with context but without preparing dependencies", (t) => {
@@ -193,11 +189,37 @@ test("Create a Ledidi worktree with context but without preparing dependencies",
   assert.equal(result.status, 0, result.stderr);
   const worktree = join(f.repo, ".worktrees/docs-only");
   assert.match(readFileSync(join(worktree, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  const claude = readFileSync(join(worktree, "CLAUDE.local.md"), "utf8");
-  assert.match(claude, /^# CLAUDE.local.md/);
-  assert.match(claude, /\[AGENTS\.md\]\(AGENTS\.md\)/);
-  assert.doesNotMatch(claude, /## Ports/);
+  assert.equal(existsSync(join(worktree, "CLAUDE.local.md")), false);
   assert.deepEqual(f.calls(), []);
+});
+
+test("Render AGENTS.md into a worktree that git creates outside dev", (t) => {
+  const f = fixture(t);
+  assert.equal(f.run(["context", "render"], f.repo).status, 0);
+  assert.match(readFileSync(join(f.repo, ".git/info/exclude"), "utf8"), /^\/AGENTS\.md$/m);
+  const worktree = join(f.directory, "harness-worktree");
+  f.git("worktree", "add", "-b", "harness-worktree", worktree);
+  const agents = readFileSync(join(worktree, "AGENTS.md"), "utf8");
+  assert.match(agents, /^# AGENTS.md/);
+  assert.match(agents, /No dev stack is running for this worktree/);
+  assert.equal(f.git("-C", worktree, "status", "--porcelain"), "");
+});
+
+test("Give Claude Code the AGENTS.md of the session's own checkout", (t) => {
+  const f = fixture(t);
+  const worktree = join(f.repo, ".worktrees/nested");
+  f.git("worktree", "add", "-b", "nested", worktree);
+  const session = (cwd) => spawnSync("bash", [join(f.tools, "claude-context.sh")], {
+    cwd, env: { ...f.env, CLAUDE_PROJECT_DIR: cwd }, encoding: "utf8",
+  });
+  let result = session(worktree);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^# AGENTS.md/);
+  assert.match(result.stdout, /No dev stack is running for this worktree/);
+  assert.doesNotMatch(result.stdout, /Main Checkout/);
+  result = session(f.directory);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, "");
 });
 
 test("Detect stale rendered context without changing either checkout file", (t) => {
@@ -206,8 +228,6 @@ test("Detect stale rendered context without changing either checkout file", (t) 
   f.git("worktree", "add", "-b", "feature-context", worktree);
   assert.equal(f.run(["context", "render"], worktree).status, 0);
   const agents = join(worktree, "AGENTS.md");
-  const claude = join(worktree, "CLAUDE.local.md");
-  const originalClaude = readFileSync(claude, "utf8");
   writeFileSync(agents, "Stale instructions\n");
   const result = spawnSync("bash", [join(f.tools, "context-render.sh"), "--check"], {
     cwd: worktree, env: f.env, encoding: "utf8",
@@ -215,7 +235,6 @@ test("Detect stale rendered context without changing either checkout file", (t) 
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stdout, /Stale or missing context:.*AGENTS.md/);
   assert.equal(readFileSync(agents, "utf8"), "Stale instructions\n");
-  assert.equal(readFileSync(claude, "utf8"), originalClaude);
   assert.deepEqual(f.calls(), []);
 });
 
@@ -240,7 +259,6 @@ test("Show the actual worktree and saved endpoints without starting services", (
 
 test("Check shared skill wiring and fail on a broken link", (t) => {
   const f = fixture(t);
-  f.env.DEV_TEST_DOCKER = "allow";
   const home = join(f.directory, "home");
   const skill = join(f.directory, "skills/example");
   const globalSource = join(f.directory, "agents/AGENTS.md");
@@ -265,7 +283,7 @@ test("Check shared skill wiring and fail on a broken link", (t) => {
   writeFileSync(join(skill, "SKILL.md"), "---\nname: example\ndescription: Example\n---\nLoad `missing-skill` before working.\n");
   result = f.run(["context", "check"], f.repo);
   assert.match(result.stdout, /Missing referenced skill missing-skill/);
-  assert.ok(f.calls().every(call => call.command === "docker" && call.args[0] === "ps"));
+  assert.deepEqual(f.calls(), []);
 });
 
 test("Keep a worktree intact when destruction receives help or unknown arguments", (t) => {
@@ -286,103 +304,58 @@ test("Destroy a stackless clean worktree while keeping its branch", (t) => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(existsSync(worktree), false);
   assert.match(f.git("branch", "--list", "feature"), /feature/);
-  assert.ok(f.calls().every(call => call.command === "docker" && ["info", "ps"].includes(call.args[0])));
+  assert.deepEqual(f.calls(), []);
 });
 
-test("Use the same startup workflow for stack up and the old start alias", (t) => {
-  const f = fixture(t);
-  f.env.DEV_TEST_DOCKER = "allow";
-  writeFileSync(join(f.repo, "docker-compose.yml"), "services:\n  postgres:\n    image: postgres\n");
-  let result = f.run(["stack", "up", "postgres"], f.repo);
-  assert.equal(result.status, 0, result.stderr);
-  const first = f.calls();
-  assert.ok(first.some(call => call.args.includes("up") && call.args.includes("--wait")));
-  assert.match(readFileSync(join(f.repo, "AGENTS.md"), "utf8"), /^# AGENTS.md/);
-  result = f.run(["start", "postgres"], f.repo);
-  assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(f.calls().slice(first.length), first);
-  assert.equal(f.calls().some(call => call.command === "npm"), false);
-});
-
-test("Stop stack startup before creating containers when an image rebuild fails", (t) => {
-  const f = fixture(t);
-  f.env.DEV_TEST_DOCKER = "allow";
-  f.env.DEV_TEST_BUILD_FAIL = "1";
-  writeFileSync(join(f.repo, "docker-compose.yml"), "services:\n  registries: {}\n");
-  writeFileSync(join(f.repo, "Dockerfile"), "FROM scratch\n");
-  f.env.DEV_TEST_CONFIG_JSON = JSON.stringify({ name: "fixture", services: {
-    registries: { build: { context: f.repo, dockerfile: "Dockerfile" } },
-  } });
-  const result = f.run(["stack", "up", "registries"], f.repo);
-  assert.notEqual(result.status, 0);
-  assert.ok(f.calls().some(call => call.args.includes("build")));
-  assert.equal(f.calls().some(call => call.args[0] === "compose" &&
-    (call.args.includes("create") || call.args.includes("up"))), false);
-  assert.equal(existsSync(join(f.env.DEV_STACKS_DIR, "repo/image-inputs.json")), false);
-});
-
-for (const checkout of ["main", "worktree"]) {
-  for (const scenario of [
-    { name: "bare startup", args: [], options: [] },
-    { name: "detached startup", args: ["-d"], options: ["-d"] },
-    { name: "build with a wait timeout", args: ["--build", "--wait-timeout", "60"], options: ["--build", "--wait-timeout", "60"] },
-    { name: "PostgreSQL only", args: ["postgres", "-d"], options: ["postgres", "-d"], services: ["postgres"] },
-    { name: "patient opt-in", args: ["--include-patient", "-d"], options: ["-d"], patient: true },
-  ]) {
-    test(`Keep service selection for ${scenario.name} in the ${checkout} checkout`, (t) => {
-      const f = fixture(t);
-      f.env.DEV_TEST_DOCKER = "allow";
-      f.env.DEV_TEST_SERVICES = "registries-frontend\npostgres\ncodelist\nregistries\npatient-bff\npatient-frontend\nshell\nstudies\n";
-      const repo = checkout === "main" ? f.repo : join(f.directory, "startup-worktree");
-      if (checkout === "worktree") f.git("worktree", "add", "-b", "startup", repo);
-      writeFileSync(join(repo, "docker-compose.yml"), "services:\n" +
-        f.env.DEV_TEST_SERVICES.trim().split("\n").map(service => `  ${service}: {}\n`).join(""));
-      for (const workspace of ["services/registries", "services/patient-bff", "apps/patient-frontend"]) {
-        mkdirSync(join(repo, workspace), { recursive: true });
-        writeFileSync(join(repo, workspace, "Dockerfile.dev"), "FROM scratch\n");
-      }
-
-      const result = f.run(["stack", "up", ...scenario.args], repo);
-      assert.equal(result.status, 0, result.stdout + result.stderr);
-      const services = scenario.services ?? ["registries-frontend", "postgres", "codelist", "registries",
-        ...(scenario.patient ? ["patient-bff", "patient-frontend"] : [])];
-      const startupCalls = f.calls().filter(call => call.command === "docker" &&
-        call.args[0] === "compose" && ["create", "up"].includes(call.args[5]));
-      assert.deepEqual(startupCalls.map(call => call.args.slice(5)), [
-        ...(checkout === "worktree" ? [["create", ...services]] : []),
-        ["up", "-d", "--wait", ...scenario.options, ...(scenario.services ? [] : services)],
-      ]);
-    });
-  }
+function ledidiCheckout(f, cwd = f.repo) {
+  writeFileSync(join(cwd, "docker-compose.yml"), "services:\n  registries:\n    environment:\n      - PORT=4000\n");
+  mkdirSync(join(cwd, "services/registries"), { recursive: true });
 }
 
-test("Keep database volumes on down and remove them only on destroy", (t) => {
+test("Reject the patient services before starting anything", (t) => {
   const f = fixture(t);
-  f.env.DEV_TEST_DOCKER = "allow";
-  writeFileSync(join(f.repo, "docker-compose.yml"), "services:\n  postgres:\n    image: postgres\n");
-  let result = f.run(["stack", "down"], f.repo);
-  assert.equal(result.status, 0, result.stderr);
-  const down = f.calls().find(call => call.args.includes("down"));
-  assert.ok(down);
-  assert.equal(down.args.includes("-v"), false);
-  assert.ok(existsSync(join(f.env.DEV_STACKS_DIR, "repo")));
+  ledidiCheckout(f);
+  const result = f.run(["stack", "up", "--include-patient"], f.repo);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /patient services do not run natively yet/);
+  assert.deepEqual(f.calls(), []);
+  assert.equal(existsSync(f.env.DEV_STACKS_DIR), false);
+});
 
-  const previousCalls = f.calls().length;
-  result = f.run(["stack", "destroy", "--yes"], f.repo);
-  assert.equal(result.status, 0, result.stderr);
-  const destroy = f.calls().slice(previousCalls).find(call => call.args.includes("down"));
-  assert.ok(destroy.args.includes("-v"));
-  assert.ok(destroy.args.includes("--rmi"));
-  assert.equal(existsSync(join(f.env.DEV_STACKS_DIR, "repo")), false);
+test("Reject an unknown stack service before starting anything", (t) => {
+  const f = fixture(t);
+  ledidiCheckout(f);
+  const result = f.run(["stack", "up", "studies"], f.repo);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /studies/);
+  assert.deepEqual(f.calls(), []);
 });
 
 test("Refuse non-interactive stack destruction without explicit confirmation", (t) => {
   const f = fixture(t);
-  f.env.DEV_TEST_DOCKER = "allow";
-  writeFileSync(join(f.repo, "docker-compose.yml"), "services:\n  postgres:\n    image: postgres\n");
+  ledidiCheckout(f);
+  const stackDirectory = join(f.env.DEV_STACKS_DIR, "repo");
+  mkdirSync(stackDirectory, { recursive: true });
   const result = f.run(["stack", "destroy"], f.repo);
   assert.equal(result.status, 1);
-  assert.equal(f.calls().some(call => call.args.includes("down")), false);
+  assert.match(result.stderr, /--yes/);
+  assert.ok(existsSync(stackDirectory));
+});
+
+test("Destroy a stopped worktree stack together with its saved slot", (t) => {
+  const f = fixture(t);
+  const worktree = join(f.directory, "feature");
+  f.git("worktree", "add", "-b", "feature", worktree);
+  ledidiCheckout(f, worktree);
+  const stackDirectory = join(f.env.DEV_STACKS_DIR, "feature");
+  mkdirSync(stackDirectory, { recursive: true });
+  writeFileSync(join(stackDirectory, "worktree-slot"), "2\n");
+  writeFileSync(join(worktree, "services/registries/.env.test.local"), "POSTGRES_URL=old\n");
+  const result = f.run(["stack", "destroy", "--yes"], worktree);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.equal(existsSync(stackDirectory), false);
+  assert.equal(existsSync(join(worktree, "services/registries/.env.test.local")), false);
+  assert.match(readFileSync(join(worktree, "AGENTS.md"), "utf8"), /No dev stack is running for this worktree/);
 });
 
 test("Refuse to destroy the main checkout or a dirty worktree", (t) => {
@@ -403,10 +376,10 @@ test("Preserve persisted checkout identity and saved slots across the rename", (
   const stackDirectory = join(f.env.DEV_STACKS_DIR, "feature-tree");
   mkdirSync(stackDirectory, { recursive: true });
   writeFileSync(join(stackDirectory, "worktree-slot"), "3\n");
-  const result = spawnSync("bash", ["-c", '. "$1"; dev_checkout_id_for_repo "$2"; dev_stack_dir_for_repo "$2"; dev_slot_for_repo "$2"; printf "%s\\n" "$DEV_CHECKOUT_LABEL"; dev_slugify "!!!"',
+  const result = spawnSync("bash", ["-c", '. "$1"; dev_checkout_id_for_repo "$2"; dev_stack_dir_for_repo "$2"; dev_slot_for_repo "$2"; dev_slugify "!!!"',
     "test", join(f.tools, "lib/checkout.sh"), worktree], { env: f.env, encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
-  assert.deepEqual(result.stdout.trim().split("\n"), ["feature-tree", stackDirectory, "3", "com.ledidi.dev-workspace", "workspace"]);
+  assert.deepEqual(result.stdout.trim().split("\n"), ["feature-tree", stackDirectory, "3", "workspace"]);
   assert.deepEqual(f.calls(), []);
 });
 
