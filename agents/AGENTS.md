@@ -101,7 +101,7 @@ Cursor Agent have only this rule.
 Before creating or amending a commit, drafting a commit message, or reviewing
 commit-message style, load `write-commit`.
 Before planning PR scope or writing or reviewing a PR title or description,
-load `write-pr`.
+load `write-pr`, or `pr` where `write-pr` is not installed.
 
 Commit completed changes as part of finishing an implementation task, after
 the relevant checks pass. Make focused commits at coherent stopping points
