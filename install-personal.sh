@@ -58,7 +58,7 @@ ACCOUNT_SKILLS=(
   code-review codebase-design diagnosing-bugs domain-modeling grilling handoff
   implement implement-spec improve-codebase-architecture pr prototype research
   retro setup-matt-pocock-skills tdd to-spec to-tickets triage wayfinder wizard
-  writing-for-agents
+  write-commit writing-for-agents
 )
 
 unlink_account_skills() {
