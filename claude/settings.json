@@ -114,7 +114,7 @@
   "skipAutoPermissionPrompt": true,
   "voiceEnabled": true,
   "attribution": {
-    "commit": "Co-authored-by: Claude <noreply@anthropic.com>",
+    "commit": "",
     "pr": ""
   }
 }
