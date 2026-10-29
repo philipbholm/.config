@@ -108,9 +108,7 @@ to the task.
 
 Follow the repository's branch rules.
 
-Push when I request it, when an authorized workflow requires it, or when
-repository instructions require automatic pushing. An existing pull request
-alone is not a reason to push.
+Push whenever you judge it necessary. Never push to `master`.
 
 Explicit requests to leave changes uncommitted or unpushed override these
 defaults.
