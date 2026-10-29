@@ -118,7 +118,7 @@ defaults.
 ## Worktrees
 
 These rules apply wherever the repository names no other worktree location or
-tool. Ledidi checkouts follow their `worktree` and `cleanup-dev` skills.
+tool.
 
 ### Create or enter
 
