@@ -37,6 +37,12 @@ link_entries ~/.claude/skills "$DOTFILES/skills" "$DOTFILES/skills.work"
 link_entries ~/.agents/skills "$DOTFILES/skills" "$DOTFILES/skills.work"
 link_entries ~/.claude/agents "$DOTFILES/claude/agents" "$DOTFILES/claude/agents.work"
 
+# Global rules: the work version replaces the personal one run_core linked.
+echo "Linking work global rules..."
+ln -sfn "$DOTFILES/agents/AGENTS.work.md" ~/AGENTS.md
+ln -sf "$DOTFILES/agents/AGENTS.work.md" ~/.claude/CLAUDE.md
+ln -sfn "$DOTFILES/agents/AGENTS.work.md" ~/.codex/AGENTS.md
+
 # Dev script symlinks in ~/bin
 echo "Linking dev scripts..."
 ln -sf "$DOTFILES/dev/dev.sh" ~/bin/dev

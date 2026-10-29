@@ -5,6 +5,7 @@ This directory contains Claude Code configuration files that are version-control
 ## Structure
 
 - `../agents/AGENTS.md` - Harness-neutral global rules linked as `~/.claude/CLAUDE.md`
+  (`../agents/AGENTS.work.md` on work machines)
 - `agents/` - Custom agent definitions installed on every profile (currently empty)
 - `agents.work/` - Custom agent definitions installed only by `install-work.sh`
   (currently empty — the three `ledidi-*` reviewers were removed with the

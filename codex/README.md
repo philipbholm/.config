@@ -5,7 +5,8 @@ This directory contains Codex configuration files that are version-controlled.
 ## Structure
 
 - `config.toml` - Codex settings
-- `~/.codex/AGENTS.md` - Symlink to the shared global rules in `agents/AGENTS.md`
+- `~/.codex/AGENTS.md` - Symlink to the global rules in `agents/AGENTS.md`
+  (`agents/AGENTS.work.md` on work machines)
 - `rules/default.rules` - Shell prefix-rule allowlist
 
 Codex has no skills dir of its own here — it reads the shared skill set from

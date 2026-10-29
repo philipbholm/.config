@@ -100,8 +100,6 @@ Cursor Agent have only this rule.
 
 Before creating or amending a commit, drafting a commit message, or reviewing
 commit-message style, load `write-commit`.
-Before planning PR scope or writing or reviewing a PR title or description,
-load `write-pr`, or `pr` where `write-pr` is not installed.
 
 Commit completed changes as part of finishing an implementation task, after
 the relevant checks pass. Make focused commits at coherent stopping points
@@ -116,15 +114,6 @@ alone is not a reason to push.
 
 Explicit requests to leave changes uncommitted or unpushed override these
 defaults.
-
-Keep every pull request in draft until I explicitly ask you to mark that pull
-request ready for review. A finished implementation, resolved review findings,
-or green checks mean the draft is ready for me; they do not change its state.
-A repository whose own instructions say to open pull requests ready for review
-overrides this rule; follow the repository there.
-
-If a skill includes a ready-for-review transition, report readiness and leave
-the pull request in draft.
 
 ## Worktrees
 
@@ -176,37 +165,3 @@ reply with.
 
 Remove a worktree with `git worktree remove <path>` from the main checkout,
 without `--force`, and keep its branch.
-
-## Agent skills
-
-### Issue tracker
-
-Repos under `~/work/` keep their agent issue tracker inside the repo's ignored
-`.scratch` directory, at:
-
-    <repo>/.scratch/agents/issue-tracker.md
-
-Read that file first, before any `/wayfinder`, `/triage`, `/to-spec` or
-`/to-tickets` work, or when `/code-review` needs an originating issue. It is
-the authority on where maps, tickets and specs live. Its sibling
-`agents/triage-labels.md` holds the triage label vocabulary.
-
-Read `<repo>/.scratch/agents/domain.md` before an engineering skill explores a
-repo. It defines where the repo's `CONTEXT.md` and ADRs live and how to consume
-them.
-
-Maps, tickets and specs sit beside the `agents/` directory, one directory per
-effort:
-
-    <repo>/.scratch/<effort>/
-
-The directory is inside the working tree but gitignored. Nothing there is
-committed or shared.
-
-**GitHub Issues are not the agent tracker for these repos.** Old agent tickets
-can still be there, closed. Do not read them as the tracker, and do not create
-new ones. Pull requests are different — they stay on GitHub as normal.
-
-If `<repo>/.scratch/` does not exist, the repo has no tracker yet.
-Ask me before you make one, or run `/setup-matt-pocock-skills` when I request
-the complete tracker, label and domain setup.

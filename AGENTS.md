@@ -42,10 +42,15 @@ harness cannot do the thing at all, say so in the file itself rather than
 leaving the gap for the next reader to find.
 
 - `agents/AGENTS.md` is the harness-neutral source for global writing and
-  workflow rules. The installers link it to each harness's global instruction
-  filename: `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, and `~/AGENTS.md` for
-  Cursor Agent, which has no file of its own under `~/.cursor` and instead walks
-  the workspace's parent directories looking for `AGENTS.md`.
+  workflow rules on the personal Mac. `agents/AGENTS.work.md` is the work
+  version; it adds the draft-PR rule, the `write-pr` pointer and the `~/work`
+  issue-tracker rules. These are two full copies, so a rule shared by both goes
+  into both files. `install-common.sh` links `agents/AGENTS.md` to each
+  harness's global instruction filename: `~/.claude/CLAUDE.md`,
+  `~/.codex/AGENTS.md`, and `~/AGENTS.md` for Cursor Agent, which has no file
+  of its own under `~/.cursor` and instead walks the workspace's parent
+  directories looking for `AGENTS.md`. `install-work.sh` re-links the same
+  three paths to `agents/AGENTS.work.md`.
 - `skills/` contains shared skills. `skills.work/` contains work-only skills.
 - When creating or updating a skill, include `agents/openai.yaml` with
   `interface.display_name`, `interface.short_description`, and
