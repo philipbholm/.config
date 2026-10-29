@@ -108,7 +108,8 @@ to the task.
 
 Follow the repository's branch rules.
 
-Push whenever you judge it necessary. Never push to `master`.
+Push whenever you judge it necessary. Do not push to `master` or `main`
+unless I tell you to.
 
 Explicit requests to leave changes uncommitted or unpushed override these
 defaults.
